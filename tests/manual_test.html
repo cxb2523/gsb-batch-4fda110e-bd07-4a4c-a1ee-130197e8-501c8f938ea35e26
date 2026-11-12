@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Boot Loader Manual Test Harness</title>
+<style>
+  body { font-family: monospace; margin: 24px; color: #1f2937; }
+  h1 { font-size: 18px; }
+  button { margin: 4px 6px 4px 0; padding: 6px 12px; cursor: pointer; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px;
+        padding: 12px; white-space: pre-wrap; word-break: break-all; }
+  iframe { display: none; }
+  .ok { color: #1a7f37; } .bad { color: #cf222e; }
+</style>
+<!--
+  Manual, fully offline test page for the self-decoding boot loader.
+  It builds the same minimal fixtures as tests/run_tests.js entirely in the
+  browser (XOR + Base64 with self-made shards), loads each inside a hidden
+  iframe, and asserts window.__DECODE_RESULT__ plus body-replacement safety.
+  No network access or credentials are used.
+-->
+<script>
+'use strict';
+var EXPECTED_SHARDS = 6;
+var SHARD_PREFIX = 'I8lRE4RIeb';
+var KEY_B64 = 'ZpMPMip/lXflm9+/oT2f5fUPMf3Vzv2h';
+var KEY_STR = atob(KEY_B64);
+
+var SUCCESS_HTML = [
+  '<!DOCTYPE html><html><head><meta name="x-meta" content="ok">',
+  '<title>Fixture Success Title</title></head><body>',
+  '<h1 id="fixture-h1">restored-body</h1>',
+  '<script>window.__PAYLOAD_RAN=(window.__PAYLOAD_RAN||0)+1;<\/script>',
+  '<p>between scripts</p>',
+  '<script>window.__PAYLOAD_RAN=(window.__PAYLOAD_RAN||0)+1;<\/script>',
+  '</body></html>'
+].join('');
+var NON_HTML_TEXT = 'plain text without any html body tag whatsoever';
+
+function xorEncode(text) {
+  var out = '';
+  for (var i = 0; i < text.length; i++) {
+    out += String.fromCharCode(
+      text.charCodeAt(i) ^ KEY_STR.charCodeAt(i % KEY_STR.length)
+    );
+  }
+  return btoa(out);
+}
+
+function shardDivs(b64, opts) {
+  opts = opts || {};
+  var parts = [];
+  var chunk = Math.ceil(b64.length / EXPECTED_SHARDS);
+  for (var i = 0; i < EXPECTED_SHARDS; i++) {
+    parts.push(b64.slice(i * chunk, (i + 1) * chunk));
+  }
+  var html = '';
+  for (i = 0; i < EXPECTED_SHARDS; i++) {
+    if (opts.drop === i) continue;
+    var content = opts.emptyAll ? '' : parts[i];
+    if (opts.mangle === i) content = '!!!@#$' + content.slice(6);
+    html += '<div id="' + SHARD_PREFIX + i + '" style="display:none">' +
+            content + '</div>\n';
+  }
+  return html;
+}
+
+/* Boot script is loaded from the sibling index.html so the page under test is
+   always the real production script. This file lives in tests/, index.html
+   one level up; open this harness over http(s) or via file:// (same origin). */
+var BOOT_CACHE = null;
+function loadBootScript(emptyKey) {
+  if (BOOT_CACHE) {
+    return Promise.resolve(emptyKey
+      ? BOOT_CACHE.replace(/atob\('[^']*'\)/, "atob('')")
+      : BOOT_CACHE);
+  }
+  return fetch('../index.html').then(function (r) {
+    if (!r.ok) throw new Error('cannot fetch ../index.html: ' + r.status);
+    return r.text();
+  }).then(function (html) {
+    var m = html.match(/<script>([\s\S]*?)<\/script>/);
+    if (!m) throw new Error('boot script not found in ../index.html');
+    BOOT_CACHE = m[1];
+    return emptyKey
+      ? BOOT_CACHE.replace(/atob\('[^']*'\)/, "atob('')")
+      : BOOT_CACHE;
+  });
+}
+
+function buildPage(boot, shards) {
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    '<title>Fixture Harness</title>' +
+    '<script>\n' +
+    'window.addEventListener("DOMContentLoaded",function(){\n' +
+    '  var pre=document.createElement("pre");pre.id="rep";\n' +
+    '  pre.textContent=JSON.stringify({\n' +
+    '    result:window.__DECODE_RESULT__||null,\n' +
+    '    frozen:!!(window.__DECODE_RESULT__&&Object.isFrozen(window.__DECODE_RESULT__)),\n' +
+    '    sentinelSurvives:!!document.getElementById("sentinel"),\n' +
+    '    payloadMarks:window.__PAYLOAD_RAN||0,\n' +
+    '    title:document.title,\n' +
+    '    hasH1:!!document.getElementById("fixture-h1")\n' +
+    '  });\n' +
+    '  document.body.appendChild(pre);\n' +
+    '});\n<' + '/script></head><body>' +
+    '<div id="sentinel">original-body-marker</div>\n' +
+    shards +
+    '\n<script>' + boot + '<' + '/script></body></html>';
+}
+
+function runInIframe(pageHtml) {
+  return new Promise(function (resolve, reject) {
+    var frame = document.createElement('iframe');
+    frame.id = 'host-frame';
+    frame.onload = function () {
+      // dump-dom style: read after DOMContentLoaded inside the frame
+      setTimeout(function () {
+        try {
+          var doc = frame.contentDocument;
+          var pre = doc.getElementById('rep');
+          if (!pre) throw new Error('reporter pre missing');
+          resolve(JSON.parse(pre.textContent));
+        } catch (e) {
+          reject(e);
+        } finally {
+          frame.remove();
+        }
+      }, 100);
+    };
+    frame.onerror = reject;
+    document.body.appendChild(frame);
+    frame.srcdoc = pageHtml;
+  });
+}
+
+var CASES = [
+  {
+    name: 'success: all shards present',
+    opts: {}, payload: SUCCESS_HTML, emptyKey: false,
+    assert: function (r) {
+      return r.result && r.result.status === 'success' &&
+        r.result.reason === null &&
+        r.result.shardsPresent === 6 && r.result.expectedShards === 6 &&
+        r.result.scriptsExecuted === 2 && r.payloadMarks === 2 &&
+        r.sentinelSurvives === false && r.hasH1 === true &&
+        r.title === 'Fixture Success Title' && r.frozen === true;
+    }
+  },
+  {
+    name: 'failure: missing shard I8lRE4RIeb3',
+    opts: { drop: 3 }, payload: SUCCESS_HTML, emptyKey: false,
+    assert: function (r) {
+      return r.result && r.result.status === 'failure' &&
+        r.result.reason === 'missing_shards' &&
+        r.result.shardsPresent === 5 &&
+        r.result.missingShardIds.join(',') === SHARD_PREFIX + '3' &&
+        r.result.decodedBytes === 0 && r.result.scriptsExecuted === 0 &&
+        r.sentinelSurvives === true && r.hasH1 === false &&
+        r.payloadMarks === 0 && r.frozen === true;
+    }
+  },
+  {
+    name: 'failure: illegal Base64 in shard 2',
+    opts: { mangle: 2 }, payload: SUCCESS_HTML, emptyKey: false,
+    assert: function (r) {
+      return r.result && r.result.status === 'failure' &&
+        r.result.reason === 'invalid_payload' &&
+        r.result.shardsPresent === 6 && r.result.scriptsExecuted === 0 &&
+        r.sentinelSurvives === true && r.hasH1 === false &&
+        r.payloadMarks === 0 && r.frozen === true;
+    }
+  },
+  {
+    name: 'failure: empty XOR key',
+    opts: {}, payload: SUCCESS_HTML, emptyKey: true,
+    assert: function (r) {
+      return r.result && r.result.status === 'failure' &&
+        r.result.reason === 'invalid_key' &&
+        r.result.shardsPresent === 6 && r.result.decodedBytes === 0 &&
+        r.result.scriptsExecuted === 0 &&
+        r.sentinelSurvives === true && r.hasH1 === false &&
+        r.payloadMarks === 0 && r.title === 'Fixture Harness' &&
+        r.frozen === true;
+    }
+  },
+  {
+    name: 'failure: restored bytes are not HTML',
+    opts: {}, payload: NON_HTML_TEXT, emptyKey: false,
+    assert: function (r) {
+      return r.result && r.result.status === 'failure' &&
+        r.result.reason === 'invalid_html' &&
+        r.result.scriptsExecuted === 0 && r.sentinelSurvives === true &&
+        r.frozen === true;
+    }
+  },
+  {
+    name: 'failure: empty Base64 payload',
+    opts: { emptyAll: true }, payload: SUCCESS_HTML, emptyKey: false,
+    assert: function (r) {
+      return r.result && r.result.status === 'failure' &&
+        r.result.reason === 'invalid_payload' &&
+        r.sentinelSurvives === true && r.frozen === true;
+    }
+  }
+];
+
+function log(line, cls) {
+  var out = document.getElementById('out');
+  var div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = line;
+  out.appendChild(div);
+}
+
+function runAll() {
+  document.getElementById('out').textContent = '';
+  var chain = Promise.resolve();
+  var failures = 0;
+  CASES.forEach(function (c) {
+    chain = chain.then(function () {
+      return loadBootScript(c.emptyKey).then(function (boot) {
+        var page = buildPage(boot, shardDivs(xorEncode(c.payload), c.opts));
+        return runInIframe(page);
+      }).then(function (rep) {
+        var passed = false;
+        try { passed = c.assert(rep); } catch (e) { log('ASSERT ERROR ' + e, 'bad'); }
+        if (passed) {
+          log('PASS  ' + c.name, 'ok');
+        } else {
+          failures++;
+          log('FAIL  ' + c.name, 'bad');
+          log('       report: ' + JSON.stringify(rep), 'bad');
+        }
+      }).catch(function (e) {
+        failures++;
+        log('ERROR ' + c.name + ': ' + e.message, 'bad');
+      });
+    });
+  });
+  return chain.then(function () {
+    log('----------------------------------------');
+    log(failures === 0
+      ? 'ALL ' + CASES.length + ' MANUAL CASES PASSED'
+      : failures + ' OF ' + CASES.length + ' CASES FAILED',
+      failures === 0 ? 'ok' : 'bad');
+  });
+}
+</script>
+</head>
+<body>
+<h1>Boot Loader Manual Test Harness</h1>
+<p>
+  Runs six offline fixtures (success, missing shard, illegal Base64, empty
+  key, non-HTML payload, empty payload) through the real boot script fetched
+  from <code>../index.html</code>. Each fixture loads inside a hidden
+  <code>srcdoc</code> iframe — nothing leaves the machine.
+</p>
+<button onclick="runAll()">Run all cases</button>
+<pre id="out">Click "Run all cases".</pre>
+</body>
+</html>
