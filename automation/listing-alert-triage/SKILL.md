@@ -54,7 +54,9 @@ Options:
 
 City matching ignores case and accents. `default=` is used when a city has no reference. Without any reference the verdict is `no-reference` but price/m2 is still computed.
 
-Typical agent workflow: fetch the alert mails with your mail tool, save them as `.eml`/`.txt` in a temp folder, run the script with the user's reference prices and criteria, then report the GEM and `GEM?` lines with their links.
+Every record read from the input is accounted for. Listings with both a price and a surface are ranked; entries missing one of them are returned as **unparsed** entries carrying the fields that were found (title, price or area, city, link), the source label (file path or `<stdin>`) and a `missing` reason such as `missing area`. Unparsed entries are reported, not fatal: the exit code stays `0`.
+
+Typical agent workflow: fetch the alert mails with your mail tool, save them as `.eml`/`.txt` in a temp folder, run the script with the user's reference prices and criteria, then report the GEM and `GEM?` lines with their links, and separately review the unparsed entries against the original e-mails.
 
 ## Example output
 
@@ -65,14 +67,25 @@ Typical agent workflow: fetch the alert mails with your mail tool, save them as 
 [excluded    ] Rennes           410 000 EUR     120 m2   3 417 EUR/m2  ref 3400.0  ratio 1.00x
     -> over max price
     https://example.com/ad/2002
+
+Unparsed entries (1):
+[UNPARSED    ] missing area             source: alerts/2026-11-13.eml
+    title: Parking spot, no surface given
+    price: 25 000 EUR  area: n/a  city: Lyon
+    https://example.com/ad/2003
+
+Summary: 2 parsed, 1 unparsed (3 entries total)
 ```
+
+`--format json` returns `{"counts": {...}, "listings": [...], "unparsed": [...]}` where `counts` gives `total`, `parsed`, `unparsed` and a `by_verdict` breakdown, so results are machine-countable. `--format csv` writes one row per entry (both statuses, plus `source` and `missing` columns). Text and JSON are UTF-8; CSV follows the standard `csv` module defaults.
 
 ## Limits
 
-- Extraction is heuristic: it looks for an amount followed by `€`/`EUR` and a number followed by `m²`/`m2`, within one block separated by blank lines or `---` lines. Alert layouts vary; always spot-check the first run against the original e-mail.
+- Extraction is heuristic: it looks for an amount followed by `€`/`EUR` and a number followed by `m²`/`m2`, within blocks separated by blank lines or `---` lines. A title line and its price/area lines are rejoined even when blank lines split them, but two blocks that each contain both a price and an area are always treated as separate listings. Alert layouts vary; always spot-check the first run against the original e-mail.
 - Only euro prices and square metres are understood. Rent vs sale is not distinguished; filter with `--max-price` or feed sale alerts only.
 - City detection handles `City 12345`, `12345 City` and `in/à City`. Otherwise the city is `?` and `default=` applies.
-- Identical listings (same price, surface, city) are deduplicated, which can merge two genuinely different but identical-looking units.
+- Deduplication uses the listing link when present, so two genuinely different units with identical price/surface/city are both kept; when no link is found it falls back to the original price + surface + city key.
+- Entries missing a price or a surface cannot be ranked; they appear under `unparsed` with the reason rather than disappearing.
 - Reference prices quality drives the result. A ratio is a screening signal, not a valuation.
 - Tested only on synthetic fixtures, not on live portal e-mails.
 
@@ -83,6 +96,6 @@ python3 scripts/triage.py --selftest      # prints ranked sample and "SELFTEST O
 python3 scripts/triage.py examples/sample_alert.txt --ref Nantes=3900 --ref Rennes=3400
 ```
 
-The self-test covers French/English price formats, duplicates, min-surface exclusion, suspicious-price flag and city detection. The sample file is raw MIME source (quoted-printable HTML with links); it is parsed correctly when saved with a `.eml` extension, e.g. `cp examples/sample_alert.txt /tmp/a.eml`.
+The self-test covers French/English price formats, blank-line-split blocks, link-aware dedup (including same price/surface/city twins), missing-surface and missing-price unparsed entries, JSON/CSV/text rendering, repeated-input dedup, min-surface exclusion, suspicious-price flag and city detection. The sample file is raw MIME source (quoted-printable HTML with links); it is parsed correctly when saved with a `.eml` extension, e.g. `cp examples/sample_alert.txt /tmp/a.eml`.
 
 Tested on Hermes v0.22.5 on 2026-10-27 (self-test and sample message copied to `.eml`, synthetic data only).
