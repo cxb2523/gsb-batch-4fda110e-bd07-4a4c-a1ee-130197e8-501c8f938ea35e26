@@ -992,7 +992,11 @@ class WebSearchTest(unittest.TestCase):
                 server.requests[0],
             )
             self.assertNotIn(b"Authorization", server.requests[0])
-            self.assertNotIn("search.test", repr(result))
+            # The operator backend coordinates are redacted from diagnostics.
+            self.assertNotIn("search.test", json.dumps(result, ensure_ascii=False))
+            self.assertEqual(
+                result["diagnostics"]["source_url"], "http://searxng.invalid/search"
+            )
             self.assertEqual(result["backend"], "searxng")
             self.assertIs(result["untrusted"], True)
 
@@ -1271,9 +1275,13 @@ class WebDownloadTest(StorageFixture):
                 first = web.execute("download_url", args, workspace, rc)
             self.assertTrue(first["ok"], first)
             with upstream(body=b"changed"):
-                self.assertEqual(
-                    web.execute("download_url", args, workspace, rc), first
-                )
+                second = web.execute("download_url", args, workspace, rc)
+            # Diagnostics are per-call telemetry; the committed result repeats.
+            self.assertEqual(
+                {k: v for k, v in first.items() if k != "diagnostics"},
+                {k: v for k, v in second.items() if k != "diagnostics"},
+            )
+            self.assertNotEqual(first["diagnostics"], second["diagnostics"])
             calls = [
                 event["data"]
                 for event in self.store._state(self.scope, lease=lease).events

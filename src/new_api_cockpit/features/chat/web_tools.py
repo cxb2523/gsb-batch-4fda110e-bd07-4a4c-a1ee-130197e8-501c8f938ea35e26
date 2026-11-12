@@ -42,6 +42,9 @@ DNS_SECONDS = 3
 CONNECT_SECONDS = 5
 IDLE_SECONDS = 5
 TOOL_SECONDS = 15
+# Upper bound on the diagnostics envelope for ordinary (non-pathological-URL)
+# calls, reserved inside the 32 KiB result budget before text truncation.
+_DIAGNOSTICS_RESERVE = 2048
 
 _MESSAGES = {
     "WEB_DISABLED": "本轮未明确启用联网工具。",
@@ -67,8 +70,163 @@ class _WebError(Exception):
         self.code = code
 
 
-def _error(code):
-    return {"ok": False, "code": code, "message": _MESSAGES[code]}
+# Fixed vocabulary for the audit trail; never extended with raw exception text.
+_STAGES = (
+    "arguments",
+    "enabled",
+    "url",
+    "dns",
+    "connect",
+    "headers",
+    "body",
+    "search",
+    "results",
+    "workspace",
+    "done",
+)
+_REDIRECT_REASONS = (
+    "followed",
+    "too_many_redirects",
+    "https_downgrade",
+    "search_cross_host",
+    "redirect_loop",
+    "redirect_rejected",
+)
+
+
+class _Diagnostics:
+    """Verifiable per-call collection trail.
+
+    Only fixed stage names, fixed error codes, validated credential-free URLs
+    and local counters are recorded. Raw upstream errors, environment values
+    and credentials never enter a snapshot.
+    """
+
+    def __init__(self, *, search=False):
+        self.search = search
+        self._stack = []
+        self.stages = []
+        self.hops = []
+        self.source_url = ""
+
+    def begin(self, stage, hop=None):
+        if stage not in _STAGES:
+            raise ValueError(f"unknown diagnostics stage {stage!r}")
+        entry = {"stage": stage, "status": "open"}
+        if hop is not None:
+            entry["hop"] = hop
+        self._stack.append(entry)
+        self.stages.append(entry)
+        return entry
+
+    def _pop(self):
+        if self._stack:
+            return self._stack.pop()
+        return None
+
+    def succeed(self, stage, hop=None):
+        entry = self._pop()
+        if entry is None or entry["stage"] != stage:
+            entry = {"stage": stage, "status": "success"}
+            if hop is not None:
+                entry["hop"] = hop
+            self.stages.append(entry)
+        else:
+            entry["status"] = "success"
+
+    def fail(self, stage, code, hop=None):
+        entry = self._pop()
+        if entry is None or entry["stage"] != stage:
+            entry = {"stage": stage, "status": "failure", "code": code}
+            if hop is not None:
+                entry["hop"] = hop
+            self.stages.append(entry)
+        else:
+            entry["status"] = "failure"
+            entry["code"] = code
+            if hop is not None and "hop" not in entry:
+                entry["hop"] = hop
+        return entry
+
+    def record_failure(self, stage, code, hop=None):
+        """Append a failure entry without touching the open-stage stack."""
+        entry = {"stage": stage, "status": "failure", "code": code}
+        if hop is not None:
+            entry["hop"] = hop
+        self.stages.append(entry)
+        return entry
+
+    def fail_if_open(self, code, *, fallback="body", hop=None):
+        """Close every still-open stage as a failure.
+
+        If a failure stage already exists the conclusion is on record, so no
+        duplicate entry is appended. Otherwise record the fallback stage.
+        """
+        if self._stack:
+            while self._stack:
+                entry = self._pop()
+                entry["status"] = "failure"
+                entry["code"] = code
+                if hop is not None and "hop" not in entry:
+                    entry["hop"] = hop
+            return
+        if not any(entry["status"] == "failure" for entry in self.stages):
+            self.fail(fallback, code, hop)
+
+    def redirect(self, hop, source, target, status, reason):
+        if reason not in _REDIRECT_REASONS:
+            raise ValueError(f"unknown redirect reason {reason!r}")
+        self.hops.append(
+            {
+                "hop": hop,
+                "source": source,
+                "target": target,
+                "status": status,
+                "reason": reason,
+            }
+        )
+
+    def _redact(self, value):
+        # Search backend coordinates are operator environment, not user data:
+        # expose the scheme/path shape behind a fixed non-resolvable name.
+        if not value:
+            return value
+        parts = urlsplit(value)
+        return urlunsplit((parts.scheme, "searxng.invalid", parts.path, "", ""))
+
+    def snapshot(self, raw_bytes, redirects, code=None):
+        # Only completed stages are auditable; an "open" entry means the stage
+        # is still in progress internally and must never appear in an output.
+        stages = [dict(entry) for entry in self.stages if entry["status"] != "open"]
+        hops = [dict(entry) for entry in self.hops]
+        if self.search:
+            for entry in hops:
+                entry["source"] = self._redact(entry["source"])
+                entry["target"] = self._redact(entry["target"])
+            source = self._redact(self.source_url)
+        else:
+            source = self.source_url
+        result = {
+            "stages": stages,
+            "raw_bytes": raw_bytes,
+            "redirects": redirects,
+            "source_url": source,
+            "hops": hops,
+        }
+        if code is not None:
+            result["code"] = code
+        return result
+
+
+def _error(code, diag=None, budget=None):
+    result = {"ok": False, "code": code, "message": _MESSAGES[code]}
+    if diag is not None:
+        result["diagnostics"] = diag.snapshot(
+            getattr(budget, "raw_bytes", 0),
+            len(diag.hops),
+            code,
+        )
+    return result
 
 
 def _get(context, name, default=None):
@@ -80,7 +238,7 @@ def _get(context, name, default=None):
 
 
 class _Budget:
-    def __init__(self, context):
+    def __init__(self, context, diag=None):
         deadline = _get(context, "deadline")
         if type(deadline) not in (int, float) or not math.isfinite(deadline):
             raise _WebError("WEB_INVALID_ARGUMENTS")
@@ -89,6 +247,7 @@ class _Budget:
         self.abort = _get(context, "abort") or AbortControl()
         self.stop = _get(context, "stop_event")
         self.raw_bytes = 0
+        self.diag = diag or _Diagnostics()
         self.check()
 
     def check(self, deadline=None):
@@ -600,12 +759,16 @@ def _chunked_body(response, budget):
             raise _WebError("WEB_CONTENT_INVALID")
 
 
-def _request(url, budget, *, search=False):
+def _request(url, budget, *, search=False, hop=0):
+    diag = budget.diag
     sock, response = None, None
     try:
         budget.check()
+        diag.begin("dns", hop)
         family, kind, protocol, address = _resolve(url.host, url.port, budget)
+        diag.succeed("dns", hop)
         budget.check()
+        diag.begin("connect", hop)
         deadline = min(budget.deadline, time.monotonic() + CONNECT_SECONDS)
         sock = budget.abort.register(socket.socket(family, kind, protocol))
         sock.setblocking(False)
@@ -633,6 +796,7 @@ def _request(url, budget, *, search=False):
                     _wait(sock, True, budget, deadline)
                 except ssl.SSLWantWriteError:
                     _wait(sock, False, budget, deadline)
+        diag.succeed("connect", hop)
         accept = (
             "application/json"
             if search
@@ -643,6 +807,7 @@ def _request(url, budget, *, search=False):
             f"Accept: {accept}\r\nAccept-Encoding: identity\r\n"
             "User-Agent: New-API-Cockpit-Web/2\r\nConnection: close\r\n\r\n"
         ).encode("ascii")
+        diag.begin("headers", hop)
         _send(sock, payload, budget)
         reader = _Reader(sock, budget)
         response = HTTPResponse(_ResponseSocket(reader))
@@ -654,13 +819,17 @@ def _request(url, budget, *, search=False):
             location = response.headers.get("Location")
             if not location or len(location.encode()) > MAX_URL_BYTES:
                 raise _WebError("WEB_REDIRECT_ERROR")
-            return {"location": location}
+            # Headers stay open: _fetch decides whether following the hop is
+            # allowed and closes the stage as success or a redirect failure.
+            return {"location": location, "status": response.status}
         if response.status != 200:
             raise _WebError("WEB_HTTP_ERROR")
         charset = response.headers.get_content_charset("utf-8").lower()
         if charset not in {"utf-8", "utf8"}:
             raise _WebError("WEB_CONTENT_INVALID")
         content_type = response.headers.get_content_type().lower()
+        diag.succeed("headers", hop)
+        diag.begin("body", hop)
         if response.headers.get("Transfer-Encoding", "").strip().lower() == "chunked":
             body = _chunked_body(response, budget)
         else:
@@ -677,6 +846,9 @@ def _request(url, budget, *, search=False):
                 raise _WebError("WEB_CONTENT_INVALID")
         budget.check()
         return {"body": bytes(body), "content_type": content_type}
+    except _WebError as exc:
+        diag.fail_if_open(exc.code, hop=hop)
+        raise
     finally:
         if response is not None:
             response.close()
@@ -689,28 +861,82 @@ def _request(url, budget, *, search=False):
 
 
 def _fetch(raw_url, budget, *, search=False):
+    diag = budget.diag
+    diag.begin("url")
     current = _url(raw_url)
+    diag.succeed("url")
+    diag.source_url = current.value
     seen = set()
     for hop in range(MAX_REDIRECTS + 1):
         budget.check()
         if current.value in seen:
+            diag.redirect(
+                hop + 1,
+                current.value,
+                current.value,
+                0,
+                "redirect_loop",
+            )
+            diag.fail("headers", "WEB_REDIRECT_ERROR", hop)
             raise _WebError("WEB_REDIRECT_ERROR")
         seen.add(current.value)
-        response = _request(current, budget, search=search)
+        response = _request(current, budget, search=search, hop=hop)
         if "location" not in response:
+            # A final response keeps the headers stage open until its body is
+            # accepted; record only the reached source and hop count here.
+            diag.source_url = current.value
             return {**response, "source_url": current.value, "redirects": hop}
+        http_status = response.get("status", 302)
+        next_number = hop + 1
+        diag.begin("url")
+        try:
+            next_url = _url(urljoin(current.value, response["location"]))
+        except _WebError as exc:
+            # Keep the target's own verdict (e.g. WEB_URL_BLOCKED); the hop
+            # record explains that the failure happened while following.
+            diag.record_failure("url", exc.code, next_number)
+            diag.fail("headers", exc.code, hop)
+            diag.redirect(
+                next_number,
+                current.value,
+                None,
+                http_status,
+                "redirect_rejected",
+            )
+            raise
+        reason = None
         if hop == MAX_REDIRECTS:
-            raise _WebError("WEB_REDIRECT_ERROR")
-        next_url = _url(urljoin(current.value, response["location"]))
-        if current.scheme == "https" and next_url.scheme != "https":
-            raise _WebError("WEB_REDIRECT_ERROR")
-        if search and (next_url.scheme, next_url.host, next_url.port) != (
+            reason = "too_many_redirects"
+        elif current.scheme == "https" and next_url.scheme != "https":
+            reason = "https_downgrade"
+        elif search and (next_url.scheme, next_url.host, next_url.port) != (
             current.scheme,
             current.host,
             current.port,
         ):
+            reason = "search_cross_host"
+        if reason is not None:
+            diag.record_failure("url", "WEB_REDIRECT_ERROR", next_number)
+            diag.redirect(
+                next_number,
+                current.value,
+                next_url.value,
+                http_status,
+                reason,
+            )
+            diag.fail("headers", "WEB_REDIRECT_ERROR", hop)
             raise _WebError("WEB_REDIRECT_ERROR")
+        diag.succeed("url")
+        diag.succeed("headers", hop)
+        diag.redirect(
+            next_number,
+            current.value,
+            next_url.value,
+            http_status,
+            "followed",
+        )
         current = next_url
+        diag.source_url = current.value
     raise _WebError("WEB_REDIRECT_ERROR")
 
 
@@ -822,6 +1048,7 @@ class _ReadableHTML(HTMLParser):
 
 
 def _bounded_fetch(response, budget):
+    diag = budget.diag
     value = _text(response)
     truncated = False
     if response["content_type"] in {"text/html", "application/xhtml+xml"}:
@@ -841,17 +1068,21 @@ def _bounded_fetch(response, budget):
         "untrusted": True,
     }
     limit = min(config.TOOL_RESULT_BYTES, MAX_RESULT_BYTES)
-    if len(canonical_json(result)) > limit:
+    # Reserve room for the diagnostics block so the final envelope never trips
+    # the hard 32 KiB result limit on a successful fetch.
+    budget.check()
+    if len(canonical_json(result)) > limit - _DIAGNOSTICS_RESERVE:
         result["truncated"] = True
         low, high = 0, min(len(value), limit)
         while low < high:
             middle = (low + high + 1) // 2
             result["text"] = value[:middle]
-            if len(canonical_json(result)) <= limit:
+            if len(canonical_json(result)) <= limit - _DIAGNOSTICS_RESERVE:
                 low = middle
             else:
                 high = middle - 1
         result["text"] = value[:low]
+    diag.succeed("body")
     budget.check()
     return result
 
@@ -861,6 +1092,8 @@ def _clip(value, size):
 
 
 def _search(args, budget):
+    diag = budget.diag
+    diag.begin("search")
     settings = WebSettings.from_env()
     if not settings.search_backend:
         raise _WebError("WEB_SEARCH_UNAVAILABLE")
@@ -872,6 +1105,8 @@ def _search(args, budget):
     )
     if response["content_type"] != "application/json":
         raise _WebError("WEB_CONTENT_INVALID")
+    diag.succeed("search")
+    diag.begin("results")
     try:
         value = json.loads(_text(response))
         entries = value["results"]
@@ -906,11 +1141,11 @@ def _search(args, budget):
         "truncated": truncated,
         "untrusted": True,
     }
-    while results and len(canonical_json(result)) > min(
-        config.TOOL_RESULT_BYTES, MAX_RESULT_BYTES
-    ):
+    limit = min(config.TOOL_RESULT_BYTES, MAX_RESULT_BYTES) - _DIAGNOSTICS_RESERVE
+    while results and len(canonical_json(result)) > limit:
         results.pop()
         result["truncated"] = True
+    diag.succeed("results")
     return result
 
 
@@ -944,6 +1179,8 @@ def _arguments(name, args, context):
         ):
             raise ValueError()
     else:
+        # The url stage is recorded once by _fetch, which also owns redirect
+        # revalidation; here the parser-level guard stays silent.
         _url(args["url"])
         if name == "download_url":
             _filename(args["name"])
@@ -955,9 +1192,12 @@ def _arguments(name, args, context):
 
 
 def _download(response, args, workspace, context, budget):
+    diag = budget.diag
+    content = _text(response, download=True)
+    diag.succeed("body")
+    diag.begin("workspace")
     if len(response["body"]) > config.TOOL_WRITE_BYTES:
         raise _WebError("WEB_DOWNLOAD_LIMIT")
-    content = _text(response, download=True)
     name = args["name"]
     call_id = _get(context, "call_id")
     if getattr(workspace, "run_id", None) != _get(context, "run_id"):
@@ -985,6 +1225,7 @@ def _download(response, args, workspace, context, budget):
     budget.check()
     if result.get("ok") is not True:
         raise _WebError("WEB_WORKSPACE_ERROR")
+    diag.succeed("workspace")
     return {
         **result,
         "source_url": response["source_url"],
@@ -998,23 +1239,39 @@ def execute(name, args, workspace, run_context):
 
     No context/credential/endpoint enters a result. Run cancellation/deadline
     and sanitized storage failures escape to the runner, never become retries.
+    Every outcome carries a fixed-vocabulary diagnostics trail describing the
+    stages reached, counters and the final conclusion.
     """
+    diag = _Diagnostics(search=name == "web_search")
+    budget = None
     try:
+        diag.begin("enabled")
         if _get(run_context, "web_enabled") is not True:
-            return _error("WEB_DISABLED")
+            raise _WebError("WEB_DISABLED")
+        diag.succeed("enabled")
         if name not in ("web_search", "http_fetch", "download_url"):
-            return _error("WEB_UNKNOWN_TOOL")
-        budget = _Budget(run_context)
+            diag.begin("arguments")
+            raise _WebError("WEB_UNKNOWN_TOOL")
+        budget = _Budget(run_context, diag)
+        diag.begin("arguments")
         try:
             args = _arguments(name, args, run_context)
+        except _WebError as exc:
+            # Argument shape was parseable; the verdict concerns the URL itself
+            # (policy block), so record it at the url stage, not arguments.
+            diag.succeed("arguments")
+            diag.fail("url", exc.code)
+            raise
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
             raise _WebError("WEB_INVALID_ARGUMENTS") from None
+        diag.succeed("arguments")
         if name == "web_search":
             result = _search(args, budget)
         else:
             if name == "download_url" and getattr(workspace, "run_id", None) != _get(
                 run_context, "run_id"
             ):
+                diag.begin("workspace")
                 raise _WebError("WEB_WORKSPACE_ERROR")
             response = _fetch(args["url"], budget)
             result = (
@@ -1023,19 +1280,26 @@ def execute(name, args, workspace, run_context):
                 else _download(response, args, workspace, run_context, budget)
             )
         budget.check()
-        if len(canonical_json(result)) > min(
-            config.TOOL_RESULT_BYTES, MAX_RESULT_BYTES
-        ):
+        limit = min(config.TOOL_RESULT_BYTES, MAX_RESULT_BYTES)
+        diag.begin("done")
+        # The text/results payloads already reserve the diagnostics envelope,
+        # but verify the complete result still fits so a pathological long-URL
+        # trail can never masquerade as a response-size failure on success.
+        if len(canonical_json(result)) + _DIAGNOSTICS_RESERVE > limit:
             raise _WebError("WEB_RESPONSE_LIMIT")
+        diag.succeed("done")
+        result["diagnostics"] = diag.snapshot(budget.raw_bytes, len(diag.hops))
         return result
     except _WebError as exc:
-        return _error(exc.code)
+        diag.fail_if_open(exc.code, fallback="body")
+        return _error(exc.code, diag, budget)
     except ChatError as exc:
         if exc.code in {"CHAT_CANCELLED", "CHAT_DEADLINE"}:
             raise ChatError("本轮已停止。", exc.status, exc.code) from None
         if exc.code.startswith("CHAT_STORAGE_"):
             raise ChatError("文件存储暂不可用。", 503, exc.code) from None
-        return _error("WEB_NETWORK_ERROR")
+        diag.fail_if_open("WEB_NETWORK_ERROR", fallback="body")
+        return _error("WEB_NETWORK_ERROR", diag, budget)
     except (
         OSError,
         HTTPException,
@@ -1044,9 +1308,11 @@ def execute(name, args, workspace, run_context):
         UnicodeError,
         RecursionError,
     ):
-        if "budget" in locals():
+        if budget is not None:
             try:
                 budget.check()
             except _WebError as exc:
-                return _error(exc.code)
-        return _error("WEB_NETWORK_ERROR")
+                diag.fail_if_open(exc.code, fallback="body")
+                return _error(exc.code, diag, budget)
+        diag.fail_if_open("WEB_NETWORK_ERROR", fallback="body")
+        return _error("WEB_NETWORK_ERROR", diag, budget)

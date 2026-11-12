@@ -109,6 +109,9 @@
 拒绝内网、环回、链路本地、云元数据、特殊 IPv6、非标准端口、用户凭据 URL 和 HTTPS 降级。单工具最多 15 秒、响应最多 2 MiB、返回结果最多 32 KiB、最多 3 跳重定向，并受整轮截止/取消控制。
 不承诺可抓取需要登录、反爬、压缩正文或非 UTF-8 编码的网站。完整规则见[公网工具约束](chat-internals.md#文件与公网工具)。
 
+三个联网工具的每次结果都带固定词表的 `diagnostics` 采集诊断，可核对请求走到了哪一阶段、结论是什么。诊断按 `enabled → arguments → url → dns → connect → headers → body →（search/results 或 workspace）→ done` 记录各阶段成功/失败，失败阶段带原错误码；并给出本次已读取的原始字节数 `raw_bytes`、重定向跳数 `redirects`、最终来源 `source_url` 与逐跳 `hops`（每跳含来源、目标、HTTP 状态与 `followed`/`https_downgrade`/`search_cross_host`/`too_many_redirects`/`redirect_loop`/`redirect_rejected` 原因，能看出停在第几跳）。
+成功结果原有字段保持不变；失败结果仍是 `ok:false` 加原错误码与固定中文 `message`。诊断只写阶段名、错误码、计数器和已校验的无凭据 URL，不写入凭据、环境变量、上游异常原文；`web_search` 的后端主机名固定脱敏为 `searxng.invalid`。
+
 自适应 Agent 另提供 `search_chat_history`，只检索本人**当前聊天**的原始公开文本和有界工具资料片段，可分页定位原事件；不是跨聊天或跨用户搜索。
 网页、检索结果、文件及工具输出都是不可信资料，不授予额外权限，也不自动升级为长期用户事实。
 

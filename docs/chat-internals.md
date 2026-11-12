@@ -78,6 +78,10 @@ DNS 全部地址先检查再固定数值地址连接，TLS 仍校验原主机；
 响应、地址数量、重定向、读取和总时间均有界；不承诺支持登录网站、反爬、压缩响应或任意字符编码。
 搜索依赖运维配置的 SearXNG；未配置时不伪造搜索结果，也不因此禁用独立的公网读取。
 
+联网工具结果统一带 `diagnostics` 采集诊断：`stages` 按固定阶段名（enabled、arguments、url、dns、connect、headers、body、search/results、workspace、done）记录每段成功或失败，失败阶段带错误码；`raw_bytes` 是本次实际读取的原始（含响应头与分块帧）字节数，`redirects` 是重定向跳数，`source_url` 是最终来源，`hops` 逐跳记录来源、目标、状态与原因，超限/降级/跨主机/回环/被拒都能定位到具体跳数。
+超过 3 跳、HTTPS 降级为 HTTP、搜索跨主机跳转判 `WEB_REDIRECT_ERROR`；响应体超过 2 MiB 或响应头超过 32 KiB 判 `WEB_RESPONSE_LIMIT` 并记录已读字节；分块编码不完整、带 `Content-Encoding` 或重复头判 `WEB_CONTENT_INVALID`；下载正文超过工作区写入上限判 `WEB_DOWNLOAD_LIMIT`，工作区 `run_id` 不匹配判 `WEB_WORKSPACE_ERROR`，两者在 `workspace` 阶段区分，不混为网络错误。
+诊断只含固定词表、计数器和已校验的无凭据 URL；不包含凭据、环境变量或上游错误原文，搜索后端坐标统一脱敏为 `searxng.invalid`。
+
 ## 个人设置与自动记忆
 
 `MEMORY.md`、`SOUL.md`、`IDENTITY.md` 和文本 Skill 只属于本人。Skill 是提示模板，不是可安装执行的程序。
