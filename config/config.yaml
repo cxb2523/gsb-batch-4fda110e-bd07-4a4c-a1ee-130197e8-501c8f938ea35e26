@@ -1,0 +1,55 @@
+# List of keywords to allow/deny during filtering
+filters:
+  allow:
+    - junior
+    - jr
+    - jr.
+    - data
+    - analyst
+    - analytics
+    - entry
+    - scientist
+    - ai
+    - machine learning
+    - ml
+    - ml/ai
+    - statistics
+    - statistician
+    - associate
+    - bi
+    - business intelligence
+    - reporting
+  deny:
+    - senior
+    - sr.
+    - sr
+    - principal
+    - director
+    - president
+    - vice president
+    - vp
+    - manager
+    - staff
+    - researcher
+    - lead
+    - research
+    - executive
+    - head
+    - software
+    - intern
+    - summer
+    - fall
+    - winter
+    - chief
+    - officer
+    - trainer
+    - postdoc
+    - postdoctoral
+    - avp
+    - distinguished
+    - kitchen
+    - retail
+    - shift
+
+# Max number of concurrent tasks for scraping
+semaphore: 4

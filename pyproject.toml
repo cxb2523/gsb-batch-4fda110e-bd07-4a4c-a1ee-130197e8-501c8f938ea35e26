@@ -1,0 +1,20 @@
+[project]
+name = "first-responder"
+version = "0.1.0"
+description = "First Responder is a scraper that finds and sends matched job listings to Discord."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "asyncio>=4.0.0",
+    "playwright>=1.61.0",
+    "psycopg[binary]>=3.3.3",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.3",
+    "requests>=2.32.5",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.7",
+    "ty>=0.0.24",
+]
