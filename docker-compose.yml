@@ -1,0 +1,23 @@
+# Local Postgres for OpenDashboards' own data (connections, apps).
+# Start: docker compose up -d
+name: opendashboards
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: opendashboards
+      POSTGRES_PASSWORD: opendashboards
+      POSTGRES_DB: opendashboards
+    ports:
+      - "54329:5432"
+    volumes:
+      - opendashboards-postgres:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opendashboards -d opendashboards"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  opendashboards-postgres:

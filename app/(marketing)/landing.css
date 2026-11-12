@@ -1,0 +1,97 @@
+/*
+ * The landing page's keyframes, and the one registered property its scaled
+ * scenes need. Everything else is Tailwind classes on the elements.
+ */
+
+/* Registered as a length so a container-query width resolves to px before
+   it is divided into a scale factor (Safari gets it wrong otherwise). */
+@property --stage-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* A block arriving: it rises a little and settles into place. */
+@keyframes landing-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+/* A picture arriving: it rises out of a short blur. */
+@keyframes landing-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    translate: 0 14px;
+  }
+}
+
+/* Text coming into focus: hidden until 0.8s into the 1.7s run, then it
+   sharpens from faint. Timed for the hero's reply. */
+@keyframes landing-focus {
+  0%,
+  47% {
+    opacity: 0;
+  }
+  47.1% {
+    opacity: 0.15;
+    filter: blur(2px);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* The active tab filling up as its example plays. */
+@keyframes landing-tab-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* A monochrome brand mark briefly taking its brand colour. */
+@keyframes landing-shimmer {
+  50% {
+    background-color: var(--shimmer);
+  }
+}
+
+/* Shiro's eyes blinking twice, quickly, every few seconds. */
+@keyframes landing-blink {
+  0%,
+  86%,
+  90%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  88%,
+  92% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* The OpenUI Dashboards pie: its top-right slice pulling away and settling back in. */
+@keyframes landing-slice {
+  0%,
+  15%,
+  85%,
+  100% {
+    transform: translate(0, 0);
+  }
+  45%,
+  60% {
+    transform: translate(7px, -7px);
+  }
+}
+
+/* An FAQ answer easing in as its question opens. */
+@keyframes landing-faq-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
