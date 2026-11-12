@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}板块热力图{% endblock %}
+
+{% block content %}
+<style>
+    /* 本页局部样式：只作用于热力图标题下方的范围说明，不改全局 card-header */
+    .heatmap-meta {
+        color: #8892b0; font-size: 12px; line-height: 1.7;
+        margin: -6px 0 12px; white-space: normal; word-break: break-word;
+    }
+    .heatmap-meta.warn { color: #ffb74d; }
+</style>
+<div class="card">
+    <div class="card-header">
+        行业板块热力图
+        <span class="hint">方块面积 = 资金规模 | 颜色: 红/橙=流入, 绿/蓝=流出</span>
+        <span id="status-heatmap-page" class="hint" style="color:#ffb74d;font-size:11px;"></span>
+    </div>
+    <!-- 范围/完整性独立一行：不挤 flex 标题，长文案可换行（S3-3C 整改） -->
+    <div id="status-heatmap-range" class="heatmap-meta"></div>
+    <div id="chart-heatmap" class="chart-box chart-largest"></div>
+</div>
+
+<div class="row">
+    <div class="col">
+    <div class="card">
+        <div class="card-header">板块涨跌幅排行</div>
+        <div id="chart-sector-rank" class="chart-box chart-large"></div>
+    </div>
+    </div>
+    <div class="col">
+        <div class="card">
+            <div class="card-header">板块资金流入排行</div>
+            <div id="chart-sector-flow" class="chart-box chart-large"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">数据说明</div>
+    <div class="summary-box" style="color:#8892b0;font-size:12px;line-height:1.8;">
+        <p><b>涨跌幅</b> = 该行业板块当日的加权平均涨跌幅（%）。<span style="color:#ef5350;">■ 红色</span>越深表示涨幅越大，<span style="color:#26a69a;">■ 绿色</span>越深表示跌幅越大。</p>
+        <p><b>资金净流向</b> = 主力资金（超大单+大单）主动买入额 − 主动卖出额，单位为亿元（亿）。<span style="color:#ef5350;">■ 红/橙色</span> = 资金净流入，<span style="color:#26a69a;">■ 绿/深绿</span> = 资金净流出。方块面积越大表示资金规模越大。</p>
+        <p style="margin-top:4px;">* 非交易时段为基于真实大盘指数的估算值，交易时段自动切换为东方财富实时数据。</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/heatmap.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    loadHeatmapData();                 // 首次加载：普通模式（成功后不重复请求）
+    // 定时器回调不传参，必须显式 force，否则会被 loader 当成"已加载"直接跳过
+    startAutoRefresh('heatmap', function () { return loadHeatmapData(true); });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}总览仪表盘{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col" style="flex:0.45;min-width:0;">
+        <div class="card">
+            <div class="card-header">全市资金流向 <span class="hint" id="ts-market-flow">--</span> <span id="status-market-flow" class="hint" style="color:#ffb74d;font-size:11px;"></span></div>
+            <div id="chart-market-flow" class="chart-box chart-large"></div>
+        </div>
+    </div>
+    <div class="col" style="flex:1;min-width:0;">
+        <div class="card">
+            <div class="card-header">板块热度 TOP10 <span class="hint" id="ts-heatmap">--</span> <span id="status-heatmap" class="hint" style="color:#ffb74d;font-size:11px;"></span></div>
+            <div id="chart-heatmap-preview" class="chart-box chart-large"></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">快速入口</div>
+            <div class="quick-links">
+                <a href="/market-flow" class="quick-card">📊 全市资金走向</a>
+                <a href="/heatmap" class="quick-card">🔥 板块热力图</a>
+                <a href="/stock-flow" class="quick-card">💰 个股资金追踪</a>
+                <a href="/valuation" class="quick-card">📈 估值偏离分析</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">数据健康 <span class="hint" id="ts-data-health">--</span>
+                <span class="hint" id="status-data-health" style="color:#ffb74d;font-size:11px;"></span></div>
+            <div id="data-health-body" class="hint" style="font-size:12px;">加载中…</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadDashboardData() {
+    fetch('/api/market-flow')
+        .then(r => r.json())
+        .then(res => {
+            if (res.code !== 200) return;
+            const d = res.data;
+            renderPieChart('chart-market-flow', d.title, d.items, d.colors);
+            updateTimestamp('ts-market-flow');
+            if (res._market_status) {
+                document.getElementById('status-market-flow').textContent = res._market_status;
+            }
+        });
+
+    fetch('/api/heatmap')
+        .then(r => r.json())
+        .then(res => {
+            if (res.code !== 200) return;
+            const top10 = res.data.slice(0, 10);
+            renderBarChart('chart-heatmap-preview', '板块涨跌幅 %', top10);
+            updateTimestamp('ts-heatmap');
+            if (res._market_status) {
+                document.getElementById('status-heatmap').textContent = res._market_status;
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    startAutoRefresh('dashboard', loadDashboardData);
+});
+</script>
+{% endblock %}

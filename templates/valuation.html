@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}估值偏离分析{% endblock %}
+
+{% block content %}
+<!-- ========== Tab 切换 ========== -->
+<div class="card" style="padding:0;">
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab(event, 'stock-tab')">个股估值</button>
+        <button class="tab-btn" onclick="switchTab(event, 'sector-tab')">板块估值</button>
+        <button class="tab-btn" onclick="switchTab(event, 'index-tab')">科创50技术分析</button>
+    </div>
+</div>
+
+<!-- ========== Tab 1: 个股估值（四段式单卡） ========== -->
+<div id="stock-tab" class="tab-content active">
+    <div class="row">
+        <div class="col" style="flex:2">
+            <div class="card">
+                <div class="card-header">查询个股估值</div>
+                <div class="search-bar">
+                    <input type="text" id="val-stock-search" placeholder="输入股票名称搜索" class="search-input">
+                    <button onclick="searchValStock()" class="btn">搜索</button>
+                </div>
+                <div id="val-search-results" class="search-results"></div>
+            </div>
+        </div>
+        <div class="col" style="flex:1">
+            <div class="card">
+                <div class="card-header">搜索历史</div>
+                <div id="val-search-history" class="chip-group"><p class="hint">暂无</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 个股估值：基础估值 / 估值偏离 / 内在价值 / 政策与事件 合成一张卡 -->
+    <div class="card" id="val-main-card">
+        <div class="card-header">
+            <span id="val-main-title">个股估值</span>
+            <span id="val-main-actions" style="float:right;"></span>
+        </div>
+
+        <div class="val-section">
+            <div class="val-section-title">一、基础估值</div>
+            <div id="valuation-detail" class="summary-box">
+                <p class="loading-hint">选择个股后加载...</p>
+            </div>
+        </div>
+
+        <div class="val-section">
+            <div class="val-section-title">二、估值偏离
+                <span class="val-section-hint">个股 PE 与行业 PE 对比，柱高为偏离幅度</span>
+            </div>
+            <div id="chart-valuation" class="chart-box chart-large"></div>
+        </div>
+
+        <div class="val-section">
+            <div class="val-section-title">三、内在价值
+                <span class="val-section-hint">模型估算（年化 EPS × 行业 PE × 安全边际），仅供参考</span>
+            </div>
+            <div id="chart-intrinsic" class="chart-box chart-large"></div>
+            <div id="intrinsic-detail" class="summary-box"></div>
+        </div>
+
+        <div class="val-section">
+            <div class="val-section-title">四、政策与事件
+                <span id="val-policy-meta" class="val-section-hint"></span>
+                <button id="val-live-btn" class="chip" onclick="refreshPolicyLive()"
+                        style="float:right;background:#16233d;border:1px solid #253656;color:#a8b8d8;border-radius:14px;padding:2px 10px;cursor:pointer;font-size:12px;"
+                        title="按当前股票实时检索公开公告与快讯（只作线索，未审核）">🔍 实时检索公告</button>
+            </div>
+            <div id="valuation-policy" class="summary-box">
+                <p class="loading-hint">选择个股后加载...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            自选股池 <button onclick="clearValWatchlist()" style="background:none;border:none;color:#8892b0;cursor:pointer;font-size:12px;">清空</button>
+        </div>
+        <div id="val-watchlist-stocks" class="chip-group">
+            <p class="loading-hint">暂无自选股</p>
+        </div>
+    </div>
+
+    <!-- 斐波那契回调线 -->
+    <div class="card">
+        <div class="card-header">斐波那契回调线（近20日高低点）</div>
+        <div id="chart-fibonacci-stock" class="chart-box chart-largest"></div>
+        <div id="fibonacci-stock-summary" class="summary-box">
+            <p class="loading-hint">选择个股后加载...</p>
+        </div>
+    </div>
+
+    <!-- 摆动点 · 支撑压力 · 趋势线 -->
+    <div class="card">
+        <div class="card-header">
+            摆动点 · 支撑压力 · 趋势线
+            <button class="chip swing-level-btn active" data-level="day" onclick="switchSwingLevel(this)">日线</button>
+            <button class="chip swing-level-btn" data-level="week" onclick="switchSwingLevel(this)">周线</button>
+        </div>
+        <div id="chart-swing" class="chart-box chart-largest"></div>
+        <div id="swing-summary" class="summary-box">
+            <p class="loading-hint">选择个股后加载...</p>
+        </div>
+    </div>
+</div>
+
+<!-- ========== Tab 2: 板块估值 ========== -->
+<div id="sector-tab" class="tab-content">
+    <div class="hint" id="sector-status" style="padding:2px 8px 8px;color:#8892b0;font-size:12px;"></div>
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">板块估值气泡图（PE × 市值）</div>
+                <div id="chart-sector-scatter" class="chart-box chart-largest"></div>
+                <div id="sector-scatter-note" class="hint" style="padding:4px 8px 8px;color:#8892b0;font-size:12px;line-height:1.6;white-space:normal;word-break:break-word;"></div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header">板块 PE 排行</div>
+                <div id="chart-sector-pe-rank" class="chart-box chart-large"></div>
+                <div id="sector-rank-note" class="hint" style="padding:4px 8px 8px;color:#8892b0;font-size:12px;line-height:1.6;white-space:normal;word-break:break-word;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== Tab 3: 指数技术分析 ========== -->
+<div id="index-tab" class="tab-content">
+    <div class="card" style="padding:8px 16px;">
+        <div class="index-selector" style="display:flex;gap:8px;">
+            <button class="chip index-btn active" data-code="000688" data-name="科创50" onclick="switchIndex(this)">科创50</button>
+            <button class="chip index-btn" data-code="000001" data-name="上证指数" onclick="switchIndex(this)">上证指数</button>
+            <button class="chip index-btn" data-code="399001" data-name="深证成指" onclick="switchIndex(this)">深证成指</button>
+            <button class="chip index-btn" data-code="399006" data-name="创业板指" onclick="switchIndex(this)">创业板指</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header" id="index-ema-title">科创50 EMA20 均线偏离度趋势</div>
+                <div id="chart-ema-deviation" class="chart-box chart-largest"></div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header" id="index-fib-title">科创50 斐波那契回调线</div>
+                <div id="chart-fibonacci" class="chart-box chart-largest"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">技术分析说明</div>
+        <div id="tech-analysis-summary" class="summary-box">
+            <p class="loading-hint">加载中...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.val-section { padding:10px 0 4px; border-top:1px dashed #1b2740; }
+.val-section:first-of-type { border-top:none; }
+.val-section-title { color:#e6f1ff; font-size:14px; font-weight:600; margin:4px 0 8px; }
+.val-section-hint { color:#8892b0; font-size:11px; font-weight:normal; margin-left:8px; }
+.tab-bar { display:flex; border-bottom:1px solid #233054; }
+.tab-btn { background:none; border:none; color:#8892b0; padding:12px 24px; cursor:pointer; font-size:14px; border-bottom:2px solid transparent; transition:all 0.2s; }
+.tab-btn:hover { color:#e0e0e0; }
+.tab-btn.active { color:#ef5350; border-bottom-color:#ef5350; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+</style>
+
+<script src="/static/js/valuation.js"></script>
+{% endblock %}
