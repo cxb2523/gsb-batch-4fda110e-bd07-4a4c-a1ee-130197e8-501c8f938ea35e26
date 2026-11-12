@@ -55,11 +55,21 @@ const now = new Date();
 const profile = readJSON(path.join(DATA_DIR, "profile.json"), {});
 const missions = readJSON(path.join(DATA_DIR, "projects.json"), { missions: [] }).missions || [];
 
-// 1. blog / portfolio check (real HTTP request)
+// 1. blog / portfolio check (real HTTP request). HEAD first; if HEAD fails,
+// fall back to a real GET before declaring it offline — some hosts reject HEAD.
 const blogUrl = profile.profile?.blog || "";
-const blog = blogUrl
-  ? { url: blogUrl, ...(await timedFetch(blogUrl, { method: "HEAD" })) }
-  : { url: "", ok: false, status: 0, error: "no URL configured" };
+const blog = await (async () => {
+  if (!blogUrl) return { url: "", ok: false, status: 0, ms: 0, error: "no URL configured", method: null };
+  const head = await timedFetch(blogUrl, { method: "HEAD" });
+  if (head.ok) return { url: blogUrl, ...head, method: "HEAD" };
+  const get = await timedFetch(blogUrl, { method: "GET" });
+  return {
+    url: blogUrl,
+    ...get,
+    method: "GET",
+    error: get.ok ? null : `HEAD ${head.status || "ERR"} → GET ${get.status || "ERR"}: ${get.error || "failed"}`,
+  };
+})();
 
 // 2. mission repo checks (real API reads — paced + retried so unauthenticated
 // runs don't trip secondary rate limits; CI always has GITHUB_TOKEN anyway)
@@ -87,58 +97,114 @@ async function checkRepo(full) {
       if (!res.ok) return { ok: false, http: res.status, ms, rateLimited: res.status === 403 || res.status === 429 };
       const d = await res.json();
       if (d.message) return { ok: false, http: res.status, ms, rateLimited: false };
-      return {
-        ok: true, http: 200, ms,
-        stars: d.stargazers_count ?? null,
-        lastPush: d.pushed_at?.slice(0, 10) ?? null,
-        openIssues: d.open_issues_count ?? null,
-        archived: d.archived ?? null,
-      };
+      return { ok: true, http: 200, ms, repo: d };
     } catch (e) {
       clearTimeout(t);
       if (attempt < 3) {
         await sleep(2000 * attempt);
         continue;
       }
-      return { ok: false, http: 0, ms: Date.now() - start, error: String(e.cause || e).slice(0, 100) };
+      return { ok: false, http: 0, ms: Date.now() - start, rateLimited: false, error: String(e.cause || e).slice(0, 100) };
     }
   }
 }
+// Repo renamed or transferred? The configured full name 404s, so list the
+// owner's repos and look for the same short name under a different full_name.
+async function findRenamed(configuredFull) {
+  const [owner, short] = configuredFull.split("/");
+  if (!owner || !short) return null;
+  for (let page = 1; page <= 3; page++) {
+    try {
+      const res = await fetch(
+        `https://api.github.com/users/${encodeURIComponent(owner)}/repos?per_page=100&page=${page}`,
+        { headers: apiHeaders }
+      );
+      if (!res.ok) return null;
+      const list = await res.json();
+      if (!Array.isArray(list)) return null;
+      const hit = list.find(
+        (r) => r.name?.toLowerCase() === short.toLowerCase() && r.full_name && r.full_name !== configuredFull
+      );
+      if (hit) return hit;
+      if (list.length < 100) return null; // no more pages
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+const repoStats = (d) => ({
+  stars: d.stargazers_count ?? null,
+  lastPush: d.pushed_at?.slice(0, 10) ?? null,
+  openIssues: d.open_issues_count ?? null,
+  archived: d.archived ?? null,
+});
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const missionResults = [];
 for (const ms of missions) {
-  const r = await checkRepo(ms.repo);
+  let r = await checkRepo(ms.repo);
+  let renamedTo = null;
+  let migrated = false;
+  if (!r.ok && r.http === 404) {
+    // maybe renamed/transferred — search the owner's repos by short name
+    const found = await findRenamed(ms.repo);
+    if (found) {
+      renamedTo = found.full_name;
+      migrated = true;
+      r = { ok: true, http: 200, ms: r.ms, repo: found };
+    }
+    await sleep(TOKEN ? 200 : 1200);
+  }
+  const stats = r.ok && r.repo ? repoStats(r.repo) : {};
   missionResults.push({
     mission: ms.name,
     repo: ms.repo,
     ok: r.ok,
     http: r.http,
-    stars: r.stars ?? null,
-    lastPush: r.lastPush ?? null,
-    openIssues: r.openIssues ?? null,
-    archived: r.archived ?? null,
+    stars: stats.stars ?? null,
+    lastPush: stats.lastPush ?? null,
+    openIssues: stats.openIssues ?? null,
+    archived: stats.archived ?? null,
     ms: r.ms,
-    note: !r.ok && r.rateLimited ? "rate-limited; will recheck next run" : (r.error || null),
+    renamedTo,
+    migrated,
+    note: migrated
+      ? `renamed: ${ms.repo} → ${renamedTo}`
+      : !r.ok && r.rateLimited
+        ? "rate-limited; will recheck next run"
+        : (r.error || null),
   });
   await sleep(TOKEN ? 200 : 1200); // pace unauthenticated calls
 }
 
-const failed = missionResults.filter((x) => !x.ok);
-const deferred = failed.filter((x) => x.note && x.note.startsWith("rate-limited"));
-const down = failed.filter((x) => !(x.note && x.note.startsWith("rate-limited")));
+// classify every mission exactly once: reachable (ok, incl. renamed),
+// deferred (rate-limited — unknown, not down), or down (404/5xx/timeout)
+const reachable = missionResults.filter((x) => x.ok);
+const renamed = missionResults.filter((x) => x.migrated);
+const deferred = missionResults.filter((x) => !x.ok && x.note && x.note.startsWith("rate-limited"));
+const down = missionResults.filter((x) => !x.ok && !(x.note && x.note.startsWith("rate-limited")));
 const report = {
   checkedAt: now.toISOString(),
   day: now.toISOString().slice(0, 10),
-  blog: { url: blog.url, ok: blog.ok, http: blog.status, ms: blog.ms, error: blog.error || null },
+  blog: { url: blog.url, ok: blog.ok, http: blog.status, ms: blog.ms, method: blog.method, error: blog.error || null },
   summary: {
     missions: missionResults.length,
-    ok: missionResults.length - failed.length,
-    failed: failed.length,
+    ok: reachable.length, // truly reachable only — renamed counts, deferred/down do not
+    failed: deferred.length + down.length,
     blogOk: blog.ok,
+    reachable: reachable.length,
+    renamed: renamed.length,
+    deferred: deferred.length,
+    down: down.length,
   },
   missions: missionResults,
 };
-write(path.join(DATA_DIR, "ops-report.json"), JSON.stringify(report, null, 2));
+const reportJson = JSON.stringify(report, null, 2);
+if (/undefined|NaN/.test(reportJson)) {
+  console.error("refusing to write report containing undefined/NaN");
+  process.exit(1);
+}
+write(path.join(DATA_DIR, "ops-report.json"), reportJson);
 
 // 3. README region (honest: green, red, or "deferred" — whatever is true)
 const allGreen = blog.ok && down.length === 0 && deferred.length === 0;
@@ -151,7 +217,8 @@ const lines = [
   `LAST OPS CHECK .... ${report.day} UTC`,
   `PORTFOLIO ......... ${blog.ok ? `● ONLINE (HTTP ${blog.status}, ${blog.ms}ms)` : `● OFFLINE (HTTP ${blog.status || "ERR"})`}`,
   `MISSIONS .......... ${report.summary.ok}/${report.summary.missions} reachable via API`,
-  ...down.map((f) => `  ✗ ${f.mission} (${f.repo}) → HTTP ${f.http}`),
+  ...renamed.map((f) => `  ↪ ${f.mission} renamed → ${f.renamedTo}`),
+  ...down.map((f) => `  ✗ ${f.mission} (${f.repo}) → HTTP ${f.http || "ERR"}`),
   ...deferred.map((f) => `  … ${f.mission} (${f.repo}) → deferred (rate-limited)`),
   `VERDICT ........... ${verdict}`,
 ];
