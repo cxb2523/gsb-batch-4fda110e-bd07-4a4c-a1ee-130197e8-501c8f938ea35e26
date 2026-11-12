@@ -1,7 +1,12 @@
 import asyncio
+import base64
+import gzip
 import json
+import socket
 import threading
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import quote, urlsplit
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
@@ -313,27 +318,32 @@ def test_add_whitelist_ip_sends_protocol_and_targeting(writes):
     assert srv.remove_whitelist_ip("3") == {"removed": "3"}
 
 
-@pytest.mark.parametrize("status, body, blocked", [
-    (200, b"<html>results</html>", None),
-    (403, b"", "HTTP 403 (forbidden)"),
-    (429, b"", "HTTP 429 (rate limited)"),
-    (200, b"<title>Just a moment...</title>", "Cloudflare challenge"),
-    (200, b"<div class='g-recaptcha'></div>", "captcha"),
+@pytest.mark.parametrize("status, body, blocked, kind, evidence", [
+    (200, b"<html>results</html>", None, None, None),
+    (403, b"", "HTTP 403 (forbidden)", "status", "status:403"),
+    (429, b"", "HTTP 429 (rate limited)", "status", "status:429"),
+    (200, b"<title>Just a moment...</title>", "Cloudflare challenge",
+     "page", "marker:just a moment..."),
+    (200, b"<div class='g-recaptcha'></div>", "captcha", "page", "marker:captcha"),
     (202, b"<script src='https://x.awswaf.com/challenge.js'></script><noscript>"
-          b"we need to verify that you're not a robot</noscript>", "AWS WAF challenge"),
+          b"we need to verify that you're not a robot</noscript>", "AWS WAF challenge",
+     "page", "marker:awswaf"),
 ])
-def test_site_check_reads_the_status_and_the_page(fake, monkeypatch, status, body, blocked):
+def test_site_check_reads_the_status_and_the_page(fake, monkeypatch, status, body,
+                                                 blocked, kind, evidence):
     seen = {}
 
     def fetch(proxy_url, url):
         seen["proxy"], seen["url"] = proxy_url, url
-        return status, url, body
+        return srv._Page(status=status, url=url, body=body)
 
     monkeypatch.setattr(srv, "_fetch_through", fetch)
     out = srv.test_proxy_on_site("https://example.com", country="de")
     assert out["blocked"] == blocked
+    assert out["blocked_by"] == kind and out["evidence"] == evidence
     assert out["ok"] is (blocked is None)
     assert out["bytes"] == len(body)
+    assert out["redirect_count"] == 0 and out["redirects"] == []
     assert "acct_user-country-de" in seen["proxy"]
     assert SECRET not in json.dumps(out)
 
@@ -341,6 +351,48 @@ def test_site_check_reads_the_status_and_the_page(fake, monkeypatch, status, bod
 def test_site_check_refuses_a_non_http_url(fake):
     with pytest.raises(ToolError, match="http or https"):
         srv.test_proxy_on_site("file:///etc/passwd")
+
+
+def test_site_check_returns_a_failure_even_when_credentials_cannot_be_read(monkeypatch):
+    # No env credentials and no API key: reading the password again would raise.
+    monkeypatch.delenv("NODEMAVEN_LOGIN", raising=False)
+    monkeypatch.delenv("NODEMAVEN_PASSWORD", raising=False)
+    monkeypatch.delenv("NODEMAVEN_APIKEY", raising=False)
+    monkeypatch.setattr(srv, "state", srv._State())
+
+    class Dead:
+        def url(self):
+            return "http://u:s3cr%40t%3Apw%2F1@127.0.0.1:1"
+
+    monkeypatch.setattr(srv, "_build_proxy", lambda *a, **k: Dead())
+    out = srv.test_proxy_on_site("http://example.invalid/")
+    assert out["ok"] is False and "error" in out
+    assert "s3cr%40t" not in out["error"] and SECRET not in out["error"]
+
+
+def test_site_check_redacts_a_short_password_without_mangling_the_message(fake, monkeypatch):
+    # A one-character password must not rewrite "Unsupported" into nonsense,
+    # while the copy inside the proxy URL must still go.
+    class OneChar:
+        def url(self):
+            return "http://u:p@127.0.0.1:1"
+
+    monkeypatch.setattr(srv, "_build_proxy", lambda *a, **k: OneChar())
+    out = srv.test_proxy_on_site("https://example.invalid/")
+    assert out["ok"] is False
+    assert "Unsupported" in out["error"] or "URL" in out["error"]
+    assert "@127.0.0.1" not in out["error"] or "<PROXY_PASSWORD>" in out["error"]
+
+
+def test_redact_keeps_short_secrets_out_of_urls_only():
+    text = "tunnel to http://u:p@h:1 failed: Unsupported method"
+    assert srv._redact(text, ("p",)) == (
+        "tunnel to http://u:<PROXY_PASSWORD>@h:1 failed: Unsupported method")
+    assert srv._redact("bad s3cr@t:pw/1 here", ("s3cr@t:pw/1",)) == (
+        "bad <PROXY_PASSWORD> here")
+    # A punctuation-only secret must not rewrite every comma in the message.
+    assert srv._redact("http://u:,@@h:1 well, yes", (",",)) == (
+        "http://u:<PROXY_PASSWORD>@@h:1 well, yes")
 
 
 def test_site_check_keeps_the_password_out_of_errors(fake, monkeypatch):
@@ -353,69 +405,383 @@ def test_site_check_keeps_the_password_out_of_errors(fake, monkeypatch):
     assert "s3cr%40t" not in out["error"] and SECRET not in out["error"]
 
 
+def test_site_check_returns_a_failure_when_the_proxy_is_unreachable(fake, monkeypatch):
+    # A port nothing listens on: the connection is refused for real, not mocked.
+    probe = socket.socket()
+    probe.bind(("127.0.0.1", 0))
+    port = probe.getsockname()[1]
+    probe.close()
+
+    class StubProxy:
+        def url(self):
+            return f"http://u:{quote(SECRET, safe='')}@127.0.0.1:{port}"
+
+    monkeypatch.setattr(srv, "_build_proxy", lambda *a, **k: StubProxy())
+    out = srv.test_proxy_on_site("https://example.com")
+    assert out["ok"] is False and "error" in out
+    assert "status" not in out and "final_url" not in out
+    assert quote(SECRET, safe="") not in json.dumps(out)
+    assert SECRET not in json.dumps(out)
+
+
 def test_a_full_page_with_a_captcha_widget_is_not_a_block(fake, monkeypatch):
     page = b"<form><div class='g-recaptcha'></div></form>" + b"x" * (srv.BLOCK_PAGE_MAX + 1)
-    monkeypatch.setattr(srv, "_fetch_through", lambda proxy_url, url: (200, url, page))
+    monkeypatch.setattr(srv, "_fetch_through",
+                        lambda proxy_url, url: srv._Page(200, url, page))
     out = srv.test_proxy_on_site("https://example.com")
-    assert out["ok"] is True and out["blocked"] is None
+    assert out["ok"] is True and out["blocked"] is None and out["truncated"] is False
+
+
+def test_a_large_page_that_is_not_200_is_not_scanned_for_markers(fake, monkeypatch):
+    # 202 with a huge body: size alone is not a refusal, so no page verdict.
+    page = b"<div class='g-recaptcha'></div>" + b"x" * (srv.BLOCK_PAGE_MAX + 1)
+    monkeypatch.setattr(srv, "_fetch_through",
+                        lambda proxy_url, url: srv._Page(202, url, page))
+    out = srv.test_proxy_on_site("https://example.com")
+    assert out["ok"] is True and out["blocked"] is None and out["blocked_by"] is None
+
+
+
+def test_an_undecodable_body_is_not_called_clean(fake, monkeypatch):
+    page = srv._Page(200, "https://example.com", b"not-gzip-at-all",
+                     content_encoding="gzip",
+                     decode_error="gzip: zlib.error: incorrect header check")
+    monkeypatch.setattr(srv, "_fetch_through", lambda proxy_url, url: page)
+    out = srv.test_proxy_on_site("https://example.com")
+    assert out["ok"] is False
+    assert out["blocked"] is None and out["blocked_by"] is None
+    assert "decode_error" in out and "zlib.error" in out["decode_error"]
+
 
 
 class FakeProxy(BaseHTTPRequestHandler):
+    """A local HTTP server that also answers as the proxy for absolute-form GETs.
+
+    Routing is by path, so one server plays the proxy and the site at once: the
+    request line of a proxied GET carries the absolute URL, and ``self.path``
+    is the whole of it. Requests are logged with ``Proxy-Authorization`` so the
+    tests can prove the password was sent to the proxy and nowhere else.
+    """
+
+    #: ``{"path": (status, headers, body)}`` overrides the built-in routes.
+    routes = {}
     seen = []
-    location = None
+    encoding = None
 
     def do_GET(self):
         FakeProxy.seen.append((self.path, self.headers.get("Proxy-Authorization")))
-        if FakeProxy.location and self.path.endswith("/start"):
-            self.send_response(302)
-            self.send_header("Location", FakeProxy.location)
-            self.send_header("Content-Length", "0")
-            self.end_headers()
+        FakeProxy.encoding = self.headers.get("Accept-Encoding")
+        parts = urlsplit(self.path)
+        path = parts.path or "/"
+        if path == "/abort":
+            # Hang up mid-response: the client sees the connection die with no
+            # status to judge, which is the "connection error" path.
+            self.close_connection = True
             return
-        self.send_response(200)
-        self.send_header("Content-Length", "5")
+        route = FakeProxy.routes.get(path)
+        if route is None:
+            route = self.default_route(path)
+        status, headers, body = route
+        self.send_response(status)
+        for name, value in headers.items():
+            self.send_header(name, value)
+        if "Content-Length" not in headers:
+            self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(b"hello")
+        self.wfile.write(body)
+        if path in ("/cut", "/cut-challenge"):
+            # Hang up before the promised Content-Length was delivered.
+            self.close_connection = True
+
+    def default_route(self, path):
+        if path == "/start":
+            return 302, {"Location": "/final"}, b""
+        if path == "/final":
+            return 200, {}, b"<html>final page</html>"
+        if path == "/challenge":
+            return 200, {}, b"<title>Just a moment...</title>"
+        if path == "/forbidden":
+            return 403, {}, b"denied"
+        if path == "/cut":
+            # Promises 4000 bytes and sends 30, then the connection closes:
+            # a body that never finished arriving, with no marker in the prefix.
+            return 200, {"Content-Length": "4000"}, b"<html>partial page"
+        if path == "/cut-challenge":
+            return 200, {"Content-Length": "4000"}, b"<title>Just a moment...</title>"
+        return 404, {}, b"not found"
 
     def log_message(self, *args):
         pass
 
 
 @pytest.fixture
-def fake_proxy(monkeypatch):
-    FakeProxy.seen, FakeProxy.location = [], None
+def site(fake, monkeypatch):
+    """A live local proxy/site server, and a proxy string that points at it."""
+    FakeProxy.routes, FakeProxy.seen, FakeProxy.encoding = {}, [], None
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), FakeProxy)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    yield f"http://u:p%40w@127.0.0.1:{httpd.server_address[1]}"
-    httpd.shutdown()
+    port = httpd.server_address[1]
+    proxy = f"http://u:{quote(SECRET, safe='')}@127.0.0.1:{port}"
+
+    class LocalProxy:
+        def url(self):
+            return proxy
+
+    monkeypatch.setattr(srv, "_build_proxy", lambda *a, **k: LocalProxy())
+
+    class Site:
+        base = f"http://site.example.invalid:{port}"
+
+        @staticmethod
+        def url(path):
+            return f"{Site.base}{path}"
+
+        @staticmethod
+        def set(path, status, body=b"", headers=None):
+            FakeProxy.routes[path] = (status, headers or {}, body)
+
+    try:
+        yield Site
+    finally:
+        httpd.shutdown()
 
 
-def test_site_check_goes_through_the_proxy(fake_proxy):
-    status, _, body = srv._fetch_through(fake_proxy, "http://example.invalid/page")
-    assert (status, body) == (200, b"hello")
-    assert FakeProxy.seen == [("http://example.invalid/page", "Basic dTpwQHc=")]
+def test_site_check_follows_a_redirect_and_reports_the_hops(site):
+    out = srv.test_proxy_on_site(site.url("/start"))
+    assert out["ok"] is True
+    assert out["status"] == 200
+    assert out["final_url"] == site.url("/final")
+    assert out["redirect_count"] == 1
+    assert out["redirects"] == [site.url("/start")]
+    assert out["bytes"] == len(b"<html>final page</html>")
+    assert out["blocked"] is None and out["blocked_by"] is None
+    assert SECRET not in json.dumps(out)
 
 
-def test_site_check_ignores_no_proxy(fake_proxy, monkeypatch):
+def test_site_check_follows_a_chain_of_redirects(site):
+    site.set("/a", 301, headers={"Location": "/b"})
+    site.set("/b", 307, headers={"Location": "/c"})
+    site.set("/c", 200, b"<html>landed</html>")
+    out = srv.test_proxy_on_site(site.url("/a"))
+    assert out["ok"] is True
+    assert out["final_url"] == site.url("/c")
+    assert out["redirect_count"] == 2
+    assert out["redirects"] == [site.url("/a"), site.url("/b")]
+
+
+@pytest.mark.parametrize("target", [
+    "ftp://files.example.invalid/x",
+    "javascript:alert(1)",
+    "file:///etc/passwd",
+    "mailto:someone@example.invalid",
+])
+def test_site_check_stops_at_a_redirect_off_http_and_says_where(site, target):
+    site.set("/go", 302, headers={"Location": target})
+    out = srv.test_proxy_on_site(site.url("/go"))
+    assert out["ok"] is False
+    assert out["status"] == 302
+    assert out["final_url"] == site.url("/go")
+    assert out["stopped_at"] == target
+    assert out["evidence"] == "status:302"
+    # No hop was followed: the 302 that pointed away is the last URL, and
+    # the count is what was followed, not what was seen.
+    assert out["redirect_count"] == 0
+    assert out["redirects"] == []
+    assert out["bytes"] == 0
+    # The proxy must not carry the target; one request only.
+    assert [p for p, _ in FakeProxy.seen] == [site.url("/go")]
+    assert SECRET not in json.dumps(out)
+
+
+def test_site_check_stops_a_redirect_loop_at_the_limit(site):
+    site.set("/loop", 302, headers={"Location": "/loop"})
+    out = srv.test_proxy_on_site(site.url("/loop"))
+    assert out["ok"] is False
+    assert out["status"] == 302
+    assert out["redirect_count"] == srv.SITE_MAX_REDIRECTS
+    assert out["evidence"] == f"redirect_count:{srv.SITE_MAX_REDIRECTS}"
+    assert out["final_url"] == site.url("/loop")
+    # One request that issued the first 302, plus the SITE_MAX_REDIRECTS hops
+    # that were followed; the last answer was not followed.
+    assert len(FakeProxy.seen) == srv.SITE_MAX_REDIRECTS + 1
+
+
+def test_site_check_asks_for_a_compressed_response(site):
+    srv.test_proxy_on_site(site.url("/final"))
+    assert "gzip" in (FakeProxy.encoding or "")
+    assert "deflate" in (FakeProxy.encoding or "")
+
+
+def test_site_check_decodes_gzip_before_looking_for_markers(site):
+    page = b"<title>Just a moment...</title>"
+    site.set("/gzip", 200, gzip.compress(page), {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/gzip"))
+    assert out["content_encoding"] == "gzip"
+    assert out["bytes"] == len(page)  # decoded size, not the compressed size
+    assert out["blocked_by"] == "page"
+    assert out["evidence"] == "marker:just a moment..."
+    assert out["ok"] is False
+
+
+def test_site_check_decodes_deflate(site):
+    site.set("/deflate", 200, zlib.compress(b"<html>plain ok</html>"),
+             {"Content-Encoding": "deflate"})
+    out = srv.test_proxy_on_site(site.url("/deflate"))
+    assert out["ok"] is True and out["blocked"] is None
+    assert out["bytes"] == len(b"<html>plain ok</html>")
+
+
+def test_site_check_decodes_a_raw_deflate_stream(site):
+    # Some servers send raw deflate despite the RFC's zlib wrapper; both must work.
+    comp = zlib.compressobj(9, zlib.DEFLATED, -zlib.MAX_WBITS)
+    raw = comp.compress(b"<title>Just a moment...</title>") + comp.flush()
+    site.set("/raw-deflate", 200, raw, {"Content-Encoding": "deflate"})
+    out = srv.test_proxy_on_site(site.url("/raw-deflate"))
+    assert out["blocked_by"] == "page" and out["evidence"] == "marker:just a moment..."
+
+
+def test_site_check_reports_an_encoding_it_cannot_undo(site):
+    site.set("/br", 200, b"\x00\x01\x02", {"Content-Encoding": "br"})
+    out = srv.test_proxy_on_site(site.url("/br"))
+    assert out["ok"] is False and out["blocked"] is None
+    assert "unsupported Content-Encoding" in out["decode_error"]
+
+
+def test_site_check_reports_a_mislabeled_gzip_body(site):
+    site.set("/liar", 200, b"<html>captcha</html>", {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/liar"))
+    assert out["ok"] is False
+    assert out["blocked"] is None and out["blocked_by"] is None
+    assert "zlib.error" in out["decode_error"]
+
+
+def test_site_check_treats_a_302_without_location_as_the_final_answer(site):
+    site.set("/empty", 302, b"no location")
+    out = srv.test_proxy_on_site(site.url("/empty"))
+    assert out["status"] == 302 and out["redirect_count"] == 0
+    assert out["final_url"] == site.url("/empty")
+    assert out["ok"] is True  # 3xx is not a refusal by status
+    assert out["blocked"] is None
+
+
+def test_site_check_decodes_a_gzip_page_that_was_a_block_by_status(site):
+    page = gzip.compress(b"denied by policy")
+    site.set("/gzip-403", 403, page, {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/gzip-403"))
+    assert out["blocked_by"] == "status" and out["evidence"] == "status:403"
+
+
+def test_site_check_decodes_a_compressed_large_page_without_flagging_it(site):
+    # Over BLOCK_PAGE_MAX, so the captcha widget in it is not a refusal, and
+    # over the 2 MB read limit so ``truncated`` is set honestly.
+    body = b"<form><div class='g-recaptcha'></div></form>" + b"x" * (3 * 2**20)
+    site.set("/big", 200, gzip.compress(body), {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/big"))
+    assert out["ok"] is True and out["blocked"] is None
+    assert out["bytes"] == srv.SITE_READ_LIMIT
+    assert out["truncated"] is True
+
+
+def test_site_check_reads_a_large_plain_page_up_to_the_limit(site):
+    body = b"<html>big</html>" + b"y" * (srv.SITE_READ_LIMIT + 4096)
+    site.set("/huge", 200, body)
+    out = srv.test_proxy_on_site(site.url("/huge"))
+    assert out["ok"] is True and out["truncated"] is True
+    assert out["bytes"] == srv.SITE_READ_LIMIT
+
+
+def test_a_body_that_ends_exactly_at_the_limit_is_not_truncated(site):
+    body = b"z" * srv.SITE_READ_LIMIT
+    site.set("/exact", 200, body)
+    out = srv.test_proxy_on_site(site.url("/exact"))
+    assert out["ok"] is True and out["truncated"] is False
+    assert out["bytes"] == srv.SITE_READ_LIMIT
+
+
+def test_a_body_cut_short_without_a_marker_is_not_called_ok(site):
+    out = srv.test_proxy_on_site(site.url("/cut"))
+    assert out["status"] == 200
+    assert out["ok"] is False and "incomplete" in out
+    assert out["blocked"] is None  # not a refusal, just an unfinished read
+
+
+def test_a_challenge_in_a_body_cut_short_is_still_a_page_block(site):
+    out = srv.test_proxy_on_site(site.url("/cut-challenge"))
+    assert out["ok"] is False
+    assert out["blocked_by"] == "page" and out["evidence"] == "marker:just a moment..."
+    assert "incomplete" in out
+
+
+def test_a_gzip_bomb_is_stopped_at_the_decoded_limit(site):
+    body = b"x" * (8 * 2**20)  # compresses to a few KB
+    site.set("/bomb", 200, gzip.compress(body), {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/bomb"))
+    assert out["bytes"] == srv.SITE_READ_LIMIT
+    assert out["truncated"] is True
+
+
+def test_a_gzip_body_over_the_limit_is_a_page_refusal_only_if_the_marker_is_there(site):
+    # Two pages over the limit after decompression: the marker inside is not a
+    # flag when the page is a real large page, and one at the top of a modest
+    # page is. Both are compressed, so both go through the decoder limit.
+    body = b"<title>Just a moment...</title>" + b"x" * (srv.BLOCK_PAGE_MAX * 4)
+    site.set("/gz-marker", 200, gzip.compress(body), {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/gz-marker"))
+    assert out["ok"] is True and out["blocked"] is None
+    assert out["bytes"] == len(body) and out["truncated"] is False
+
+
+def test_a_marker_in_a_truncated_page_is_treated_as_a_large_page(site):
+    # Over the decoded limit: the page is large by definition, so a challenge
+    # marker in its text is not a refusal, exactly as for an uncompressed page
+    # of that size. The cut-off is reported in ``truncated``.
+    filler = b"x" * (srv.SITE_READ_LIMIT + 64 * 1024)
+    body = b"<title>Just a moment...</title>" + filler
+    site.set("/gz-cut", 200, gzip.compress(body), {"Content-Encoding": "gzip"})
+    out = srv.test_proxy_on_site(site.url("/gz-cut"))
+    assert out["ok"] is True and out["blocked"] is None
+    assert out["truncated"] is True and out["bytes"] == srv.SITE_READ_LIMIT
+
+
+
+def test_site_check_reports_a_status_refusal_from_a_real_response(site):
+    out = srv.test_proxy_on_site(site.url("/forbidden"))
+    assert out["ok"] is False
+    assert out["status"] == 403
+    assert out["blocked_by"] == "status" and out["evidence"] == "status:403"
+    assert out["blocked"] == "HTTP 403 (forbidden)"
+    assert SECRET not in json.dumps(out)
+
+
+def test_site_check_reports_a_page_refusal_from_a_real_response(site):
+    out = srv.test_proxy_on_site(site.url("/challenge"))
+    assert out["ok"] is False and out["status"] == 200
+    assert out["blocked_by"] == "page" and out["evidence"] == "marker:just a moment..."
+
+
+def test_site_check_goes_through_the_proxy_with_basic_auth(site):
+    out = srv.test_proxy_on_site(site.url("/final"))
+    assert out["ok"] is True
+    expected = "Basic " + base64.b64encode(f"u:{SECRET}".encode()).decode("ascii")
+    assert FakeProxy.seen == [(site.url("/final"), expected)]
+
+
+def test_site_check_ignores_no_proxy(site, monkeypatch):
     monkeypatch.setenv("NO_PROXY", "*")
     monkeypatch.setenv("no_proxy", "*")
-    status, _, _ = srv._fetch_through(fake_proxy, "http://example.invalid/page")
-    assert status == 200 and FakeProxy.seen[0][0] == "http://example.invalid/page"
+    out = srv.test_proxy_on_site(site.url("/final"))
+    assert out["ok"] is True
+    assert FakeProxy.seen[0][0] == site.url("/final")
 
 
-def test_site_check_does_not_follow_a_redirect_off_http(fake_proxy):
-    FakeProxy.location = "ftp://files.example.invalid/x"
-    status, final_url, _ = srv._fetch_through(fake_proxy, "http://example.invalid/start")
-    assert status == 302 and final_url == "http://example.invalid/start"
-    assert len(FakeProxy.seen) == 1
+def test_site_check_reports_a_dropped_connection_as_a_failure(site):
+    # The proxy hangs up without a response: neither a status nor a page.
+    out = srv.test_proxy_on_site(site.url("/abort"))
+    assert out["ok"] is False
+    assert "error" in out and "status" not in out
+    assert SECRET not in json.dumps(out)
 
 
-def test_site_check_follows_an_http_redirect_through_the_proxy(fake_proxy):
-    FakeProxy.location = "http://example.invalid/next"
-    status, final_url, body = srv._fetch_through(fake_proxy, "http://example.invalid/start")
-    assert (status, final_url, body) == (200, "http://example.invalid/next", b"hello")
-    assert [path for path, _ in FakeProxy.seen] == ["http://example.invalid/start",
-                                                     "http://example.invalid/next"]
 
 
 def test_missing_api_key_points_to_sign_up(monkeypatch):

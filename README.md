@@ -19,7 +19,7 @@ allow writes.
 |---|---|
 | `proxy_url` | Proxy string for a country, region, city or ISP, with an optional sticky session and its lifetime. Residential or mobile IPs, HTTP or SOCKS5. |
 | `check_proxy` | Opens one connection through the proxy and returns the status, the exit IP and the time it took. Residential or mobile. |
-| `test_proxy_on_site` | Requests one page of a site through the proxy and reports the status, size, time, and whether it looks blocked (403, 429, captcha or challenge page). Residential or mobile. The page is not returned. |
+| `test_proxy_on_site` | Requests one page of a site through the proxy, following http(s) redirects, and reports the status, final URL, redirect count, size, time, and whether it looks blocked (403, 429, captcha or challenge page). Gzip and deflate responses are decompressed before the page is judged. A redirect to a non-http(s) target is reported and not followed. Residential or mobile. The page is not returned. |
 | `list_locations` | Countries, regions, cities and ISPs available for targeting, with the codes `proxy_url` takes. |
 | `account_status` | Remaining traffic, subscription status, whether traffic is frozen. |
 | `traffic_stats` | Traffic used over time. |
@@ -82,6 +82,14 @@ server keeps secrets out of them:
   account email are never returned.
 - `test_proxy_on_site` returns no page content, and removes the proxy password
   from connection errors.
+
+`test_proxy_on_site` says why a page was judged blocked rather than only that
+it was: `blocked_by` is `status` for a refusal status (401, 403, 407, 429, 503)
+or `page` for a challenge marker in the body, and `evidence` is the status code
+or the marker that matched. It follows up to 10 http(s) redirects and reports
+every hop; a redirect to anything else is reported in `stopped_at` and not
+followed. Gzip and deflate bodies are decompressed before the keyword scan,
+with the same 2 MB limit on the decoded text.
 
 Requests to the NodeMaven API name this server and its version in `User-Agent`,
 and the name the MCP client gives itself (for example `claude-code`) once it has
