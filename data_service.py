@@ -1101,15 +1101,15 @@ def _sector_provider_result(mode):
 
 
 def _validate_sectors(data):
-    if not data or not isinstance(data, list):
-        return False
-    # 至少有一条数据有非零的 change 或 flow
-    for s in data:
-        if not isinstance(s, dict):
-            continue
-        if abs(s.get("change") or 0) > 0.01 or abs(s.get("flow") or 0) > 0.01:
-            return True
-    return False
+    """板块缓存的"够不够格返回"判断。
+
+    S3-3 口径：Provider 已经用 total/缺页/去重给出完整性结论，
+    这里**不再用"是否有一条非零涨跌/资金"去否定整份数据** ——
+    真实的全 0 板块（全部平盘/无资金）和全 null 字段（上游 "-"）都是合法结果，
+    按旧规则会把刚抓到的 400 行 partial 整份丢掉，与"保留已抓到行"的要求相反。
+    只拒绝空列表与非 list。
+    """
+    return isinstance(data, list) and len(data) > 0
 
 
 def _sector_cached_get(cache_key, mode, ttl, trace=None):

@@ -48,12 +48,16 @@ def build_heatmap_chart(sectors):
 
     tree_data = []
     for s in sectors:
-        flow = s["flow"]
-        change = s["change"]
+        flow = s.get("flow")
+        change = s.get("change")
 
         # 双向热力图：颜色按资金流向方向标色
         # 流入 → 红/橙色系，流出 → 绿/蓝冷色系
-        if flow > 3:
+        # flow 为 None 表示上游明确"未知"（"-"），不是 0：
+        # 保留 null 让前端显示"--"，方块按中性灰、最小面积呈现，绝不补成 0。
+        if flow is None:
+            color = "#8892b0"        # 未知 → 中性灰
+        elif flow > 3:
             color = "#ef5350"        # 强流入 → 深红
         elif flow > 1:
             color = "#ff8a65"        # 中流入 → 浅红
@@ -68,7 +72,7 @@ def build_heatmap_chart(sectors):
 
         tree_data.append({
             "name": s["name"],
-            "value": abs(flow),       # 方块面积 = 资金规模绝对值
+            "value": 0 if flow is None else abs(flow),   # 面积取绝对值；未知给 0 面积
             "change": change,
             "flow": flow,
             "itemStyle": {"color": color}
