@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fragment Decoder — Local Test Page</title>
+  <style>
+    body { font-family: system-ui, Segoe UI, Arial, sans-serif; margin: 24px; background: #0d1117; color: #c9d1d9; }
+    h1 { font-size: 20px; }
+    .case { border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin: 12px 0; background: #161b22; }
+    .case h2 { font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+    .badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .pass { background: rgba(46,160,67,.15); color: #3fb950; border: 1px solid rgba(46,160,67,.4); }
+    .fail { background: rgba(248,81,73,.15); color: #f85149; border: 1px solid rgba(248,81,73,.4); }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; overflow: auto; font-size: 12px; }
+    #summary { font-weight: 700; font-size: 16px; margin: 16px 0; }
+    .muted { color: #8b949e; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Interface Fragment Decoder — local verification</h1>
+  <p class="muted">
+    Four scenarios run on self-made fragments and a self-made key. Each verdict is shown
+    below and printed to the browser console. The global entry point under test is
+    <code>window.decodeInterfaceFragments(fragments, key)</code>.
+  </p>
+  <div id="summary">Running…</div>
+  <div id="results"></div>
+
+  <!-- Shared decoder (the same file used by index.html) and the shared fixtures. -->
+  <script src="../fragment-decoder.js"></script>
+  <script src="fixtures.js"></script>
+  <script>
+  (function () {
+    var D = window.InterfaceFragmentDecoder;
+    var F = window.FragmentDecoderFixtures;
+    var resultsEl = document.getElementById('results');
+    var summaryEl = document.getElementById('summary');
+
+    var cases = F.executeCases(D);
+    var failed = 0;
+
+    cases.forEach(function (c) {
+      if (!c.pass) failed++;
+
+      // Mirror the structured judgement to the console.
+      var prefix = '[' + (c.pass ? 'PASS' : 'FAIL') + '] ' + c.name;
+      if (c.pass) console.log(prefix, c.detail); else console.error(prefix, c.detail);
+
+      var card = document.createElement('div');
+      card.className = 'case';
+
+      var title = document.createElement('h2');
+      var badge = document.createElement('span');
+      badge.className = 'badge ' + (c.pass ? 'pass' : 'fail');
+      badge.textContent = c.pass ? 'PASS' : 'FAIL';
+      title.appendChild(badge);
+      title.appendChild(document.createTextNode(c.name));
+      card.appendChild(title);
+
+      var pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(c.detail, null, 2);
+      card.appendChild(pre);
+      resultsEl.appendChild(card);
+    });
+
+    summaryEl.textContent = failed === 0
+      ? 'ALL ' + cases.length + ' SCENARIOS PASSED'
+      : failed + ' OF ' + cases.length + ' SCENARIOS FAILED';
+    summaryEl.style.color = failed === 0 ? '#3fb950' : '#f85149';
+
+    // Expose for manual console experimentation.
+    window.__testResults = cases;
+  })();
+  </script>
+</body>
+</html>

@@ -98,6 +98,50 @@ This repository is provided “as is” for educational and professional develop
 
 This project is distributed under the terms of the MIT License. You are free to use, modify, and distribute this software for private or commercial purposes, provided that the original copyright notice is included. For full details, refer to the [MIT License](https://opensource.org/licenses/MIT).
 
+## 🧪 Fragment Decoder & Local Tests
+
+The landing page (`index.html`) stores its rendered interface as five `<template>`
+fragments (`_7RXYYPTB0` … `_7RXYYPTB4`). The page joins them in ascending numeric
+order, Base64-decodes the result, XORs it with a fixed 16-byte key, and writes the
+UTF-8 text into the document.
+
+That pipeline is exposed as a global function in `fragment-decoder.js`:
+
+```js
+const result = window.decodeInterfaceFragments(fragments, key);
+// result = {
+//   success: boolean,            // true only when the interface was recovered
+//   text: string,                // decoded interface text ('' on failure)
+//   reasonCode: 'OK' | 'MISSING_FRAGMENTS' | 'INVALID_KEY' | 'PAYLOAD_CORRUPT',
+//   reason: string,              // human-readable failure detail ('' on success)
+//   missingFragments: number[],  // indices that were absent
+//   processedFragments: number[] // indices actually used, ascending
+// }
+```
+
+`fragments` may be an array indexed by number, an `{ id, content }` array, or an
+id/number → payload map. Failure semantics:
+
+- **Missing fragment** — any of the five indices is empty/absent → `MISSING_FRAGMENTS`,
+  with the missing indices listed.
+- **Key error** — the key is empty or not exactly 16 bytes → `INVALID_KEY`.
+- **Corrupt payload** — Base64 fails, the decrypted bytes are not valid UTF-8, or the
+  text lacks the expected `<html` root marker → `PAYLOAD_CORRUPT`.
+
+On success, `text` is byte-identical to what the page's own auto-render path writes.
+The page still decodes and renders automatically on load; the new entry point does not
+alter that behavior.
+
+Run the local checks (Node 18+):
+
+```bash
+node test/run-tests.js          # success / missing / corrupt / empty-key scenarios + render parity
+node test/browser-path-check.js # simulates the page's auto-render and global call
+```
+
+Or open `test/test.html` in a browser to see each scenario's structured verdict on the
+page and in the console (self-made fragments and key, no network access required).
+
 ## 🤝 Contributing & Community
 
 We welcome contributions that extend the engine’s capabilities, improve documentation, or fix edge cases. Please review the `CONTRIBUTING.md` file (located in the repository root) for guidelines on submitting pull requests and reporting issues.
