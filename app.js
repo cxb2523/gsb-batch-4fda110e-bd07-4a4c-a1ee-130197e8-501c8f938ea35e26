@@ -161,6 +161,7 @@
   // ----- API -----
   // Warn once per page load, not on every refresh/move.
   let metaErrorReported = false;
+  let scanIssuesReported = false;
 
   async function fetchSessions() {
     const res = await fetch(`${API}/sessions`);
@@ -171,6 +172,27 @@
     if (data.meta_error && !metaErrorReported) {
       metaErrorReported = true;
       toast(t('toast.error', { msg: escapeHtml(data.meta_error) }), 'error', { duration: 8000 });
+    }
+    // Bad lines and unreadable files are skipped instead of failing the whole
+    // collection, but staying silent would read as "my conversations vanished".
+    // Surface the counts; a clean collection shows nothing at all.
+    const stats = data.stats || {};
+    const badLines = stats.bad_lines_skipped || 0;
+    const badFiles = stats.unreadable_files || 0;
+    if ((badLines > 0 || badFiles > 0) && !scanIssuesReported) {
+      scanIssuesReported = true;
+      // Full file names and reasons stay available in the console for diagnosis.
+      console.warn('Session collection skipped some data:', stats);
+      const parts = [];
+      if (badFiles > 0) {
+        parts.push(t(badFiles === 1 ? 'toast.scanIssues.files.one'
+                                    : 'toast.scanIssues.files.many', { n: badFiles }));
+      }
+      if (badLines > 0) {
+        parts.push(t(badLines === 1 ? 'toast.scanIssues.badLines.one'
+                                    : 'toast.scanIssues.badLines.many', { n: badLines }));
+      }
+      toast(parts.join(t('toast.scanIssues.join')), 'error', { duration: 8000 });
     }
     if (data.auto_trashed > 0) {
       const n = data.auto_trashed;

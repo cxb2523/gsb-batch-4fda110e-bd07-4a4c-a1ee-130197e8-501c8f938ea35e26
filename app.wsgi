@@ -223,6 +223,18 @@ def _clean_command_tags(text):
 
 
 def scan_session(jsonl_path):
+    """Scan one .jsonl session file.
+
+    Returns (info, bad_lines): info is the session metadata dict, bad_lines is
+    the number of non-empty lines that were not valid JSON. A bad line is
+    skipped and parsing continues with the next line, so one corrupt line never
+    hides the whole session.
+
+    Read errors are deliberately NOT caught here: the caller records the file
+    name and reason instead of silently dropping the session from the listing.
+    The bad-line count covers the scanned head (see MAX_LINES_SCAN); that is
+    where a session's identifying fields live, so a corrupt line there is the
+    case worth reporting."""
     info = {
         'cwd': None,
         'git_branch': None,
@@ -230,29 +242,30 @@ def scan_session(jsonl_path):
         'version': None,
         'context_tokens': None,
     }
-    try:
-        with open(jsonl_path, 'r', encoding='utf-8', errors='replace') as f:
-            for i, line in enumerate(f):
-                if i >= MAX_LINES_SCAN and info['first_message']:
-                    break
-                try:
-                    obj = json.loads(line)
-                except Exception:
-                    continue
-                if not info['cwd'] and obj.get('cwd'):
-                    info['cwd'] = obj['cwd']
-                if not info['git_branch'] and obj.get('gitBranch'):
-                    info['git_branch'] = obj['gitBranch']
-                if not info['version'] and obj.get('version'):
-                    info['version'] = obj['version']
-                if not info['first_message'] and obj.get('type') == 'user':
-                    msg = obj.get('message') or {}
-                    if isinstance(msg, dict):
-                        text = _clean_command_tags(_extract_text(msg.get('content', '')))
-                        if text:
-                            info['first_message'] = text[:PREVIEW_LEN]
-    except Exception:
-        pass
+    bad_lines = 0
+    with open(jsonl_path, 'r', encoding='utf-8', errors='replace') as f:
+        for i, line in enumerate(f):
+            if i >= MAX_LINES_SCAN and info['first_message']:
+                break
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                bad_lines += 1
+                continue
+            if not info['cwd'] and obj.get('cwd'):
+                info['cwd'] = obj['cwd']
+            if not info['git_branch'] and obj.get('gitBranch'):
+                info['git_branch'] = obj['gitBranch']
+            if not info['version'] and obj.get('version'):
+                info['version'] = obj['version']
+            if not info['first_message'] and obj.get('type') == 'user':
+                msg = obj.get('message') or {}
+                if isinstance(msg, dict):
+                    text = _clean_command_tags(_extract_text(msg.get('content', '')))
+                    if text:
+                        info['first_message'] = text[:PREVIEW_LEN]
 
     # Read the file tail to find the most recent assistant usage
     # (context window size at the end of the session)
@@ -263,7 +276,7 @@ def scan_session(jsonl_path):
             + (usage.get('cache_creation_input_tokens') or 0)
         if tok:
             info['context_tokens'] = tok
-    return info
+    return info, bad_lines
 
 
 def _tail_bytes(path, max_bytes=64 * 1024):
@@ -322,11 +335,18 @@ def count_lines(path):
 
 
 def list_sessions():
-    """Return (sessions, meta_error).
+    """Return (sessions, meta_error, stats).
 
     Listing still works when metadata.json is unreadable: the sessions just
     come back without names/notes, but meta_error is surfaced to the client so
-    the missing names read as a fault, not as "you never named anything"."""
+    the missing names read as a fault, not as "you never named anything".
+
+    The collection itself is fault-tolerant. A single .jsonl that cannot be
+    read is skipped (its name and reason are recorded in stats) instead of
+    aborting the whole batch, and individual corrupt JSON lines inside an
+    otherwise readable file are skipped by scan_session. stats carries the
+    verifiable counters: sessions_parsed, bad_lines_skipped,
+    unreadable_files and the unreadable_files list."""
     try:
         metadata = load_metadata()
         meta_error = None
@@ -336,39 +356,75 @@ def list_sessions():
     cache = load_cache()
     new_cache = {}
     sessions = []
+    stats = {
+        'sessions_parsed': 0,
+        'bad_lines_skipped': 0,
+        'unreadable_files': 0,
+        'unreadable_file_details': [],
+    }
 
     if not PROJECTS_DIR.exists():
-        return sessions, meta_error
+        return sessions, meta_error, stats
 
-    for project_dir in sorted(PROJECTS_DIR.iterdir()):
+    try:
+        project_dirs = sorted(PROJECTS_DIR.iterdir())
+    except OSError as e:
+        # The projects directory exists but cannot be enumerated at all
+        # (permissions, a file where a directory was expected). Return the
+        # empty listing with the reason instead of failing the request.
+        stats['unreadable_files'] += 1
+        stats['unreadable_file_details'].append(
+            {'file': str(PROJECTS_DIR), 'reason': f'directory read failed: {e}'})
+        return sessions, meta_error, stats
+
+    for project_dir in project_dirs:
         if not project_dir.is_dir():
             continue
         # Only top-level .jsonl files (skip subagents/ etc.)
-        for jsonl in project_dir.glob('*.jsonl'):
+        try:
+            jsonl_files = list(project_dir.glob('*.jsonl'))
+        except OSError as e:
+            # Even enumerating the directory can fail (permissions, a stale
+            # handle). Record it and move on to the next project directory.
+            stats['unreadable_files'] += 1
+            stats['unreadable_file_details'].append(
+                {'file': str(project_dir), 'reason': f'directory read failed: {e}'})
+            continue
+        for jsonl in jsonl_files:
             if not jsonl.is_file():
                 continue
             session_id = jsonl.stem
+            cache_key = str(jsonl)
             try:
                 stat = jsonl.stat()
-            except Exception:
+                cache_entry = cache.get(cache_key)
+                if (cache_entry
+                        and cache_entry.get('mtime') == stat.st_mtime
+                        and cache_entry.get('size') == stat.st_size):
+                    info = cache_entry['info']
+                    line_count = cache_entry.get('line_count', 0)
+                    bad_lines = cache_entry.get('bad_lines', 0)
+                else:
+                    # scan_session opens the file; an OSError here means the
+                    # session is genuinely unreadable. Skip just this file and
+                    # keep collecting the rest of the batch.
+                    info, bad_lines = scan_session(jsonl)
+                    line_count = count_lines(jsonl)
+
+                new_cache[cache_key] = {
+                    'mtime': stat.st_mtime,
+                    'size': stat.st_size,
+                    'info': info,
+                    'line_count': line_count,
+                    'bad_lines': bad_lines,
+                }
+            except OSError as e:
+                stats['unreadable_files'] += 1
+                stats['unreadable_file_details'].append(
+                    {'file': str(jsonl), 'reason': str(e)})
                 continue
 
-            cache_key = str(jsonl)
-            cache_entry = cache.get(cache_key)
-            if cache_entry and cache_entry.get('mtime') == stat.st_mtime and cache_entry.get('size') == stat.st_size:
-                info = cache_entry['info']
-                line_count = cache_entry.get('line_count', 0)
-            else:
-                info = scan_session(jsonl)
-                line_count = count_lines(jsonl)
-
-            new_cache[cache_key] = {
-                'mtime': stat.st_mtime,
-                'size': stat.st_size,
-                'info': info,
-                'line_count': line_count,
-            }
-
+            stats['bad_lines_skipped'] += bad_lines
             meta = metadata.get(session_id, {})
             sessions.append({
                 'id': session_id,
@@ -387,9 +443,10 @@ def list_sessions():
                 'deleted': bool(meta.get('deleted', False)),
             })
 
+    stats['sessions_parsed'] = len(sessions)
     save_cache(new_cache)
     sessions.sort(key=lambda s: s['mtime'], reverse=True)
-    return sessions, meta_error
+    return sessions, meta_error, stats
 
 
 def find_session_file(session_id):
@@ -732,9 +789,10 @@ def application(environ, start_response):
 
     if path in ('/sessions', '/sessions/'):
         if method == 'GET':
-            sessions, meta_error = list_sessions()
+            sessions, meta_error, stats = list_sessions()
             auto_trashed = 0 if meta_error else apply_auto_trash(sessions)
-            payload = {'sessions': sessions, 'auto_trashed': auto_trashed}
+            payload = {'sessions': sessions, 'auto_trashed': auto_trashed,
+                       'stats': stats}
             if meta_error:
                 payload['meta_error'] = meta_error
             return json_response(start_response, payload)
