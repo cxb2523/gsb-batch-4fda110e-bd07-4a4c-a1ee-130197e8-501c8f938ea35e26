@@ -1,0 +1,68 @@
+name: Glancecard
+description: Your GitHub profile and repositories, at a glance — daily SVG cards for your READMEs, rendered by GitHub Actions.
+author: Giovambattista Fazioli
+branding:
+  icon: activity
+  color: green
+
+inputs:
+  repos:
+    description: Repositories to render a card for, as owner/name, separated by newlines, commas or spaces.
+    required: false
+  profile:
+    description: A GitHub login to render a profile card for.
+    required: false
+  out-dir:
+    description: Folder, relative to the workspace, the cards are written to.
+    required: false
+    default: glancecard
+  theme:
+    description: both (dark and light), or looks, comma-separated — dark, light, midnight, aurora, daylight, upside-down, hyperspace, bridge, nebula, halloween, christmas, and the light sides aurora-light, upside-down-light, hyperspace-light, bridge-light, nebula-light, halloween-light, christmas-light. Several themes write <name>-<theme>.svg.
+    required: false
+    default: both
+  time-zone:
+    description: IANA time zone the commit calendar and rhythm are read in, such as Europe/Rome.
+    required: false
+    default: UTC
+  sections:
+    description: Repository card sections, or all — hero, tiles, activity, stars, rhythm, code, commits, releases, contributors.
+    required: false
+    default: all
+  calendar:
+    description: How a year of contributions (profile) or commits (repository) is drawn — chart, a line of daily counts, or grid, GitHub's calendar of squares.
+    required: false
+    default: chart
+  stars-chart:
+    description: How the stars are drawn, on both cards — steps, their running total exactly; smooth, a soft line through it; or bars, the new stars of each month.
+    required: false
+    default: steps
+  max-commits:
+    description: Commits read for the last year, at most; a busier repository says so on its card.
+    required: false
+    default: "5000"
+  allow-private:
+    description: Render private repositories too. Their card publishes their data wherever it is committed.
+    required: false
+    default: "false"
+  commit:
+    description: Commit and push the cards. Never on a pull request, where they are only rendered.
+    required: false
+    default: "true"
+  commit-message:
+    description: Message of that commit.
+    required: false
+    default: "chore: refresh glancecard"
+  token:
+    description: Token the GitHub API is read with.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  files:
+    description: The cards written, one path per line, relative to the workspace.
+  committed:
+    description: true when a commit was pushed.
+
+runs:
+  using: node24
+  main: src/action.js

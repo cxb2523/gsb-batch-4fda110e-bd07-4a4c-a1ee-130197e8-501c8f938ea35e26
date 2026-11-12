@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { test } from "node:test";
+import { input, parseBool } from "../src/action.js";
+import { fileBases, fileNames, parseCalendar, parseCount, parseList, parseSections, parseStarsChart, parseThemes, renderCards } from "../src/run.js";
+
+test("lists split on commas, spaces and newlines", () => {
+  assert.deepEqual(parseList("a/b, c/d\n  e/f\n"), ["a/b", "c/d", "e/f"]);
+  assert.deepEqual(parseList(""), []);
+  assert.deepEqual(parseList(undefined), []);
+});
+
+test("themes: both, dark, light and the looks, in any mix", () => {
+  assert.deepEqual(parseThemes("both"), ["dark", "light"]);
+  assert.deepEqual(parseThemes(""), ["dark", "light"]);
+  assert.deepEqual(parseThemes("light"), ["light"]);
+  assert.deepEqual(parseThemes("both, Nebula\nhalloween"), ["dark", "light", "nebula", "halloween"]);
+  assert.deepEqual(parseThemes("dark, both"), ["dark", "light"]);
+  assert.throws(() => parseThemes("blue"), /unknown theme blue \(choose from both, dark, light, midnight/);
+});
+
+test("sections", () => {
+  assert.equal(parseSections("all").length, 9);
+  assert.equal(parseSections("").length, 9);
+  assert.deepEqual(parseSections("hero, stars"), ["hero", "stars"]);
+  assert.throws(() => parseSections("hero, forks"), /unknown section forks/);
+});
+
+test("calendar: a chart unless told grid", () => {
+  assert.equal(parseCalendar(""), "chart");
+  assert.equal(parseCalendar(undefined), "chart");
+  assert.equal(parseCalendar(" Grid "), "grid");
+  assert.equal(parseCalendar("chart"), "chart");
+  assert.throws(() => parseCalendar("bars"), /unknown calendar bars \(choose from chart, grid\)/);
+});
+
+test("renderCards refuses an unknown calendar before it asks or writes anything", async () => {
+  const outDir = path.join(tmpdir(), `glancecard-calendar-${process.pid}`);
+  await assert.rejects(renderCards({ client: null, profile: "gfazioli", outDir, calendar: "bars" }), /unknown calendar bars/);
+  assert.equal(existsSync(outDir), false);
+});
+
+test("stars-chart: steps unless told smooth or bars", () => {
+  assert.equal(parseStarsChart(""), "steps");
+  assert.equal(parseStarsChart(undefined), "steps");
+  assert.equal(parseStarsChart(" Bars "), "bars");
+  assert.equal(parseStarsChart("smooth"), "smooth");
+  assert.throws(() => parseStarsChart("pie"), /unknown stars-chart pie \(choose from steps, smooth, bars\)/);
+});
+
+test("renderCards refuses an unknown stars-chart before it asks or writes anything", async () => {
+  const outDir = path.join(tmpdir(), `glancecard-stars-chart-${process.pid}`);
+  await assert.rejects(renderCards({ client: null, profile: "gfazioli", outDir, starsChart: "pie" }), /unknown stars-chart pie/);
+  assert.equal(existsSync(outDir), false);
+});
+
+test("counts", () => {
+  assert.equal(parseCount("", "max-commits", 5000), 5000);
+  assert.equal(parseCount("2000", "max-commits", 5000), 2000);
+  assert.throws(() => parseCount("12", "max-commits", 5000), /at least 100/);
+  assert.throws(() => parseCount("lots", "max-commits", 5000), /whole number/);
+});
+
+test("file names: the repository name, owner-name only where two names collide", () => {
+  const bases = fileBases(["gfazioli/octoscope", "a/tools", "b/tools"]);
+  assert.equal(bases.get("gfazioli/octoscope"), "octoscope");
+  assert.equal(bases.get("a/tools"), "a-tools");
+  assert.equal(bases.get("b/tools"), "b-tools");
+  assert.deepEqual(fileNames("octoscope", ["dark", "light"]), [
+    ["dark", "octoscope-dark.svg"],
+    ["light", "octoscope-light.svg"],
+  ]);
+  assert.deepEqual(fileNames("octoscope", ["light"]), [["light", "octoscope.svg"]]);
+});
+
+test("action inputs read the runner's INPUT_ variables", () => {
+  const env = { "INPUT_OUT-DIR": " cards ", INPUT_REPOS: "a/b\nc/d", "INPUT_TIME-ZONE": "" };
+  assert.equal(input("out-dir", env), "cards");
+  assert.equal(input("repos", env), "a/b\nc/d");
+  assert.equal(input("time-zone", env), "");
+  assert.equal(input("missing", env), "");
+  assert.equal(parseBool("TRUE", "commit"), true);
+  assert.equal(parseBool("false", "commit"), false);
+  assert.throws(() => parseBool("yes", "commit"), /true or false/);
+});
