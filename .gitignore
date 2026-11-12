@@ -1,0 +1,68 @@
+# Environment variables and local secrets
+.env
+/data/
+.env.*
+!.env.example
+*.private
+*.private.*
+*.local
+*.local.*
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Deployment-specific files
+DEPLOYMENT.private.md
+/SITES.local.md
+image-studio-capabilities.json
+chat-capabilities.json
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.*.private.yml
+docker-compose.*.private.yaml
+
+# Python and test artifacts
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+node_modules/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Generated data and runtime files
+*.xlsx
+*.xls
+!tests/fixtures/chat-media/example.xls
+*.csv
+*.log
+*.pid
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+test-results/
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Client downloads are regenerated from vsix sources during image builds.
+src/new_api_cockpit/bundled_clients/

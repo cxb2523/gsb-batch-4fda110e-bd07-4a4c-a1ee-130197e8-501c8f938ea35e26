@@ -1,0 +1,8 @@
+.channel-provider-fields {
+  display: contents;
+}
+
+.channel-provider-fields[hidden],
+#channel-signing-secret-field[hidden] {
+  display: none;
+}

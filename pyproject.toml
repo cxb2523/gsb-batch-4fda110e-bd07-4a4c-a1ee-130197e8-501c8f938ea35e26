@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "new-api-cockpit"
+version = "0.4.4"
+description = "Extended New API administration, usage reports, budgets and user/key management"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{name = "ilove323"}]
+dynamic = ["dependencies"]
+
+[project.urls]
+Repository = "https://github.com/ilove323/new-api-cockpit"
+Issues = "https://github.com/ilove323/new-api-cockpit/issues"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+new_api_cockpit = ["*.sql", "migrations/*.sql", "templates/*.html", "templates/partials/*.html", "templates/chat/*.html", "templates/image_studio/*.html", "static/*", "static/chat/*", "static/icons/*.svg", "static/fonts/*", "static/manual-images/*.webp", "bundled_clients/*.json", "bundled_clients/*.vsix"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
