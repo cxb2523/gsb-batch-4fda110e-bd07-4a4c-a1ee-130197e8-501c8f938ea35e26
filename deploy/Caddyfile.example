@@ -1,0 +1,18 @@
+# SECURITY: this sample is deliberately fail-closed.
+# Generate a hash with: caddy hash-password
+# Put it in the Caddy systemd environment:
+#   sudo systemctl edit caddy
+#   [Service]
+#   Environment=ADMIN_PASSWORD_HASH=<bcrypt-hash>
+#   sudo systemctl daemon-reload && sudo systemctl restart caddy
+#
+# If ADMIN_PASSWORD_HASH is missing, do not treat this config as usable.
+wallet.example.com {
+    encode zstd gzip
+
+    basic_auth {
+        admin {$ADMIN_PASSWORD_HASH}
+    }
+
+    reverse_proxy 127.0.0.1:8100
+}

@@ -1,0 +1,26 @@
+# secrets and local state
+.env
+.env.*
+!.env.example
+.secrets/
+data/
+*.pem
+*.key
+*.crt
+*.log
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,25 @@
+[Unit]
+Description=Binance Agentic Wallet Dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/binance-agentic-wallet
+ExecStart=/usr/bin/python3 /opt/binance-agentic-wallet/server.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/home/ubuntu
+Environment=BAW_BIN=/home/ubuntu/agent/npm-global/bin/baw
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/binance-agentic-wallet/data /home/ubuntu/aw
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

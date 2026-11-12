@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f6f8">
+  <title>Agentic 钱包简易操作看板 · 0xStudy</title>
+  <link rel="stylesheet" href="/workspace-fonts/fonts.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.8-4M4 4v5h5M4 13a8 8 0 0 0 14.8 4M20 20v-5h-5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M20 7V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v12H5a3 3 0 0 1-3-3V6"/><path d="M16 13h2"/></symbol>
+    <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="m3 3 18 18M10.6 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3.2 4M6.1 6.2A18 18 0 0 0 2 12s3.5 7 10 7c1.7 0 3.3-.5 4.7-1.2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2v2h-2z"/></symbol>
+  </svg>
+
+  <main class="app">
+    <header class="hero">
+      <div class="hero-copy">
+        <h1>Agentic 钱包简易操作看板</h1>
+      </div>
+      <div class="hero-actions">
+        <div class="view-switch" role="tablist" aria-label="视图">
+          <button id="agcTab" type="button">AGC 项目</button>
+          <button id="assetsTab" class="is-active" type="button">资产</button>
+          <button id="historyTab" type="button">交易记录</button>
+          <button id="bookTab" type="button">地址簿</button>
+        </div>
+        <button id="keepaliveBtn" class="keepalive-entry" type="button" title="查看后台保活详情"><span class="ka-status-dot"></span>保活 <b id="keepaliveTop">—</b></button>
+        <button id="themeBtn" class="icon-btn" type="button" title="切换深色/浅色" aria-label="切换主题"><svg class="icon"><use href="#i-moon"></use></svg></button>
+      </div>
+    </header>
+
+    <section class="overview" id="overviewBar" aria-label="资产概览">
+      <div class="overview-total">
+        <span>总资产</span>
+        <strong id="totalUsd">—</strong>
+      </div>
+      <div class="overview-mini">
+        <div><span>可见资产</span><b id="visibleUsd">—</b></div>
+        <div><span>隐藏 / 风险</span><b id="hiddenUsd" class="warn">—</b></div>
+      </div>
+      <div class="overview-live"><i class="live-dot" id="dataDot"></i><span id="dataFreshness">3 秒刷新</span></div>
+    </section>
+
+    <div class="wallet-bar" id="walletBar">
+      <nav class="wallet-strip" id="walletTabs" aria-label="钱包筛选"></nav>
+      <button id="addWalletBtn" class="add-wallet" type="button"><svg class="icon"><use href="#i-plus"></use></svg>添加钱包</button>
+    </div>
+
+    <section id="agcView" class="view" hidden>
+      <div class="agc-grid" id="agcCards"></div>
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-head">
+          <div>
+            <h2>w1 质押中仓位</h2>
+            <p id="agcPosLine">每小时 :07 自动领取到期仓位</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="agcTable">
+            <thead><tr><th>仓位</th><th>份数</th><th>押金 BNB</th><th>铸造时间</th><th>自动领回</th><th>倒计时</th><th class="right">预计 AGC</th></tr></thead>
+            <tbody id="agcRows"><tr><td colspan="7"><div class="skeleton-row"></div></td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel" style="margin-top:14px">
+        <div class="panel-head"><div><h2>自动化规则</h2><p>当前策略与执行链路</p></div></div>
+        <div class="agc-rules" id="agcRules"></div>
+      </section>
+    </section>
+
+    <div id="assetsView" class="view">
+      <div class="content-grid">
+        <section class="panel holdings-panel">
+          <div class="panel-head">
+            <div>
+              <h2>持仓</h2>
+              <p id="scopeLine">全部钱包 · 价格实时校正</p>
+            </div>
+            <div class="panel-tools">
+              <label class="check-line" title="默认隐藏 <$1 / 低流动性 / 貔貅">
+                <input type="checkbox" id="hideLow" checked><span class="check-box"><svg class="icon"><use href="#i-check"></use></svg></span>
+                隐藏小额/风险
+              </label>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="search"><svg class="icon"><use href="#i-search"></use></svg><input id="searchInput" type="search" placeholder="搜索代币 / CA" autocomplete="off"></div>
+            <div class="segmented" id="riskFilter">
+              <button class="is-active" data-filter="all" type="button">全部</button>
+              <button data-filter="safe" type="button">正常</button>
+              <button data-filter="warn" type="button">有风险</button>
+            </div>
+            <span class="count" id="resultCount">—</span>
+          </div>
+          <div class="notice" id="filterNotice">
+            <svg class="icon"><use href="#i-eyeoff"></use></svg>
+            <span id="noticeText">正在计算过滤结果…</span>
+            <button id="riskToggle" class="text-btn" type="button">风险过滤</button>
+            <button id="noticeShow" class="text-btn" type="button">显示全部</button>
+          </div>
+          <div id="riskPanel" class="risk-panel" hidden></div>
+          <div class="asset-head">
+            <span>资产</span><span>价格</span><span>余额</span><span>价值</span><span>流动性</span><span>交易税</span><span>操作</span>
+          </div>
+          <div id="assetRows" class="asset-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+          <div class="empty" id="assetEmpty" hidden>
+            <div class="empty-mark">○</div>
+            <strong id="assetEmptyTitle">当前过滤下没有资产</strong>
+            <span>点“显示全部”查看小额/低流动性代币，或切换钱包。</span>
+          </div>
+
+          <div class="panel-foot">
+            <span><i class="live-dot"></i> 3 秒轮询 · 数据缓存 <span id="balanceAge">—</span>s</span>
+            <span id="lastUpdated">—</span>
+          </div>
+          <p class="disclaimer">数据仅供参考，交易前请核对地址、数量、滑点与税费；链上交易不可撤销。</p>
+        </section>
+
+        <aside class="rail">
+          <section class="rail-card wallet-manage-card">
+            <div class="rail-head"><h3>钱包管理</h3><button class="text-btn" id="railAddWallet" type="button">+ 添加</button></div>
+            <div id="walletManageList" class="wallet-manage-list"></div>
+            <p class="disclaimer">复制地址/转账前请核对完整地址；删除只移出看板，不登出会话。</p>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <section id="bookView" class="view" hidden>
+      <section class="panel book-panel">
+        <div class="panel-head">
+          <div>
+            <h2>地址簿</h2>
+            <p>只保存在当前浏览器 · 不上传服务器</p>
+          </div>
+          <div class="panel-tools">
+            <button id="bookAddBtn" class="btn primary" type="button"><svg class="icon"><use href="#i-plus"></use></svg>添加地址</button>
+          </div>
+        </div>
+        <div id="bookForm" class="book-form" hidden>
+          <input id="bookName" class="text-input" type="text" maxlength="30" placeholder="名称，例如：OKX 地址 / 冷钱包">
+          <input id="bookAddress" class="text-input mono" type="text" spellcheck="false" placeholder="0x 开头的 40 位地址">
+          <button id="bookSave" class="btn primary" type="button">保存</button>
+          <button id="bookCancel" class="btn ghost" type="button">取消</button>
+        </div>
+        <div id="bookList" class="book-list"></div>
+        <div class="agentic-addresses">
+          <div class="agentic-head">
+            <div><h3>Agentic 钱包地址</h3><p>当前看板已连接的钱包 · 完整 BSC 地址</p></div>
+            <span class="agentic-note">转账前请核对完整地址</span>
+          </div>
+          <div id="agenticAddressList" class="agentic-list"></div>
+          <p class="disclaimer">这些地址来自当前 BAW 会话。复制或扫码后请再次核对；链上转账不可撤销。</p>
+        </div>
+        <div class="panel-foot"><span><svg class="icon"><use href="#i-shield"></use></svg> 地址簿仅存本机 localStorage，换设备请重新添加。</span></div>
+      </section>
+    </section>
+
+    <section id="historyView" class="view" hidden>
+      <section class="panel history-panel">
+        <div class="panel-head">
+          <div>
+            <h2>交易记录</h2>
+            <p id="historyScope">默认按钱包查看 · 最近 3 个月</p>
+          </div>
+          <div class="panel-tools">
+            <div class="segmented big" id="historyFilter">
+              <button class="is-active" data-hfilter="all" type="button">全部</button>
+              <button data-hfilter="发送" type="button">发送</button>
+              <button data-hfilter="接收" type="button">接收</button>
+              <button data-hfilter="交易" type="button">交易</button>
+              <button data-hfilter="合约" type="button">合约</button>
+            </div>
+          </div>
+        </div>
+        <div class="history-summary">
+          <div><span>当前记录</span><strong id="historyCount">—</strong></div>
+          <div><span>已确认</span><strong id="historyOk">—</strong></div>
+          <div><span>待确认 / 失败</span><strong id="historyBad">—</strong></div>
+          <div><span>最后同步</span><strong id="historyUpdatedTop">—</strong></div>
+        </div>
+        <div class="history-head"><span>时间</span><span>钱包</span><span>类型</span><span>资产</span><span>状态</span><span class="right">Tx</span></div>
+        <div id="historyRows" class="history-rows"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+        <div class="empty" id="historyEmpty" hidden>
+          <div class="empty-mark">○</div>
+          <strong>这个钱包还没有记录</strong>
+          <span>切到其他钱包或“全部钱包”看看。</span>
+        </div>
+        <div class="panel-foot"><span><i class="live-dot"></i> 后台预缓存 · 20 秒增量刷新</span><span id="historyUpdated">—</span></div>
+        <p class="disclaimer">记录仅供参考，最终状态以 BscScan 链上数据为准。</p>
+      </section>
+    </section>
+
+    <footer class="app-foot">
+      <span><svg class="icon"><use href="#i-shield"></use></svg> 私钥不离开币安钱包 · 服务端仅调用 BAW 会话</span>
+      <button class="foot-resource" type="button" data-open-resources aria-haspopup="dialog">
+        <span class="foot-res-icon"><svg class="icon"><use href="#i-external"></use></svg></span>
+        <span class="foot-res-text"><strong>资源与工具</strong><small>手续费 / 第三方链接</small></span>
+        <svg class="icon foot-res-arrow"><use href="#i-external"></use></svg>
+      </button>
+      <span>BAW 1.12.0 · BSC · 0xStudy Agentic</span>
+    </footer>
+  </main>
+
+  <!-- RESOURCES -->
+  <div class="modal" id="resourcesModal" aria-hidden="true">
+    <div class="modal-bg" data-close="resources"></div>
+    <div class="modal-card resources-card" role="dialog" aria-modal="true" aria-labelledby="resourcesTitle">
+      <div class="modal-head">
+        <div class="modal-symbol"><svg class="icon"><use href="#i-external"></use></svg></div>
+        <div class="modal-title"><h2 id="resourcesTitle">资源</h2><p>第三方注册链接，按需使用</p></div>
+        <button class="icon-btn" data-close="resources" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div class="resources-body">
+        <div class="resources-links">
+          <a class="fee-link okx" href="https://web3.okx.com/join/0XSTUDY" target="_blank" rel="noopener noreferrer">
+            <span class="fee-brand">OKX</span>
+            <span class="fee-text"><strong>OKX 省手续费</strong><small>专属注册链接</small></span>
+            <svg class="icon fee-out"><use href="#i-external"></use></svg>
+          </a>
+          <a class="fee-link binance" href="https://web3.binance.com/referral?ref=0XSTUDY" target="_blank" rel="noopener noreferrer">
+            <span class="fee-brand">BN</span>
+            <span class="fee-text"><strong>币安省手续费</strong><small>专属注册链接</small></span>
+            <svg class="icon fee-out"><use href="#i-external"></use></svg>
+          </a>
+        </div>
+        <p class="resources-note">这些是第三方注册链接，是否使用不影响看板功能。本项目不是 Binance 或 OKX 官方产品，与其无隶属关系。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SELL -->
+  <div class="modal" id="sellModal" aria-hidden="true">
+    <div class="modal-bg" data-close="sell"></div>
+    <div class="modal-card sell-card" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+      <div class="modal-head">
+        <div class="modal-symbol" id="sellSymbolBig">B</div>
+        <div class="modal-title"><h2 id="sellTitle">卖出 BNB</h2><p id="sellSub">—</p></div>
+        <button class="icon-btn" data-close="sell" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div id="sellForm" class="sell-body">
+        <div class="form-col">
+          <div class="field">
+            <div class="field-head"><label>选择钱包</label><button id="sellAllWallets" class="text-btn" type="button">全选</button></div>
+            <div id="sellWallets" class="wallet-picker"></div>
+          </div>
+          <div class="field">
+            <div class="field-head"><label>卖出方式</label><span id="sellQtyHint">—</span></div>
+            <div class="sell-mode" id="sellMode">
+              <button data-smode="pct" class="is-active" type="button">按比例卖</button>
+              <button data-smode="amount" type="button">按数量卖</button>
+            </div>
+            <div id="sellPctBox">
+              <div class="pct-row sell-pcts" id="sellPcts">
+                <button data-pct="20" type="button">20%<small data-pct-qty>—</small></button>
+                <button data-pct="50" class="is-active" type="button">50%<small data-pct-qty>—</small></button>
+                <button data-pct="100" type="button">100%<small data-pct-qty>—</small></button>
+                <label class="custom-pct"><span class="custom-top"><input id="customPct" type="number" min="0.1" max="100" step="0.1" placeholder="自定义"><span>%</span></span><small id="customPctQty">—</small></label>
+              </div>
+            </div>
+            <div id="sellAmountBox" hidden>
+              <div class="sell-amount-row"><input id="sellAmountInput" type="text" inputmode="decimal" placeholder="输入卖出数量" autocomplete="off"><span id="sellSymbolUnit">BNB</span></div>
+              <p id="sellAmountNote" class="field-note">约 —%</p>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-head"><label>滑点</label><button id="autoSlip" class="text-btn" type="button">用池子推荐 <span id="autoSlipText">—</span></button></div>
+            <div class="slip-row"><label class="num-input"><input id="slipInput" type="number" min="0.1" max="50" step="0.1" value="1"><span>%</span></label><div class="slip-quick"><button data-slip="1" type="button">1%</button><button data-slip="5" type="button">5%</button><button data-slip="10" type="button">10%</button><button data-slip="20" type="button">20%</button></div></div>
+            <p id="slipNote" class="field-note">—</p>
+          </div>
+        </div>
+        <div class="quote-col">
+          <div class="quote-card">
+            <div class="quote-label">预计到账 <span id="quoteVia">—</span></div>
+            <div id="quoteAmount" class="quote-amount">—</div>
+            <div id="quoteSub" class="quote-sub">—</div>
+            <div class="quote-divider"></div>
+            <div class="kv"><span>参考价</span><b id="quotePrice">—</b></div>
+            <div class="kv"><span>最优池</span><b id="quotePool">—</b></div>
+            <div class="kv"><span>池子地址</span><b id="quotePair" class="mono">—</b></div>
+            <div class="kv"><span>池子流动性</span><b id="quoteLiquidity">—</b></div>
+            <div class="kv"><span>买卖税</span><b id="quoteTax">—</b></div>
+            <div class="kv"><span>BAW 报价偏差</span><b id="quoteDeviation">—</b></div>
+          </div>
+          <div id="taxAlert" class="tax-alert" hidden></div>
+          <div id="quoteGuard" class="guard">正在向 BAW 要报价…</div>
+          <div id="sellPhone" class="phone-alert" hidden><svg class="icon"><use href="#i-phone"></use></svg><div><strong>这笔需要到手机币安 App 确认</strong><span>页面不会绕过风控。确认后如果仍未成交，请重新打开卖出。</span></div></div>
+          <button id="sellConfirm" class="btn primary full" type="button" disabled>确认卖出</button>
+          <p class="modal-note">一次确认直接提交；报价比最优池低 8% 会被自动拦截。</p>
+          <p class="disclaimer">卖出前请核对钱包、数量、滑点和交易税；链上交易不可撤销。</p>
+        </div>
+      </div>
+      <div id="sellProgress" class="progress" hidden></div>
+    </div>
+  </div>
+
+  <!-- SEND -->
+  <div class="modal" id="sendModal" aria-hidden="true">
+    <div class="modal-bg" data-close="send"></div>
+    <div class="modal-card send-card" role="dialog" aria-modal="true" aria-labelledby="sendTitle">
+      <div class="modal-head">
+        <div class="modal-symbol" id="sendSymbolBig">B</div>
+        <div class="modal-title"><h2 id="sendTitle">发送 BNB</h2><p>多钱包可同时发送到同一地址</p></div>
+        <button class="icon-btn" data-close="send" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div id="sendForm" class="send-body">
+        <div class="form-col">
+          <div class="field">
+            <div class="field-head"><label>收款地址</label><span>可直接输入，或点地址簿中的地址填入</span></div>
+            <input id="recipientInput" class="text-input mono" type="text" spellcheck="false" placeholder="0x…">
+            <div class="recipient-tools">
+              <button id="useOkxAddress" class="addr-quick" type="button">OKX 地址</button>
+              <button id="openBookFromSend" class="text-btn" type="button">打开地址簿 →</button>
+            </div>
+            <div id="sendBookPicks" class="send-book-picks" hidden></div>
+            <div class="send-reminder"><svg class="icon"><use href="#i-shield"></use></svg><span>可直接发送到任意 0x 地址，不需要先加入币安地址簿；链上发送不可撤销，提交前请核对完整地址和数量。</span></div>
+            <div class="own-wallets">
+              <div class="field-head"><label>转给我的 Agentic 钱包</label><span>点一下填入收款地址</span></div>
+              <div id="ownWalletPicks" class="own-wallet-picks"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-head"><label>发送数量</label><span id="sendQtyHint">—</span></div>
+            <div class="send-amount-row">
+              <div class="send-amount-input"><input id="sendAmountInput" type="text" inputmode="decimal" placeholder="手动输入数量" autocomplete="off"><span id="sendSymbolUnit">—</span></div>
+              <div class="pct-row" id="sendPcts"><button data-spct="20" type="button">20%</button><button data-spct="50" type="button">50%</button><button data-spct="100" type="button">100%</button></div>
+            </div>
+            <p class="field-note">手动输入的是每个钱包的发送数量；右侧百分比按每个钱包余额计算。</p>
+          </div>
+          <div class="field">
+            <div class="field-head"><label>从哪些钱包发送</label><button id="sendAllWallets" class="text-btn" type="button">全选</button></div>
+            <div id="sendWallets" class="wallet-picker"></div>
+          </div>
+        </div>
+        <div class="quote-col">
+          <div class="quote-card">
+            <div class="quote-label">发送摘要</div>
+            <div class="kv"><span>代币</span><b id="sendTokenLabel">—</b></div>
+            <div class="kv"><span>地址</span><b id="sendAddressLabel" class="send-full-address">—</b></div>
+            <div class="kv"><span>网络</span><b>BSC</b></div>
+            <div class="kv"><span>钱包</span><b id="sendWalletLabel">—</b></div>
+            <div class="kv"><span>合计</span><b id="sendTotalLabel">—</b></div>
+          </div>
+          <div class="guard warn"><svg class="icon"><use href="#i-alert"></use></svg> 发送不可撤销，提交前核对完整地址。</div>
+          <button id="sendConfirm" class="btn primary full" type="button" disabled>确认发送</button>
+          <p class="modal-note">逐号提交，任一失败不影响其他钱包。</p>
+          <p class="disclaimer">链上发送不可撤销；请在手机/区块浏览器再次核对收款地址。</p>
+        </div>
+      </div>
+      <div id="sendProgress" class="progress" hidden></div>
+    </div>
+  </div>
+
+  <!-- ADD WALLET -->
+  <div class="modal" id="walletModal" aria-hidden="true">
+    <div class="modal-bg" data-close="wallet"></div>
+    <div class="modal-card wallet-card" role="dialog" aria-modal="true" aria-labelledby="walletTitle">
+      <div class="modal-head">
+        <div class="modal-symbol"><svg class="icon"><use href="#i-wallet"></use></svg></div>
+        <div class="modal-title"><h2 id="walletTitle">添加 Agentic 钱包</h2><p id="walletSubtitle">用币安 App 扫码授权新会话</p></div>
+        <button class="icon-btn" data-close="wallet" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div class="wallet-add-body">
+        <div class="wallet-add-form">
+          <div class="field" id="walletLabelField">
+            <div class="field-head"><label>钱包名称</label><span>只用于这个页面显示</span></div>
+            <input id="walletLabel" class="text-input" type="text" maxlength="20" placeholder="例如：新号 / 朋友号">
+          </div>
+          <button id="walletStart" class="btn primary full" type="button">生成扫码二维码</button>
+          <p id="walletStatus" class="wallet-status">扫码后会自动创建独立 BAW 会话，不会导入私钥。新钱包默认只读，添加后可在钱包管理开启交易。</p>
+        </div>
+        <div id="walletQR" class="wallet-qr" hidden>
+          <div id="walletQRBox" class="wallet-qr-box"></div>
+          <div class="wallet-qr-meta">
+            <div><span>配对码</span><strong id="walletPairing">—</strong></div>
+            <div><span>有效期</span><strong id="walletExpiry">—</strong></div>
+          </div>
+          <a id="walletUrl" class="btn ghost full" href="#" target="_blank" rel="noopener">在手机上打开授权链接</a>
+          <p class="wallet-status" id="walletWaiting">等待扫码…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="receiveModal" aria-hidden="true">
+    <div class="modal-bg" data-close="receive"></div>
+    <div class="modal-card receive-card" role="dialog" aria-modal="true" aria-labelledby="receiveTitle">
+      <div class="modal-head">
+        <div class="modal-title"><h2 id="receiveTitle">收款二维码</h2><p id="receiveWalletName">—</p></div>
+        <button class="icon-btn" data-close="receive" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div class="receive-body">
+        <div class="receive-qr-wrap">
+          <img id="receiveQR" alt="钱包收款二维码" width="280" height="280">
+          <div id="receiveQRError" class="receive-qr-error" hidden>二维码生成失败，请使用下方完整地址复制转账。</div>
+        </div>
+        <div id="receiveAddress" class="receive-address">—</div>
+        <button id="copyReceiveAddress" class="btn primary" type="button">复制完整地址</button>
+        <p class="disclaimer">二维码只包含上面这个钱包地址。扫码后请再次核对地址，确认一致再转账；链上转账不可撤销。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="keepaliveModal" aria-hidden="true">
+    <div class="modal-bg" data-close="keepalive"></div>
+    <div class="modal-card holders-card" role="dialog" aria-modal="true" aria-labelledby="keepaliveTitle">
+      <div class="modal-head">
+        <div class="modal-symbol"><svg class="icon"><use href="#i-clock"></use></svg></div>
+        <div class="modal-title"><h2 id="keepaliveTitle">后台保活</h2><p>每个钱包的会话状态</p></div>
+        <button class="icon-btn" data-close="keepalive" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div id="keepaliveModalList" class="keepalive-modal-list"></div>
+      <div class="keepalive-rule">
+        <strong>规则</strong>
+        <p>服务每 1 小时对每个钱包执行一次 <b>baw wallet status</b>，只用于保持会话活跃，不会自动买卖或动资金。</p>
+        <p>全部会话 CONNECTED 时，右上角入口显示绿色；任意一个掉线、过期或查询失败时显示红色。点这个入口可以查看具体是哪一个。</p>
+        <p class="disclaimer">这里只做只读状态检查，不会发起交易或转移资金。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="holdersModal" aria-hidden="true">
+    <div class="modal-bg" data-close="holders"></div>
+    <div class="modal-card holders-card" role="dialog" aria-modal="true" aria-labelledby="holdersTitle">
+      <div class="modal-head">
+        <div class="modal-symbol"><svg class="icon"><use href="#i-wallet"></use></svg></div>
+        <div class="modal-title"><h2 id="holdersTitle">持仓钱包</h2><p>这个资产在哪些钱包里</p></div>
+        <button class="icon-btn" data-close="holders" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </div>
+      <div id="holdersList" class="holders-list"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toasts"></div>
+  <script src="app.js"></script>
+</body>
+</html>
