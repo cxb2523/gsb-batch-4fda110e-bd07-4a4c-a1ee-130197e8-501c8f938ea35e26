@@ -1,0 +1,48 @@
+<template>
+    <div class="avatar">
+        <img :src="avatarSrc" alt="Avatar" />
+    </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { loadAvatar } from "@/service/ApiService";
+import { toast } from 'vue3-toastify'
+import { AvatarIdGetTypeEnum } from '@/models/AvatarIdGetTypeEnum';
+
+const avatarSrc = ref<string>()
+
+const props = defineProps<{
+    imageID: string | undefined
+    avatarType: AvatarIdGetTypeEnum
+}>()
+
+
+onMounted(() => {
+    if (!props.imageID) return;
+    loadAvatar(props.avatarType, props.imageID).then((response) => {
+        avatarSrc.value = URL.createObjectURL(response);
+    }).catch((error) => {
+        toast.error('Failed to load avatar image.', error);
+    });
+})
+</script>
+
+<style scoped>
+.avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--color-btn-bg);
+    flex-shrink: 0;
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+</style>

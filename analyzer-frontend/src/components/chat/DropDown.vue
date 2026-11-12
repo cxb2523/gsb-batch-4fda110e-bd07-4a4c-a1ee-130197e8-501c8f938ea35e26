@@ -1,0 +1,112 @@
+<template>
+  <div class="dropdown-wrapper">
+    <label for="chat-dropdown"></label>
+    <select
+      id="chat-dropdown"
+      v-model="selectedValue"
+      @change="handleChange"
+      class="dropdown"
+    >
+      <option value="">-- Select a contact or group --</option>
+      <optgroup label="Contacts" v-if="contacts.length > 0">
+        <option
+          v-for="contact in contacts"
+          :key="'contact-' + contact.identity.identity"
+          :value="'contact:' + contact.identity.identity"
+        >
+          {{ getContactName(contact) }}
+        </option>
+      </optgroup>
+      <optgroup label="Groups" v-if="groups.length > 0">
+        <option
+          v-for="group in groups"
+          :key="'group-' + group.groupUid"
+          :value="'group:' + group.groupUid"
+        >
+          {{ group.groupName }}
+        </option>
+      </optgroup>
+    </select>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ModelsContact } from '@/models/ModelsContact'
+import { ModelsGroup } from '@/models/ModelsGroup'
+
+const props = defineProps<{
+  contacts: ModelsContact[]
+  groups: ModelsGroup[]
+}>()
+
+const selectedValue = ref<string>('')
+
+const emit = defineEmits<{
+  (e: 'selection', value: ModelsContact | ModelsGroup): void
+}>()
+
+function handleChange() {
+  if (!selectedValue.value) return
+
+  const [type, id] = selectedValue.value.split(':')
+
+  if (type === 'contact') {
+    const contact = props.contacts.find(c => c.identity.identity === id)
+    if (contact) emit('selection', contact)
+  } else if (type === 'group') {
+    const group = props.groups.find(g => g.groupUid === id)
+    if (group) emit('selection', group)
+  }
+}
+
+function getContactName(contact: ModelsContact): string {
+  return (
+    contact.identity.nickName ||
+    contact.identity.firstName ||
+    contact.identity.lastName ||
+    contact.identity.identity
+  )
+}
+</script>
+
+<style scoped>
+.dropdown-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dropdown-wrapper label {
+  color: var(--color-text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dropdown {
+  padding: 8px 12px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  min-width: 250px;
+}
+
+.dropdown:hover {
+  background: var(--color-bg-elevated);
+}
+
+.dropdown:focus {
+  outline: none;
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 0 0 2px var(--color-primary-focus-shadow);
+}
+
+.dropdown option,
+.dropdown optgroup {
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+</style>
