@@ -1,0 +1,9 @@
+build/
+dist/
+reddrix/__pycache__/
+.venv/
+*.egg-info/
+test.py
+results/
+debug.html
+backup.py
