@@ -87,6 +87,37 @@ The MangaVerse Download Engine is a **tool for legitimate archival purposes**. A
 
 The script interacts with publicly available endpoints. It does not bypass authentication systems, decrypt protected content, or access non-public APIs. Any changes to source platforms may require updates to the parser modules—please report such issues promptly.
 
+## Offline Page Restoration
+
+The landing page's real body is stored in hidden `<div>` shards
+(`_Jmuzej2Rg0`, `_Jmuzej2Rg1`, …) and reassembled by an inline script: concatenate
+in numeric order → Base64-decode → per-byte XOR with a fixed key → UTF-8 → overwrite
+the page. Crawlers do not run scripts, so they see a blank page.
+
+`page_restore.py` replays that pipeline offline from the raw HTML text and returns a
+checkable result (restored HTML, shard count, shard order, or a failure stage).
+Standard library only; no browser, no network.
+
+```bash
+# Restore a saved page and print the result as JSON
+python -I page_restore.py index.html
+
+# Print only the restored HTML
+python -I page_restore.py index.html --html-only
+
+# Offline tests (no network access)
+python -I -m unittest discover -s tests -v
+```
+
+```python
+from page_restore import restore_page
+result = restore_page(open("index.html", encoding="utf-8").read())
+result.ok, result.shard_count, result.shard_ids, result.html
+```
+
+Failure stages: `missing_shard` (missing/duplicate/non-contiguous/empty shard, message names the id),
+`base64`, `utf8`, `empty_key` (checked before the byte loop). Failures are returned, never raised.
+
 ## License
 
 This project is released under the MIT License. You are free to use, modify, and distribute this code, provided you include the original license in any substantial reproductions.
