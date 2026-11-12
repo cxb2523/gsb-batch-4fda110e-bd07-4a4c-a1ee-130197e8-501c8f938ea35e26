@@ -276,6 +276,15 @@ a{color:inherit;text-decoration:none}
 .h-time strong{display:block;font-family:Geist,monospace;font-size:16px;font-weight:650}
 .h-time small{display:block;font-size:14px;color:var(--ink-3)}
 .h-wallet{display:flex;align-items:center;gap:7px;font-size:16px;color:var(--ink-2);font-weight:650}
+.history-notice{margin:12px 24px 0;align-items:flex-start;background:var(--red-soft);border-color:var(--red)}
+.history-notice .icon{color:var(--red);margin-top:2px}
+.history-notice strong{color:var(--red);font-weight:800;margin-right:4px}
+.history-notice span{flex:1;color:var(--ink-2)}
+.history-row.is-stale{background:var(--amber-soft)}
+.history-row.is-stale:hover{background:var(--amber-soft)}
+.fresh-badge{display:inline-flex;align-items:center;margin-left:7px;height:22px;padding:0 6px;border-radius:4px;font-size:12px;font-weight:750;color:var(--amber);background:var(--amber-soft);border:1px solid var(--amber);white-space:nowrap}
+[data-theme="dark"] .history-row.is-stale{background:#241f16}
+[data-theme="dark"] .fresh-badge{background:#2b2418}
 .kind{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:30px;padding:0 9px;border-radius:5px;font-size:14px;font-weight:750}
 .kind.send{color:var(--blue);background:#edf2fa}
 .kind.receive{color:var(--green);background:var(--green-soft)}

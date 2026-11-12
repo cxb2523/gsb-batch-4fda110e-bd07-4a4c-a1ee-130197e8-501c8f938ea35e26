@@ -34,7 +34,7 @@
 - **大额精度**：最小单位换算使用 80 位 Decimal 上下文，避免默认 28 位把大额余额末尾截掉。
 - **离线钱包**：会话已退出的钱包不能勾选发送，必须先在钱包管理里“重新登录”；发送失败会在弹窗里显示每个钱包的具体原因。
 - **钱包互转**：发送弹窗里直接选择 W1 → W2、W1 → W3、W1 → W4。
-- **交易记录**：合约调用会读取 BSC 交易回执里的 ERC-20 `Transfer` / 原生 BNB，尽量还原成“发送 / 接收 / 交易”和具体数量，不再只显示“合约 —”。同一笔交易按当前钱包地址分别解析并缓存，W1 看是发送、W2 看是接收，不会串视角。
+- **交易记录**：合约调用会读取 BSC 交易回执里的 ERC-20 `Transfer` / 原生 BNB，尽量还原成“发送 / 接收 / 交易”和具体数量，不再只显示“合约 —”。同一笔交易按当前钱包地址分别解析并缓存，W1 看是发送、W2 看是接收，不会串视角。每条记录带上本次抓取的 `fetchedAt`；抓取失败时保留上次成功结果并明确标记“本次抓取失败 + 原因 + 失败时间”，旧数据会显示为“旧数据”，不会静默当成新结果。同一钱包的重复刷新会复用进行中的请求，不叠加执行。
 - **本地地址簿**：只存在浏览器 localStorage；支持新增、修改、复制、发送、删除；发送弹窗会自动列出地址簿地址，点一下填入。
 - **完整地址复制**：钱包管理和地址簿都复制完整 `0x` 地址，不复制缩略地址。
 - **收款二维码**：服务端按当前钱包完整地址生成二维码，二维码下方再次显示完整地址。
@@ -404,7 +404,7 @@ sudo systemctl enable --now agentic-wallet
 data/
 ├── wallets.json          # 钱包配置（包含地址）
 ├── keepalive.json
-├── history/              # 每个钱包的交易记录缓存
+├── history/              # 每个钱包的交易记录快照（rows + fetchedAt/address）
 ├── audit.jsonl           # 本地交易审计
 ├── tasks.json            # 持久化任务 + 幂等记录
 ├── balance-cache.json    # 短期余额快照
@@ -418,7 +418,7 @@ data/
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | `GET` | `/api/portfolio` | 汇总资产、价格、税、保活 |
-| `GET` | `/api/history?wallet=w1` | 缓存的 BAW 交易记录 |
+| `GET` | `/api/history?wallet=w1` | 缓存的 BAW 交易记录（含 `ok` / `error` / `updatedAt` / `attemptedAt` / `stale` / `wallets`）；`refresh=1` 同步触发一次抓取 |
 | `GET` | `/api/wallets` | 钱包配置 |
 | `POST` | `/api/wallets/start` | 开始扫码添加钱包 |
 | `GET` | `/api/wallets/pending?slot=w7` | 查询扫码状态 |
@@ -488,7 +488,7 @@ Independent project. Not affiliated with or endorsed by Binance.
 - Sell by percentage or by token quantity, with quantity labels and estimated percentages.
 - Manual or percentage-based sends.
 - Send directly to another connected Agentic wallet (W1 → W2, W1 → W3, etc.).
-- Transaction history resolves contract calls through BSC receipts (ERC-20 `Transfer` / native BNB) into send/receive/trade rows with token amounts.
+- Transaction history resolves contract calls through BSC receipts (ERC-20 `Transfer` / native BNB) into send/receive/trade rows with token amounts. Each row carries the snapshot's `fetchedAt`; a failed refresh keeps the last successful rows but reports the failure time and a readable reason (and the rows are marked stale), so old data is never presented as fresh. Concurrent refreshes for one wallet share a single in-flight BAW request.
 - Local browser address book with add, edit, copy, send, and delete; saved addresses appear as quick picks inside the send dialog.
 - Full-address copy in wallet management and the address book.
 - Server-generated receive QR codes from the exact wallet address, with the full address shown underneath.
@@ -815,7 +815,7 @@ Adjust `User`, `WorkingDirectory`, `ReadWritePaths`, and `HOME` for your host.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/portfolio` | Portfolio, prices, taxes, keepalive |
-| `GET` | `/api/history?wallet=w1` | Cached BAW transaction history |
+| `GET` | `/api/history?wallet=w1` | Cached BAW history with `ok`/`error`/`updatedAt`/`attemptedAt`/`stale`/`wallets`; `refresh=1` forces a synchronous fetch |
 | `GET` | `/api/wallets` | Wallet configuration |
 | `POST` | `/api/wallets/start` | Start QR onboarding |
 | `GET` | `/api/wallets/pending?slot=w7` | Pending QR status |

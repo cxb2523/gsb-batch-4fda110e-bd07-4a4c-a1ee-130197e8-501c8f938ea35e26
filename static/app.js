@@ -17,6 +17,7 @@
     view: "assets",
     historyWallet: "w1",
     historyCache: {},
+    historyPending: {},
     historyFilter: "all",
     hideLow: true,
     showAll: false,
@@ -179,13 +180,23 @@
     list.sort((a, b) => Number(b.value) - Number(a.value));
     return list;
   }
+  function historyEntry(wallet) {
+    return state.historyCache[wallet] || null;
+  }
+  // Per-wallet cache keys.  The "all" entry is an aggregate response; it is
+  // preferred when present, otherwise we merge what per-wallet snapshots hold.
+  function historyWalletKeys() {
+    return (state.portfolio?.wallets || []).map((w) => w.id).filter((id) => historyEntry(id));
+  }
   function historyFor(wallet) {
     if (wallet === "all") {
+      const aggregate = historyEntry("all");
+      if (aggregate) return aggregate.items || [];
       const seen = new Set();
       const out = [];
-      for (const w of Object.keys(state.historyCache)) {
-        if (w === "at") continue;
-        for (const item of state.historyCache[w] || []) {
+      for (const w of historyWalletKeys()) {
+        const entry = historyEntry(w);
+        for (const item of (entry?.items) || []) {
           const key = (item.wallet || "") + ":" + (item.txHash || "");
           if (seen.has(key)) continue;
           seen.add(key);
@@ -195,8 +206,67 @@
       out.sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
       return out;
     }
-    return state.historyCache[wallet] || [];
+    return (historyEntry(wallet)?.items) || [];
   }
+  function historyMeta(wallet) {
+    const empty = { ok: null, error: null, updatedAt: null, attemptedAt: null, stale: false, errors: [], wallets: {}, refreshing: false };
+    if (wallet !== "all") {
+      const e = historyEntry(wallet);
+      if (!e) return { ...empty, refreshing: Boolean(state.historyPending[wallet]) };
+      return {
+        ok: e.ok ?? null,
+        error: e.error || null,
+        updatedAt: e.updatedAt || null,
+        attemptedAt: e.attemptedAt || null,
+        stale: Boolean(e.stale),
+        errors: e.errors || (e.error ? [{ wallet, error: e.error }] : []),
+        wallets: e.wallets || {},
+        refreshing: Boolean(e.refreshing || state.historyPending[wallet]),
+      };
+    }
+    const aggregate = historyEntry("all");
+    if (aggregate) {
+      return {
+        ok: aggregate.ok ?? null,
+        error: aggregate.error || null,
+        updatedAt: aggregate.updatedAt || null,
+        attemptedAt: aggregate.attemptedAt || null,
+        stale: Boolean(aggregate.stale),
+        errors: aggregate.errors || [],
+        wallets: aggregate.wallets || {},
+        refreshing: Boolean(aggregate.refreshing || state.historyPending.all),
+      };
+    }
+    let updatedAt = null;
+    let attemptedAt = null;
+    let ok = null;
+    let stale = false;
+    const errors = [];
+    const wallets = {};
+    let any = false;
+    for (const w of historyWalletKeys()) {
+      const e = historyEntry(w);
+      if (!e) continue;
+      any = true;
+      Object.assign(wallets, e.wallets || {});
+      if (e.updatedAt && (!updatedAt || Date.parse(e.updatedAt) > Date.parse(updatedAt))) updatedAt = e.updatedAt;
+      if (e.attemptedAt && (!attemptedAt || Date.parse(e.attemptedAt) > Date.parse(attemptedAt))) attemptedAt = e.attemptedAt;
+      stale = stale || Boolean(e.stale);
+      if (e.ok === false) {
+        ok = false;
+        if (e.error) errors.push({ wallet: w, error: e.error });
+      } else if (e.ok === true && ok !== false) {
+        ok = true;
+      }
+    }
+    return { ok: any ? ok : null, error: errors[0]?.error || null, updatedAt, attemptedAt, stale, errors, wallets, refreshing: false };
+  }
+  const syncTime = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("zh-CN", { hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
 
   /* ---------------- render ---------------- */
   function render() {
@@ -370,26 +440,51 @@
 
   function renderHistory() {
     const all = historyFor(state.historyWallet);
+    const meta = historyMeta(state.historyWallet);
     const items = all.filter((x) => state.historyFilter === "all" || x.kind === state.historyFilter);
     $("#historyCount").textContent = all.length;
     $("#historyOk").textContent = all.filter((x) => x.status === "confirmed").length;
     $("#historyBad").textContent = all.filter((x) => x.status !== "confirmed").length;
-    $("#historyUpdatedTop").textContent = state.historyCache.at ? timeAgo(state.historyCache.at) : "—";
-    $("#historyEmpty").hidden = items.length > 0;
+    $("#historyUpdatedTop").textContent = meta.updatedAt ? syncTime(meta.updatedAt) : "—";
+    renderHistoryBanner(meta);
+    $("#historyEmpty").hidden = items.length > 0 || Boolean(meta.error);
     $("#historyRows").innerHTML = items.map((x) => {
       const kindClass = x.kind === "发送" ? "send" : x.kind === "接收" ? "receive" : x.kind === "交易" ? "trade" : "contract";
       const statusClass = x.status === "confirmed" ? "confirmed" : x.status === "failed" ? "failed" : "pending";
       const statusText = x.status === "confirmed" ? "已确认" : x.status === "failed" ? "失败" : "待确认";
-      return `<div class="history-row">
-        <div class="h-time"><strong>${esc(localTime(x.time))}</strong><small>${esc(String(x.time || "").slice(0, 10))}</small></div>
+      const snapshot = x.fetchedAt ? syncTime(x.fetchedAt) : "—";
+      return `<div class="history-row${x.stale ? " is-stale" : ""}">
+        <div class="h-time"><strong>${esc(localTime(x.time))}</strong><small>抓取 ${esc(snapshot)}${x.stale ? " · 旧数据" : ""}</small></div>
         <div class="h-wallet">${walletTag(walletById(x.wallet))}${esc(x.walletLabel || x.wallet)}</div>
         <div><span class="kind ${kindClass}">${esc(x.kind)}</span></div>
         <div class="h-asset"><strong>${esc(x.amount || (x.txType === "contract_call" ? "合约调用" : "—"))}</strong><small>${esc(x.counterparty ? "对手方 " + x.counterparty : x.contractAddress ? "合约 " + shortAddr(x.contractAddress) : (x.symbol || ""))}</small></div>
-        <div class="h-status"><span class="status ${statusClass}">${statusText}</span></div>
+        <div class="h-status"><span class="status ${statusClass}">${statusText}</span>${x.stale ? `<span class="fresh-badge stale">旧数据</span>` : ""}</div>
         <div>${x.txHash ? `<a class="tx-link" href="https://bscscan.com/tx/${esc(x.txHash)}" target="_blank" rel="noopener">${esc(shortAddr(x.txHash))}<svg class="icon"><use href="#i-external"></use></svg></a>` : `<span class="tx-link">—</span>`}</div>
       </div>`;
     }).join("");
-    $("#historyUpdated").textContent = "更新 " + (state.historyCache.at ? timeAgo(state.historyCache.at) : "—");
+    $("#historyUpdated").textContent = meta.updatedAt ? "抓取 " + syncTime(meta.updatedAt) : "—";
+  }
+
+  function renderHistoryBanner(meta) {
+    const el = $("#historyNotice");
+    if (!el) return;
+    if (meta.ok !== false) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    const failedAt = meta.attemptedAt ? syncTime(meta.attemptedAt) : "—";
+    const lastOk = meta.updatedAt ? syncTime(meta.updatedAt) : null;
+    const reason = meta.errors.length > 1
+      ? meta.errors.map((e) => `${walletById(e.wallet).label || e.wallet}：${e.error}`).join("；")
+      : (meta.error || "原因未知");
+    const shown = lastOk
+      ? `当前显示的是上次成功抓取的数据（${esc(lastOk)}），不是本次结果。`
+      : "当前没有可显示的记录，本次抓取也没有成功。";
+    el.hidden = false;
+    el.className = "notice error history-notice";
+    el.innerHTML = `<svg class="icon"><use href="#i-alert"></use></svg>
+      <span><strong>本次抓取失败（${esc(failedAt)}）</strong>${esc(reason)}。${shown}</span>`;
   }
 
   /* ---------------- load ---------------- */
@@ -402,7 +497,7 @@
       if (state.wallet !== "all" && !p.wallets.some((w) => w.id === state.wallet)) state.wallet = "all";
       if (state.historyWallet !== "all" && !p.wallets.some((w) => w.id === state.historyWallet)) state.historyWallet = p.wallets[0]?.id || "all";
       render();
-      if (!state.historyCache.at) prefetchHistories();
+      if (!state.historyCache[state.historyWallet] && !state.historyPending[state.historyWallet]) prefetchHistories();
     } catch (e) {
       toast("读取资产失败", String(e.message || e), "error");
     } finally {
@@ -411,30 +506,59 @@
     }
   }
 
-  async function loadHistory(wallet, silent = false) {
+  async function loadHistory(wallet, silent = false, force = false) {
     if (!wallet) return;
+    // Never stack a second request for the wallet already being fetched: join
+    // the in-flight promise instead.
+    if (state.historyPending[wallet]) return state.historyPending[wallet];
     if (!silent && !historyFor(wallet).length) $("#historyRows").innerHTML = `<div class="skeleton-row"></div><div class="skeleton-row"></div>`;
-    try {
-      const h = await api("history?wallet=" + encodeURIComponent(wallet) + "&limit=120");
-      state.historyCache[wallet] = h.items || [];
-      state.historyCache.at = h.updatedAt;
-      if (state.view === "history" && state.historyWallet === wallet) renderHistory();
-    } catch (e) {
-      if (!silent) toast("读取记录失败", String(e.message || e), "error");
-    }
+    const qs = "history?wallet=" + encodeURIComponent(wallet) + "&limit=120" + (force ? "&refresh=1" : "");
+    state.historyPending[wallet] = (async () => {
+      try {
+        const h = await api(qs);
+        state.historyCache[wallet] = h;
+        // The merged "all" snapshot would otherwise keep a stale aggregate
+        // (including a failure marker from an earlier attempt); drop it so the
+        // next "all" view refetches.  Merging per-wallet entries still works.
+        if (wallet !== "all") delete state.historyCache.all;
+        if (state.view === "history" && state.historyWallet === wallet) renderHistory();
+        if (h.ok === false && !silent) toast("记录抓取失败", String(h.error || "BAW 未返回记录"), "error");
+        return h;
+      } catch (e) {
+        // Keep the previous snapshot: a transport error must not blank the page,
+        // but it must still be visible as a failed attempt.
+        const reason = String(e.message || e);
+        const prev = historyEntry(wallet);
+        state.historyCache[wallet] = {
+          items: prev?.items || [],
+          ok: false,
+          error: reason,
+          updatedAt: prev?.updatedAt || null,
+          attemptedAt: new Date().toISOString(),
+          stale: Boolean(prev?.items?.length),
+          wallets: prev?.wallets || {},
+          errors: [{ wallet, error: reason }],
+        };
+        if (state.view === "history" && state.historyWallet === wallet) renderHistory();
+        if (!silent) toast("读取记录失败", reason, "error");
+        return null;
+      } finally {
+        delete state.historyPending[wallet];
+      }
+    })();
+    return state.historyPending[wallet];
   }
 
   async function prefetchHistories() {
     const wallets = state.portfolio?.wallets || [];
-    const first = state.historyWallet && state.historyWallet !== "all" ? state.historyWallet : (wallets[0]?.id || "all");
-    const ids = [...new Set([first, "all", ...wallets.map((w) => w.id)])];
+    // Viewing "all" uses the aggregate response; viewing one wallet loads that
+    // wallet plus the others (so tab switching paints instantly).
+    const ids = state.historyWallet && state.historyWallet !== "all"
+      ? [...new Set([state.historyWallet, ...wallets.map((w) => w.id)])]
+      : ["all"];
     for (const id of ids) {
-      if (state.historyCache[id]) continue;
-      try {
-        const h = await api("history?wallet=" + encodeURIComponent(id) + "&limit=120");
-        state.historyCache[id] = h.items || [];
-        state.historyCache.at = h.updatedAt;
-      } catch {}
+      if (state.historyCache[id] || state.historyPending[id]) continue;
+      await loadHistory(id, true);
     }
     if (state.view === "history") renderHistory();
   }
@@ -1153,6 +1277,13 @@
       state.historyFilter = b.dataset.hfilter;
       $$("#historyFilter button").forEach((x) => x.classList.toggle("is-active", x === b));
       renderHistory();
+    });
+    $("#historyRefresh").addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      btn.disabled = true;
+      // A repeated click while a fetch is in flight is collapsed by loadHistory.
+      loadHistory(state.historyWallet, false, true).finally(() => { btn.disabled = false; });
     });
 
     document.addEventListener("click", (e) => {

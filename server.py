@@ -65,10 +65,18 @@ BALANCE_PATH = DATA / "balance-cache.json"
 MARKET_PATH = DATA / "market-cache.json"
 _audit_cache: dict[str, dict[str, Any]] = {}
 _decimals_cache: dict[str, int] = {}
-_history_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+# Per-wallet history state.  A record keeps the last successful page *and*
+# the outcome of the most recent attempt, so a failed refresh can keep serving
+# old rows without pretending they are fresh.
+_history_cache: dict[str, dict[str, Any]] = {}
 HISTORY_DIR = DATA / "history"
 HISTORY_DIR.mkdir(exist_ok=True)
-_history_refreshing: set[str] = set()
+HISTORY_FRESH_SECONDS = 60
+HISTORY_RETRY_SECONDS = 8
+HISTORY_WAIT_SECONDS = 90
+# ``wallet -> Event`` for an in-flight refresh.  Concurrent callers join the
+# same event instead of starting a second BAW request.
+_history_inflight: dict[str, threading.Event] = {}
 _history_refresh_lock = threading.Lock()
 _task_lock = threading.RLock()
 _tasks: dict[str, dict[str, Any]] = {}
@@ -90,6 +98,18 @@ RISK_BLOCK_RE = re.compile(r"(locked|tx-lock|交易锁|trading disabled|暂停�
 
 def now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
+
+
+def now_iso_ms() -> str:
+    """ISO timestamp with millisecond precision (used for fetch attempts).
+
+    A successful fetch and the failed retry that follows can happen inside the
+    same wall-clock second; second precision would make them indistinguishable.
+    ``+08:00``-style offsets keep ``Date.parse`` happy in browsers.
+    """
+    local = time.localtime()
+    ms = int(time.time() * 1000) % 1000
+    return time.strftime("%Y-%m-%dT%H:%M:%S", local) + f".{ms:03d}" + time.strftime("%z", local)[:3] + ":" + time.strftime("%z", local)[3:]
 
 
 def _apply_wallets(items: list[dict[str, Any]]) -> None:
@@ -843,7 +863,7 @@ def build_portfolio(wallet_filter: str = "all") -> dict[str, Any]:
 
 # ---------------------------------------------------------------- history
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-_history_enrich_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+_history_enrich_cache: dict[str, tuple[float, dict[str, Any], str]] = {}
 _token_meta_cache: dict[str, tuple[str, int]] = {}
 
 
@@ -893,14 +913,28 @@ def _history_amount(raw: Any, token: str) -> str:
         return ""
 
 
+def _wallet_address_lower(wallet: str) -> str:
+    w = WALLET_BY_ID.get(wallet) or {}
+    return str(w.get("address") or "").strip().lower()
+
+
 def _enrich_contract_history(wallet: str, tx_hash: str) -> dict[str, Any]:
+    """Resolve one contract call from the perspective of ``wallet``.
+
+    The cache key carries the wallet id and the cached value carries the
+    address it was computed for: the same txHash under a different wallet (or
+    after a wallet is re-bound to another address) is never reused.
+    """
     if not tx_hash:
+        return {}
+    wallet_l = _wallet_address_lower(wallet)
+    if not re.fullmatch(r"0x[0-9a-f]{40}", wallet_l):
         return {}
     now = time.time()
     cache_key = f"{wallet}:{tx_hash}"
     with _cache_lock:
         cached = _history_enrich_cache.get(cache_key)
-        if cached and now - cached[0] < 1800:
+        if cached and cached[2] == wallet_l and now - cached[0] < 1800:
             return cached[1]
     result: dict[str, Any] = {}
     try:
@@ -908,7 +942,6 @@ def _enrich_contract_history(wallet: str, tx_hash: str) -> dict[str, Any]:
         tx = rpc_call("eth_getTransactionByHash", [tx_hash], timeout=10)
         if not isinstance(receipt, dict) or not isinstance(tx, dict):
             return {}
-        wallet_l = str(WALLET_BY_ID[wallet]["address"]).lower()
         # A contract call can emit several ERC-20 Transfer logs. Match only
         # transfers that involve this wallet, then describe the dominant flow.
         transfers: list[dict[str, Any]] = []
@@ -921,6 +954,7 @@ def _enrich_contract_history(wallet: str, tx_hash: str) -> dict[str, Any]:
                 to_addr = "0x" + str(topics[2])[-40:].lower()
             except Exception:
                 continue
+            # Direction is decided by the wallet being viewed right now.
             if wallet_l not in (from_addr, to_addr):
                 continue
             token_addr = str(log.get("address") or "").lower()
@@ -979,7 +1013,7 @@ def _enrich_contract_history(wallet: str, tx_hash: str) -> dict[str, Any]:
     except Exception:
         result = {}
     with _cache_lock:
-        _history_enrich_cache[cache_key] = (now, result)
+        _history_enrich_cache[cache_key] = (now, result, wallet_l)
     return result
 
 
@@ -987,9 +1021,13 @@ def normalize_history(wallet: str, raw: dict[str, Any]) -> list[dict[str, Any]]:
     txs = ((raw.get("data") or {}).get("transactions") or []) if raw.get("success") else []
     out = []
     contract_seen = 0
+    wallet_addr = _wallet_address_lower(wallet)
+    wallet_label = (WALLET_BY_ID.get(wallet) or {}).get("label", wallet)
     for tx in txs:
+        if not isinstance(tx, dict):
+            continue
         hashes = tx.get("txHashList") or []
-        h = hashes[0] if hashes else {}
+        h = hashes[0] if hashes and isinstance(hashes[0], dict) else {}
         ins = (h.get("instructions") or {})
         sends = ins.get("send") or []
         receives = ins.get("receive") or []
@@ -1014,7 +1052,7 @@ def normalize_history(wallet: str, raw: dict[str, Any]) -> list[dict[str, Any]]:
             if not candidate:
                 continue
             a = str((candidate.get("addressInfo") or {}).get("address") or "")
-            if a and a.lower() != WALLET_BY_ID[wallet]["address"].lower():
+            if a and a.lower() != wallet_addr:
                 counterparty = short_addr(a)
                 break
         contract_address = ""
@@ -1027,6 +1065,23 @@ def normalize_history(wallet: str, raw: dict[str, Any]) -> list[dict[str, Any]]:
                 amount = str(enriched.get("amount") or amount)
                 counterparty = str(enriched.get("counterparty") or counterparty)
                 contract_address = str(enriched.get("contractAddress") or "")
+        # Belt-and-braces: a transfer row must never contradict the wallet it
+        # came from.  The instructions carry sender/receiver lists; if the
+        # wallet is the receiver and not the sender, the direction is "接收"
+        # even when the sender list is populated (e.g. gas-paying relayer).
+        if tx_type == "transfer" and send and receive:
+            send_addrs = {
+                str((c.get("addressInfo") or {}).get("address") or "").lower()
+                for c in sends if isinstance(c, dict)
+            }
+            receive_addrs = {
+                str((c.get("addressInfo") or {}).get("address") or "").lower()
+                for c in receives if isinstance(c, dict)
+            }
+            if wallet_addr and wallet_addr in receive_addrs and wallet_addr not in send_addrs:
+                kind = "接收"
+            elif wallet_addr and wallet_addr in send_addrs and wallet_addr not in receive_addrs:
+                kind = "发送"
         fee = ((h.get("networkFee") or {}).get("feeValue"))
         fee_bnb = 0.0
         if fee:
@@ -1036,7 +1091,8 @@ def normalize_history(wallet: str, raw: dict[str, Any]) -> list[dict[str, Any]]:
                 fee_bnb = 0.0
         out.append({
             "wallet": wallet,
-            "walletLabel": WALLET_BY_ID[wallet]["label"],
+            "walletLabel": wallet_label,
+            "walletAddress": wallet_addr,
             "time": tx.get("txTime"),
             "kind": kind,
             "txType": tx_type,
@@ -1055,69 +1111,292 @@ def _history_disk_path(wallet: str) -> Path:
     return HISTORY_DIR / (re.sub(r"[^a-zA-Z0-9_-]", "_", wallet) + ".json")
 
 
-def _read_history_disk(wallet: str) -> list[dict[str, Any]]:
+def _empty_history_state(wallet: str) -> dict[str, Any]:
+    return {
+        "wallet": wallet,
+        "address": _wallet_address_lower(wallet),
+        "items": [],
+        "ok": None,               # outcome of the most recent attempt
+        "error": None,            # readable reason when ok is False
+        "fetchedAt": None,        # last successful fetch (ISO)
+        "fetchedTs": 0.0,
+        "attemptedAt": None,      # most recent attempt, success or not
+        "attemptedTs": 0.0,
+        "stale": False,           # items predate the last failed attempt
+        "failures": 0,
+        "refreshing": False,
+    }
+
+
+def _read_history_disk(wallet: str) -> dict[str, Any]:
+    """Load the last successful snapshot (legacy list-only files included)."""
+    state = _empty_history_state(wallet)
     try:
         data = json.loads(_history_disk_path(wallet).read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else []
     except Exception:
-        return []
+        return state
+    if isinstance(data, list):
+        # Pre-metadata cache: keep the rows but admit we do not know their age.
+        state["items"] = [x for x in data if isinstance(x, dict)]
+        return state
+    if isinstance(data, dict):
+        items = data.get("items")
+        if isinstance(items, list):
+            state["items"] = [x for x in items if isinstance(x, dict)]
+        fetched_at = data.get("fetchedAt")
+        state["fetchedAt"] = str(fetched_at) if fetched_at else None
+        try:
+            state["fetchedTs"] = float(data.get("fetchedTs") or 0.0)
+        except (TypeError, ValueError):
+            state["fetchedTs"] = 0.0
+        if not state["fetchedTs"] and state["fetchedAt"]:
+            try:
+                state["fetchedTs"] = time.mktime(time.strptime(state["fetchedAt"][:19], "%Y-%m-%dT%H:%M:%S"))
+            except ValueError:
+                state["fetchedTs"] = 0.0
+        if data.get("address"):
+            state["address"] = str(data["address"]).lower()
+        current = _wallet_address_lower(wallet)
+        if current and state["address"] and current != state["address"]:
+            # The wallet was re-bound to a different address: old rows belong
+            # to someone else and must not be served under this wallet.
+            state["items"] = []
+            state["fetchedAt"] = None
+            state["fetchedTs"] = 0.0
+        # A disk snapshot proves an earlier success, not the outcome of the
+        # current process's most recent attempt, so leave ``ok`` unknown.
+    return state
 
 
-def _refresh_history(wallet: str) -> None:
+def _write_history_disk(wallet: str, state: dict[str, Any]) -> None:
+    payload = {
+        "wallet": wallet,
+        "address": state.get("address") or "",
+        "fetchedAt": state.get("fetchedAt"),
+        "fetchedTs": state.get("fetchedTs") or 0.0,
+        "items": state.get("items") or [],
+    }
+    try:
+        tmp = _history_disk_path(wallet).with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(_history_disk_path(wallet))
+    except Exception:
+        pass
+
+
+def _history_attempt_age(snapshot: dict[str, Any], now: float) -> float:
+    try:
+        return now - float(snapshot.get("attemptedTs") or 0.0)
+    except (TypeError, ValueError):
+        return float("inf")
+
+
+def _history_snapshot(wallet: str) -> dict[str, Any]:
+    """Return a copy of the per-wallet state, loading disk on first touch."""
     with _history_refresh_lock:
-        if wallet in _history_refreshing:
-            return
-        _history_refreshing.add(wallet)
+        refreshing = wallet in _history_inflight
+    with _cache_lock:
+        state = _history_cache.get(wallet)
+        if state is None:
+            state = _read_history_disk(wallet)
+            _history_cache[wallet] = state
+        snapshot = {**state, "items": list(state.get("items") or [])}
+    snapshot["refreshing"] = refreshing
+    return snapshot
+
+
+def _claim_history_refresh(wallet: str) -> threading.Event | None:
+    """Claim the single refresh slot for a wallet; None means already running."""
+    with _history_refresh_lock:
+        if wallet in _history_inflight:
+            return None
+        event = threading.Event()
+        _history_inflight[wallet] = event
+        return event
+
+
+def _refresh_history(wallet: str, claimed: threading.Event | None = None) -> dict[str, Any]:
+    """Fetch one wallet's history.  A second caller joins the in-flight run.
+
+    Returns the resulting per-wallet state.  On failure the previous success
+    stays cached and the state records the failure reason and attempt time.
+    """
+    running = claimed
+    if running is None:
+        running = _claim_history_refresh(wallet)
+    if running is None:
+        # Reuse the request already in flight rather than stacking another one.
+        with _history_refresh_lock:
+            event = _history_inflight.get(wallet)
+        if event is not None:
+            event.wait(HISTORY_WAIT_SECONDS)
+        return _history_snapshot(wallet)
+
+    state = _history_snapshot(wallet)
+    started = time.time()
+    attempt_iso = now_iso_ms()
     try:
         r = baw(wallet, ["wallet", "tx-history", "--binanceChainId", CHAIN, "--size", "50", "--json"])
         if not r.get("success"):
-            return
+            reason = err_text(r)
+            raise RuntimeError(reason or "BAW 没有返回交易记录")
         items = normalize_history(wallet, r)
+        # A wallet re-bound to another address must not inherit old rows.
+        address = _wallet_address_lower(wallet)
+        if state.get("address") and address and state["address"] != address:
+            state["items"] = []
+            state["ok"] = None
+        fresh = {
+            **state,
+            "wallet": wallet,
+            "address": address,
+            "items": items,
+            "ok": True,
+            "error": None,
+            "fetchedAt": attempt_iso,
+            "fetchedTs": started,
+            "attemptedAt": attempt_iso,
+            "attemptedTs": started,
+            "stale": False,
+            "failures": 0,
+            "refreshing": False,
+        }
         with _cache_lock:
-            _history_cache[wallet] = (time.time(), items)
-        try:
-            tmp = _history_disk_path(wallet).with_suffix(".tmp")
-            tmp.write_text(json.dumps(items, ensure_ascii=False), encoding="utf-8")
-            tmp.replace(_history_disk_path(wallet))
-        except Exception:
-            pass
+            _history_cache[wallet] = fresh
+        _write_history_disk(wallet, fresh)
+        return {**fresh, "items": list(items)}
+    except Exception as exc:  # noqa: BLE001
+        reason = str(exc) or "unknown error"
+        reason = reason.strip()[:700]
+        failed = {
+            **state,
+            "wallet": wallet,
+            "ok": False,
+            "error": reason,
+            "attemptedAt": attempt_iso,
+            "attemptedTs": started,
+            # Rows now predate the failed attempt: mark them explicitly stale.
+            "stale": bool(state.get("items")),
+            "failures": int(state.get("failures") or 0) + 1,
+            "refreshing": False,
+        }
+        with _cache_lock:
+            _history_cache[wallet] = failed
+        return {**failed, "items": list(failed.get("items") or [])}
     finally:
         with _history_refresh_lock:
-            _history_refreshing.discard(wallet)
+            _history_inflight.pop(wallet, None)
+        running.set()
+
+
+def _refresh_history_async(wallet: str) -> None:
+    """Start a refresh unless one is already running or recently failed."""
+    snapshot = _history_snapshot(wallet)
+    # Back off after a failure so the polling loop does not hammer BAW.
+    if snapshot.get("ok") is False and _history_attempt_age(snapshot, time.time()) < HISTORY_RETRY_SECONDS:
+        return
+    event = _claim_history_refresh(wallet)
+    if event is None:
+        return
+    threading.Thread(target=_refresh_history, args=(wallet, event), daemon=True).start()
+
+
+def history_state(wallet: str, force: bool = False) -> dict[str, Any]:
+    """Per-wallet history with explicit freshness metadata.
+
+    ``force`` asks for a fresh attempt; concurrent callers share one request.
+    """
+    now = time.time()
+    snapshot = _history_snapshot(wallet)
+    # A successful fetch of an empty wallet is still a valid result: do not
+    # treat "no rows" as "never fetched" and refetch on every request.
+    usable = bool(snapshot.get("items")) or snapshot.get("ok") is True
+    age = now - float(snapshot.get("fetchedTs") or 0.0)
+    fresh_enough = bool(snapshot.get("fetchedAt")) and age < HISTORY_FRESH_SECONDS
+    if usable and not force and fresh_enough:
+        return snapshot
+    if force:
+        # An explicit refresh waits for the outcome (sharing an in-flight run);
+        # the response then carries this attempt's success/failure marker.
+        return _refresh_history(wallet)
+    if usable:
+        # Stale-while-revalidate: paint the last success instantly.
+        _refresh_history_async(wallet)
+        return snapshot
+    # Avoid hammering BAW after a recent failure; the state already explains it.
+    if snapshot.get("ok") is False and _history_attempt_age(snapshot, now) < HISTORY_RETRY_SECONDS:
+        return snapshot
+    # Nothing cached yet: fetch, joining any in-flight request instead of
+    # issuing a duplicate BAW call.
+    return _refresh_history(wallet)
 
 
 def history_for(wallet: str, force: bool = False) -> list[dict[str, Any]]:
-    now = time.time()
-    with _cache_lock:
-        cached = _history_cache.get(wallet)
-        if not force and cached and now - cached[0] < 60:
-            return cached[1]
-        if cached:
-            old_items = cached[1]
-        else:
-            disk = _read_history_disk(wallet)
-            if disk:
-                _history_cache[wallet] = (0.0, disk)
-            old_items = disk
-    if old_items:
-        # Stale-while-revalidate: paint instantly, refresh in the background.
-        threading.Thread(target=_refresh_history, args=(wallet,), daemon=True).start()
-        return old_items
-    # First ever request for this wallet: must fetch synchronously once.
-    _refresh_history(wallet)
-    with _cache_lock:
-        return (_history_cache.get(wallet) or (0, []))[1]
+    """Compatibility wrapper returning only rows."""
+    return history_state(wallet, force=force).get("items") or []
 
 
-def build_history(wallet_filter: str = "all", limit: int = 80) -> dict[str, Any]:
+def build_history(wallet_filter: str = "all", limit: int = 80, force: bool = False) -> dict[str, Any]:
     if wallet_filter == "all":
         with ThreadPoolExecutor(max_workers=3) as ex:
-            lists = list(ex.map(history_for, [w["id"] for w in WALLETS]))
-        items = [x for sub in lists for x in sub]
+            states = list(ex.map(lambda w: history_state(w, force=force), [w["id"] for w in WALLETS]))
+    elif wallet_filter in WALLET_BY_ID:
+        states = [history_state(wallet_filter, force=force)]
     else:
-        items = history_for(wallet_filter) if wallet_filter in WALLET_BY_ID else []
+        # Unknown wallet: a readable reason beats an empty list that looks like
+        # "this wallet has no records".
+        reason = f"钱包不存在：{wallet_filter}"
+        return {
+            "items": [], "selectedWallet": wallet_filter, "updatedAt": None,
+            "attemptedAt": None, "ok": False, "error": reason,
+            "errors": [{"wallet": wallet_filter, "error": reason}],
+            "stale": False, "wallets": {},
+        }
+
+    items: list[dict[str, Any]] = []
+    wallets: dict[str, dict[str, Any]] = {}
+    for state in states:
+        wid = state["wallet"]
+        fetched_at = state.get("fetchedAt")
+        for item in state.get("items") or []:
+            # Stamp each row with the snapshot it came from so the UI can show
+            # freshness per record, even when wallets are merged.
+            items.append({**item, "fetchedAt": fetched_at, "stale": bool(state.get("stale"))})
+        wallets[wid] = {
+            "wallet": wid,
+            "label": (WALLET_BY_ID.get(wid) or {}).get("label", wid),
+            "address": state.get("address") or "",
+            "ok": state.get("ok"),
+            "error": state.get("error"),
+            "fetchedAt": fetched_at,
+            "attemptedAt": state.get("attemptedAt"),
+            "stale": bool(state.get("stale")),
+            "failures": int(state.get("failures") or 0),
+            "refreshing": bool(state.get("refreshing")),
+            "count": len(state.get("items") or []),
+        }
+
     items.sort(key=lambda x: x.get("time") or "", reverse=True)
-    return {"items": items[:limit], "selectedWallet": wallet_filter, "updatedAt": now_iso()}
+    fetched = [(float(s.get("fetchedTs") or 0.0), s.get("fetchedAt")) for s in states if s.get("fetchedAt")]
+    failed = any(s.get("ok") is False for s in states)
+    # ``ok`` describes the most recent attempt(s), not merely that rows exist.
+    overall_ok = False if failed else (True if states and all(s.get("ok") is True for s in states) else None)
+    errors = [
+        {"wallet": s["wallet"], "error": s.get("error")}
+        for s in states if s.get("ok") is False and s.get("error")
+    ]
+    attempted = [s.get("attemptedAt") for s in states if s.get("attemptedAt")]
+    return {
+        "items": items[:limit],
+        "selectedWallet": wallet_filter,
+        "updatedAt": max(fetched)[1] if fetched else None,
+        "attemptedAt": max(attempted) if attempted else None,
+        "ok": overall_ok,
+        "error": errors[0]["error"] if errors else None,
+        "errors": errors,
+        "stale": any(bool(s.get("stale")) for s in states),
+        "wallets": wallets,
+    }
 
 
 # ---------------------------------------------------------------- quote / trade
@@ -1348,9 +1627,10 @@ def claim_task(task: dict[str, Any]) -> bool:
 
 
 def invalidate_history(wallet: str) -> None:
+    """Drop cached rows and start a refresh (used after a submission)."""
     with _cache_lock:
         _history_cache.pop(wallet, None)
-    threading.Thread(target=_refresh_history, args=(wallet,), daemon=True).start()
+    _refresh_history_async(wallet)
 
 
 def add_audit(entry: dict[str, Any]) -> None:
@@ -1895,7 +2175,8 @@ def remove_wallet(wallet_id: str) -> dict[str, Any]:
         _apply_wallets([w for w in WALLETS if w["id"] != wallet_id])
         save_wallet_config()
     _keepalive.get("wallets", {}).pop(wallet_id, None)
-    _history_cache.pop(wallet_id, None)
+    with _cache_lock:
+        _history_cache.pop(wallet_id, None)
     _balance_cache["ts"] = 0
     try:
         refresh_balances(force=True)
@@ -2078,7 +2359,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/history":
                 wallet = (qs.get("wallet") or ["w1"])[0]
                 limit = int((qs.get("limit") or ["80"])[0])
-                return self._json(build_history(wallet, min(limit, 300)))
+                force = str((qs.get("refresh") or ["0"])[0]).lower() in ("1", "true", "yes")
+                return self._json(build_history(wallet, min(limit, 300), force=force))
             if path == "/api/keepalive":
                 return self._json({"keepalive": _keepalive, "wallets": [w["id"] for w in WALLETS]})
             if path == "/api/health":
