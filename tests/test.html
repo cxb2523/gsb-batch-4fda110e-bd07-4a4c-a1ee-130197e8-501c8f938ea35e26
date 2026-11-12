@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ExposureMonitor 本地测试页</title>
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.7;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 17px; margin-top: 32px; border-bottom: 1px solid #30363d; padding-bottom: 6px; }
+  code, kbd {
+    background: #161b22; border: 1px solid #30363d; border-radius: 4px;
+    padding: 1px 6px; font-family: ui-monospace, Consolas, monospace; font-size: 12px;
+  }
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 12px 16px; overflow-x: auto; font-size: 12.5px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #161b22; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+  .controls {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  }
+  .controls input[type=text] {
+    background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px;
+    padding: 6px 10px; width: 260px; font-family: ui-monospace, monospace; font-size: 12.5px;
+  }
+  button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: #58a6ff; color: #58a6ff; }
+  .note { color: #8b949e; font-size: 13px; }
+  .warn { color: #d29922; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ExposureMonitor 本地测试页</h1>
+  <p>
+    本页用于验证 <code>exposure-monitor.js</code>（本地持仓 CSV 轮询与状态层）的全部状态分支。
+    页面顶部固定的<strong>状态栏</strong>与其下方的<strong>净敞口区</strong>即被测组件，
+    与 <code>index.html</code> 中注入的是同一份实现。
+  </p>
+
+  <h2>1. 如何指定被轮询的文件</h2>
+  <ul>
+    <li>URL 查询参数：在地址栏使用 <code>?csv=positions-bad-row.csv</code>（路径相对本页），
+        可加 <code>&interval=1000</code> 调整轮询间隔（毫秒，默认 3000）。</li>
+    <li>页面控件：在下方输入框中填写路径，点击「切换文件」；或直接点击各样例快捷按钮。</li>
+    <li>不指定时，本测试页默认轮询 <code>positions-valid.csv</code>；
+        <code>index.html</code> 默认轮询其同目录下的 <code>positions.csv</code>。</li>
+  </ul>
+
+  <h2>2. 如何触发一次轮询</h2>
+  <ul>
+    <li>自动：页面按固定间隔（默认 3 秒）轮询一次，可用下方「自动轮询」开关暂停/恢复。</li>
+    <li>手动：点击「立即轮询」按钮，立即读取并解析当前文件一次。</li>
+  </ul>
+
+  <h2>3. 如何观察结果</h2>
+  <ul>
+    <li><strong>状态栏颜色与文案</strong>：页面最顶部的彩色横条，颜色随状态切换（见第 5 节对照表）。</li>
+    <li><strong>净敞口区</strong>：状态栏下方一行，正常时按币种显示净敞口（正=绿色、负=红色）；
+        任何异常状态下都会清空为「— 无可用敞口数据 —」，不会沿用上一次的敞口。</li>
+    <li><strong>最后更新</strong>：状态栏右侧时间戳，仅在全部持仓行合法时刷新。</li>
+  </ul>
+
+  <h2>4. 轮询控制</h2>
+  <div class="controls">
+    <label>文件路径 <input type="text" id="csv-path" value="positions-valid.csv"></label>
+    <button id="btn-apply">切换文件</button>
+    <button id="btn-poll">立即轮询</button>
+    <label><input type="checkbox" id="auto-poll" checked> 自动轮询</label>
+  </div>
+  <div class="controls">
+    <span class="note">样例快捷切换：</span>
+    <button data-src="positions-valid.csv">合法</button>
+    <button data-src="positions-empty-positions.csv">空仓（仅表头）</button>
+    <button data-src="positions-bad-row.csv">坏行</button>
+    <button data-src="positions-bad-header.csv">错表头</button>
+    <button data-src="positions-empty.csv">空文件</button>
+    <button data-src="positions-not-exist.csv">不存在的文件</button>
+  </div>
+  <div class="controls">
+    <span class="note">file:// 回退（无法 fetch 本地文件时）：</span>
+    <input type="file" id="file-fallback" accept=".csv,text/csv">
+    <span class="note">选择后以其内容为数据源；文件改动后需重新选择。</span>
+  </div>
+
+  <h2>5. 状态判定条件对照表</h2>
+  <table>
+    <tr><th>状态</th><th>状态栏颜色</th><th>判定条件</th><th>敞口区 / 最后更新</th></tr>
+    <tr>
+      <td>数据正常</td>
+      <td><span class="swatch" style="background:#3fb950"></span>绿色</td>
+      <td>文件可读取；首个非空行恰为表头 <code>品种,方向,手数,合约规模,保证金</code>；
+          且至少有一行持仓，<strong>全部</strong>持仓行均合法（5 个非空字段、品种为 6 位字母、
+          方向可识别、手数/合约规模为正数、保证金为非负数值）。</td>
+      <td>更新敞口（多：基准币正/计价币负；空：相反；手数×合约规模按币种求和）并刷新最后更新时间。</td>
+    </tr>
+    <tr>
+      <td>持仓文件缺失或不可读取</td>
+      <td><span class="swatch" style="background:#f85149"></span>红色</td>
+      <td>fetch 失败（网络错误、file:// 受限）或 HTTP 状态非 2xx（如 404）。</td>
+      <td>敞口区清空；时间不刷新。</td>
+    </tr>
+    <tr>
+      <td>持仓文件内容为空</td>
+      <td><span class="swatch" style="background:#d29922"></span>黄色</td>
+      <td>文件可读取，但除空白字符/空行外没有任何内容。</td>
+      <td>敞口区清空；时间不刷新。</td>
+    </tr>
+    <tr>
+      <td>CSV 表头不符</td>
+      <td><span class="swatch" style="background:#bc8cff"></span>紫色</td>
+      <td>首个非空行拆分后与期望表头 <code>品种,方向,手数,合约规模,保证金</code> 不完全一致。</td>
+      <td>敞口区清空；时间不刷新。</td>
+    </tr>
+    <tr>
+      <td>持仓行数据非法</td>
+      <td><span class="swatch" style="background:#ff7b45"></span>橙色</td>
+      <td>表头合法，但某一持仓行字段数不为 5、字段为空、品种非 6 位字母、
+          方向无法识别，或手数/合约规模/保证金数值非法（详情见状态栏文字，含行号）。</td>
+      <td>敞口区清空；时间不刷新。</td>
+    </tr>
+    <tr>
+      <td>无持仓（表头合法，无持仓行）</td>
+      <td><span class="swatch" style="background:#58a6ff"></span>蓝色</td>
+      <td>表头合法，但之后没有任何持仓行。</td>
+      <td>敞口区清空；时间不刷新。</td>
+    </tr>
+  </table>
+
+  <h2>6. 本地运行方式（不依赖网络）</h2>
+  <pre># 推荐：在本 tests 目录起一个本地静态服务（localhost，不访问外网）
+cd tests
+python -m http.server 8000
+# 浏览器打开 http://localhost:8000/test.html</pre>
+  <p class="note">
+    直接双击以 <code>file://</code> 打开时，多数浏览器禁止 fetch 读取本地文件，
+    状态栏会显示红色「持仓文件缺失或不可读取」——这本身也是对该状态的一次验证。
+    此时可改用上方「file:// 回退」的文件选择器指定数据源，
+    或使用允许本地文件读取的浏览器启动参数（如 Chrome 的 <code>--allow-file-access-from-files</code>）。
+  </p>
+
+  <h2>7. 异常后自动恢复验证</h2>
+  <p>
+    先切到任一样例异常文件（如「坏行」），确认状态栏变为对应颜色且敞口区清空；
+    再点「合法」按钮（或把被轮询的文件改回合法内容），无需刷新页面，
+    下一次轮询（或点「立即轮询」）即自动回到绿色「数据正常」态并重新显示敞口。
+  </p>
+
+  <h2>8. 样例文件说明</h2>
+  <table>
+    <tr><th>文件</th><th>内容</th><th>预期状态</th></tr>
+    <tr><td><code>positions-valid.csv</code></td><td>表头 + 3 条合法持仓（EURUSD 多 1 手、GBPUSD 空 0.5 手、USDJPY 多 2 手，合约规模均 100000）</td>
+        <td>绿色正常；敞口：EUR +100,000 / GBP −50,000 / JPY −200,000 / USD +150,000</td></tr>
+    <tr><td><code>positions-empty-positions.csv</code></td><td>仅表头，无持仓行</td><td>蓝色「无持仓」</td></tr>
+    <tr><td><code>positions-bad-row.csv</code></td><td>第 3 行手数为 <code>abc</code>，第 4 行缺一个字段</td><td>橙色「持仓行数据非法」（报第 3 行手数非法）</td></tr>
+    <tr><td><code>positions-bad-header.csv</code></td><td>英文表头，与期望表头不符</td><td>紫色「CSV 表头不符」</td></tr>
+    <tr><td><code>positions-empty.csv</code></td><td>0 字节空文件</td><td>黄色「持仓文件内容为空」</td></tr>
+    <tr><td><code>positions-not-exist.csv</code>（不存在）</td><td>—</td><td>红色「持仓文件缺失或不可读取」</td></tr>
+  </table>
+</main>
+
+<script>
+  /* 关闭自动启动，由本页按查询参数/控件手动启动 */
+  window.EXPOSURE_MONITOR_MANUAL = true;
+</script>
+<script src="../exposure-monitor.js"></script>
+<script>
+(function () {
+  function query(name) {
+    try { return new URLSearchParams(location.search).get(name); } catch (e) { return null; }
+  }
+
+  var pathInput = document.getElementById('csv-path');
+  var initialUrl = query('csv') || pathInput.value;
+  var interval = parseInt(query('interval'), 10) > 0 ? parseInt(query('interval'), 10) : 3000;
+  pathInput.value = initialUrl;
+
+  var started = false;
+  function startMonitor() {
+    window.ExposureMonitor.start({ url: pathInput.value, interval: interval });
+    started = true;
+  }
+
+  document.getElementById('btn-apply').addEventListener('click', function () {
+    window.ExposureMonitor.setSource(pathInput.value);
+    window.ExposureMonitor.poll();
+  });
+  document.getElementById('btn-poll').addEventListener('click', function () {
+    window.ExposureMonitor.poll();
+  });
+  document.getElementById('auto-poll').addEventListener('change', function (e) {
+    if (e.target.checked) { startMonitor(); } else { window.ExposureMonitor.stop(); }
+  });
+
+  var sampleButtons = document.querySelectorAll('button[data-src]');
+  for (var i = 0; i < sampleButtons.length; i++) {
+    sampleButtons[i].addEventListener('click', function () {
+      pathInput.value = this.getAttribute('data-src');
+      window.ExposureMonitor.setSource(pathInput.value);
+      window.ExposureMonitor.poll();
+    });
+  }
+
+  /* file:// 回退：用选择的本地文件内容作为数据源 */
+  document.getElementById('file-fallback').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var text = String(reader.result);
+      window.ExposureMonitor.setSource(function () { return Promise.resolve(text); });
+      window.ExposureMonitor.poll();
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+
+  startMonitor();
+})();
+</script>
+</body>
+</html>
