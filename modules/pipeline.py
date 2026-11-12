@@ -103,10 +103,18 @@ class S3Task(SyncTask):
         return self.config.get("use_s3", False) and self._handler.enabled
 
     def run(self, reviews: Dict[str, Dict[str, Any]], place_id: str) -> None:
+        # The runner only invokes this task with changed reviews (and skips
+        # it entirely when none changed). Guard here too so a caller can
+        # never trigger a directory-wide scan for an empty batch — backfill
+        # scanning is only allowed when there is at least one changed review.
+        if not reviews:
+            log.info("S3: no changed reviews, skipping upload task")
+            return
+
         if place_id:
             self._handler.set_place_id(place_id)
 
-        # Collect local files from reviews
+        # Collect local files referenced by the changed reviews in this batch.
         files_to_upload: Dict[str, tuple] = {}
         base = place_image_dir(self._image_dir, place_id) if place_id else self._image_dir
         for review in reviews.values():
@@ -124,21 +132,56 @@ class S3Task(SyncTask):
                 if local_path.exists():
                     files_to_upload[pp] = (local_path, True)
 
+        # Backfill: earlier scrapes may have downloaded images that never
+        # reached S3. Scan this place's local image directories and pick up
+        # anything not already queued. Only `base/reviews` and
+        # `base/profiles` are scanned, so files belonging to other places
+        # can never enter the batch.
+        backfill_count = 0
+        for subdir, is_profile in (("reviews", False), ("profiles", True)):
+            scan_dir = base / subdir
+            if not scan_dir.is_dir():
+                continue
+            for local_path in scan_dir.iterdir():
+                if not local_path.is_file():
+                    continue
+                filename = local_path.name
+                if filename not in files_to_upload:
+                    files_to_upload[filename] = (local_path, is_profile)
+                    backfill_count += 1
+        if backfill_count:
+            log.info(
+                "S3: backfill scan found %d previously downloaded file(s) "
+                "not yet uploaded under %s",
+                backfill_count, base,
+            )
+
         if not files_to_upload:
             log.info("S3: no local files to upload")
             return
 
-        # For new_only: skip files already on S3
+        # For new_only: skip files already on S3. If the remote listing
+        # fails, degrade to uploading every local file — the upload layer's
+        # own dedup/overwrite semantics keep this safe — instead of failing
+        # the whole task or silently dropping files.
         if self._sync_mode == "new_only":
-            existing = self._handler.list_existing_keys(place_id)
-            before = len(files_to_upload)
-            files_to_upload = {
-                fn: info for fn, info in files_to_upload.items()
-                if self._build_key(fn, info[1], place_id) not in existing
-            }
-            skipped = before - len(files_to_upload)
-            if skipped:
-                log.info("S3 sync_mode=new_only: skipping %d existing files", skipped)
+            try:
+                existing = self._handler.list_existing_keys(place_id)
+            except Exception as e:  # noqa: BLE001 — any listing failure degrades
+                log.warning(
+                    "S3 sync_mode=new_only: could not list existing keys (%s); "
+                    "falling back to uploading all %d local file(s)",
+                    e, len(files_to_upload),
+                )
+            else:
+                before = len(files_to_upload)
+                files_to_upload = {
+                    fn: info for fn, info in files_to_upload.items()
+                    if self._build_key(fn, info[1], place_id) not in existing
+                }
+                skipped = before - len(files_to_upload)
+                if skipped:
+                    log.info("S3 sync_mode=new_only: skipping %d existing files", skipped)
 
         if not files_to_upload:
             log.info("S3: all files already uploaded")
@@ -146,7 +189,9 @@ class S3Task(SyncTask):
 
         s3_results = self._handler.upload_images_batch(files_to_upload)
 
-        # Replace URLs in reviews if configured
+        # Replace URLs in the changed reviews only if configured. Backfilled
+        # files (no review in this batch references them) simply have no
+        # matching review here, so their upload results never touch a URL.
         if self._replace_urls and s3_results:
             filename_to_s3 = s3_results  # filename → s3_url
             for review in reviews.values():

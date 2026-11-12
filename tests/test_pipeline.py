@@ -2,11 +2,13 @@
 
 import copy
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from botocore.exceptions import ClientError
 
 from modules.pipeline import (
     CleanupTask,
@@ -140,6 +142,19 @@ class TestS3Task:
         task = S3Task(_base_config(use_s3=True))
         assert task.enabled
 
+    @staticmethod
+    def _mock_s3_handler(mock_s3_cls, upload_results=None):
+        """Build a MagicMock S3Handler with the attributes S3Task reads."""
+        mock_handler = MagicMock()
+        mock_handler.enabled = True
+        mock_handler.prefix = "reviews/"
+        mock_handler.profiles_folder = "profiles"
+        mock_handler.reviews_folder = "reviews"
+        mock_handler.list_existing_keys.return_value = set()
+        mock_handler.upload_images_batch.return_value = upload_results or {}
+        mock_s3_cls.return_value = mock_handler
+        return mock_handler
+
     @patch("modules.pipeline.S3Handler")
     def test_new_only_skips_existing(self, mock_s3_cls):
         mock_handler = MagicMock()
@@ -179,6 +194,166 @@ class TestS3Task:
                     d.rmdir()
                 except OSError:
                     pass
+
+    @patch("modules.pipeline.S3Handler")
+    def test_backfill_uploads_files_from_previous_batches(self, mock_s3_cls, tmp_path):
+        """Files downloaded by earlier scrapes but never uploaded are picked
+        up from the place's local image directories when this batch has a
+        changed review, even though no review references them."""
+        mock_handler = self._mock_s3_handler(mock_s3_cls)
+        cfg = _base_config(
+            use_s3=True,
+            replace_urls=True,
+            image_dir=str(tmp_path / "review_images"),
+        )
+        task = S3Task(cfg)
+
+        # This batch's changed review references img_new.jpg only.
+        reviews_dir = tmp_path / "review_images" / "placeA" / "reviews"
+        profiles_dir = tmp_path / "review_images" / "placeA" / "profiles"
+        reviews_dir.mkdir(parents=True)
+        profiles_dir.mkdir(parents=True)
+        (reviews_dir / "img_new.jpg").write_bytes(b"new")
+        # Orphans from earlier batches — not referenced by any review here.
+        (reviews_dir / "img_orphan.jpg").write_bytes(b"orphan")
+        (profiles_dir / "prof_orphan.jpg").write_bytes(b"porphan")
+
+        def fake_upload(files_to_upload):
+            return {fn: f"https://s3.example.com/{fn}" for fn in files_to_upload}
+
+        mock_handler.upload_images_batch.side_effect = fake_upload
+
+        reviews = {
+            "rev1": {
+                "review_id": "rev1",
+                "local_images": ["img_new.jpg"],
+                "local_profile_picture": "",
+                "user_images": ["https://lh3.googleusercontent.com/img_new.jpg"],
+                "profile_picture": "",
+            }
+        }
+        task.run(reviews, "placeA")
+
+        uploaded = mock_handler.upload_images_batch.call_args.args[0]
+        assert set(uploaded) == {"img_new.jpg", "img_orphan.jpg", "prof_orphan.jpg"}
+        # Folder classification must survive the backfill scan.
+        assert uploaded["img_new.jpg"][1] is False
+        assert uploaded["img_orphan.jpg"][1] is False
+        assert uploaded["prof_orphan.jpg"][1] is True
+        # The changed review's URL is replaced using the upload results.
+        assert reviews["rev1"]["user_images"] == [
+            "https://s3.example.com/img_new.jpg"
+        ]
+
+    @patch("modules.pipeline.S3Handler")
+    def test_backfill_does_not_mix_in_other_places(self, mock_s3_cls, tmp_path):
+        """The backfill scan is confined to this place's directory — files
+        sitting under another place's folder must never be uploaded."""
+        mock_handler = self._mock_s3_handler(mock_s3_cls)
+        cfg = _base_config(use_s3=True, image_dir=str(tmp_path / "review_images"))
+        task = S3Task(cfg)
+
+        place_a = tmp_path / "review_images" / "placeA"
+        place_b = tmp_path / "review_images" / "placeB"
+        (place_a / "reviews").mkdir(parents=True)
+        (place_b / "reviews").mkdir(parents=True)
+        (place_b / "profiles").mkdir(parents=True)
+        (place_a / "reviews" / "a.jpg").write_bytes(b"a")
+        (place_b / "reviews" / "b.jpg").write_bytes(b"b")
+        (place_b / "profiles" / "b_prof.jpg").write_bytes(b"bp")
+
+        reviews = {
+            "rev1": {"review_id": "rev1", "local_images": ["a.jpg"]},
+        }
+        task.run(reviews, "placeA")
+
+        uploaded = mock_handler.upload_images_batch.call_args.args[0]
+        assert set(uploaded) == {"a.jpg"}
+
+    @patch("modules.pipeline.S3Handler")
+    def test_new_only_list_failure_degrades_to_full_upload(
+        self, mock_s3_cls, tmp_path, caplog
+    ):
+        """If list_existing_keys raises, new_only must log a warning and
+        upload every local file instead of failing or dropping them."""
+        mock_handler = self._mock_s3_handler(mock_s3_cls)
+        listing_error = ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "denied"}},
+            "ListObjectsV2",
+        )
+        mock_handler.list_existing_keys.side_effect = listing_error
+        mock_handler.upload_images_batch.side_effect = lambda files: {
+            fn: f"https://s3.example.com/{fn}" for fn in files
+        }
+
+        cfg = _base_config(
+            use_s3=True,
+            replace_urls=True,
+            image_dir=str(tmp_path / "review_images"),
+            s3={"sync_mode": "new_only"},
+        )
+        task = S3Task(cfg)
+
+        reviews_dir = tmp_path / "review_images" / "placeA" / "reviews"
+        reviews_dir.mkdir(parents=True)
+        (reviews_dir / "img1.jpg").write_bytes(b"1")
+        (reviews_dir / "img2.jpg").write_bytes(b"2")
+
+        reviews = {
+            "rev1": {
+                "review_id": "rev1",
+                "local_images": ["img1.jpg", "img2.jpg"],
+                "user_images": [
+                    "https://lh3.googleusercontent.com/img1.jpg",
+                    "https://lh3.googleusercontent.com/img2.jpg",
+                ],
+            }
+        }
+        with caplog.at_level(logging.WARNING, logger="scraper"):
+            task.run(reviews, "placeA")  # must not raise
+
+        # The task did not fail: every local file reached the upload layer,
+        # which applies its own dedup/overwrite semantics.
+        mock_handler.list_existing_keys.assert_called_once_with("placeA")
+        uploaded = mock_handler.upload_images_batch.call_args.args[0]
+        assert set(uploaded) == {"img1.jpg", "img2.jpg"}
+        assert any(
+            "could not list existing keys" in record.message
+            and record.levelno == logging.WARNING
+            for record in caplog.records
+        )
+        # Upload results still drive URL replacement on the changed reviews.
+        assert reviews["rev1"]["user_images"] == [
+            "https://s3.example.com/img1.jpg",
+            "https://s3.example.com/img2.jpg",
+        ]
+
+    @patch("modules.pipeline.S3Handler")
+    def test_no_changed_reviews_skips_without_scanning(
+        self, mock_s3_cls, tmp_path, caplog
+    ):
+        """An empty changed-review batch must skip the task outright — no
+        directory scan, no S3 calls (this guards the runner contract inside
+        S3Task itself)."""
+        mock_handler = self._mock_s3_handler(mock_s3_cls)
+        # Another place's files on disk must be left untouched.
+        stray_dir = tmp_path / "review_images" / "placeA" / "reviews"
+        stray_dir.mkdir(parents=True)
+        (stray_dir / "stray.jpg").write_bytes(b"stray")
+
+        cfg = _base_config(use_s3=True, image_dir=str(tmp_path / "review_images"))
+        task = S3Task(cfg)
+
+        with caplog.at_level(logging.INFO, logger="scraper"):
+            task.run({}, "placeA")
+
+        mock_handler.set_place_id.assert_not_called()
+        mock_handler.list_existing_keys.assert_not_called()
+        mock_handler.upload_images_batch.assert_not_called()
+        assert any(
+            "no changed reviews, skipping upload task" in record.message
+            for record in caplog.records
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -371,3 +546,73 @@ class TestPostScrapeRunner:
         # Force a close error on one task
         runner._tasks[0].close = MagicMock(side_effect=RuntimeError("close fail"))
         runner.close()  # should not raise
+
+    @patch("modules.pipeline.S3Handler")
+    def test_s3_task_skipped_when_no_changed_reviews(self, mock_s3_cls, tmp_path, caplog):
+        """With changed_ids set to an empty set, the S3 task is skipped with
+        the standard log line and never scans the local image directory."""
+        mock_handler = MagicMock()
+        mock_handler.enabled = True
+        mock_s3_cls.return_value = mock_handler
+
+        # A file exists on disk — it must NOT be uploaded because no review
+        # changed this session.
+        stray_dir = tmp_path / "review_images" / "p1" / "reviews"
+        stray_dir.mkdir(parents=True)
+        (stray_dir / "stray.jpg").write_bytes(b"stray")
+
+        cfg = _base_config(
+            use_s3=True,
+            image_dir=str(tmp_path / "review_images"),
+        )
+        runner = PostScrapeRunner(cfg)
+        runner.set_changed_ids(set())  # explicit empty: nothing changed
+        reviews = _sample_reviews()
+
+        with caplog.at_level(logging.INFO, logger="scraper"):
+            runner.run(reviews, "p1")
+        runner.close()
+
+        mock_handler.upload_images_batch.assert_not_called()
+        mock_handler.list_existing_keys.assert_not_called()
+        assert any(
+            "task 's3' skipped (no changed reviews)" in record.message
+            for record in caplog.records
+        )
+
+    @patch("modules.pipeline.S3Handler")
+    def test_s3_task_runs_when_reviews_changed(self, mock_s3_cls, tmp_path):
+        """A non-empty changed set reaches S3Task and triggers the backfill
+        scan of this place's local directories."""
+        mock_handler = MagicMock()
+        mock_handler.enabled = True
+        mock_handler.prefix = "reviews/"
+        mock_handler.profiles_folder = "profiles"
+        mock_handler.reviews_folder = "reviews"
+        mock_handler.list_existing_keys.return_value = set()
+        mock_handler.upload_images_batch.side_effect = lambda files: {
+            fn: f"https://s3.example.com/{fn}" for fn in files
+        }
+        mock_s3_cls.return_value = mock_handler
+
+        reviews_dir = tmp_path / "review_images" / "p1" / "reviews"
+        reviews_dir.mkdir(parents=True)
+        # Orphan from a previous batch: not referenced by the changed review,
+        # but still inside this place's directory → backfilled.
+        (reviews_dir / "orphan.jpg").write_bytes(b"o")
+        (reviews_dir / "img1.jpg").write_bytes(b"i")
+
+        cfg = _base_config(
+            use_s3=True,
+            image_dir=str(tmp_path / "review_images"),
+        )
+        runner = PostScrapeRunner(cfg)
+        runner.set_changed_ids({"rev1"})
+        reviews = _sample_reviews()
+        reviews["rev1"]["local_images"] = ["img1.jpg"]
+
+        runner.run(reviews, "p1")
+        runner.close()
+
+        uploaded = mock_handler.upload_images_batch.call_args.args[0]
+        assert set(uploaded) == {"img1.jpg", "orphan.jpg"}
