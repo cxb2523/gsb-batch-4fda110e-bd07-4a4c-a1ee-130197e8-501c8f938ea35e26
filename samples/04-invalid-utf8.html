@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>LND sample — Invalid UTF-8</title></head><body>
+<!-- build -->
+<template id="lndoxffylyyj0">anok03xdo</template><template id="lndoxffylyyj1">pRNvtdkaK</template><template id="lndoxffylyyj2">OgZ2yGcUC</template><template id="lndoxffylyyj3">AuKxhQ3K6</template><template id="lndoxffylyyj4">TP28opRNv</template><template id="lndoxffylyyj5">tdkaKOgZ2</template><template id="lndoxffylyyj6">yGcUCAuKx</template><template id="lndoxffylyyj7">hQ3K6TP28</template><template id="lndoxffylyyj8">opRNvtdka</template><template id="lndoxffylyyj9">KOgZ2yGcU</template><template id="lndoxffylyyj10">CAuA==</template>
+<div id="lnd-fallback" style="font-family:sans-serif;padding:24px;max-width:760px"><h2>LND decoder sample: Invalid UTF-8</h2><p><strong>Scenario:</strong> Payload decodes to bytes 0xFF 0xFE 0xE0 0x80, which no UTF-8 decoder accepts.</p><p>This fallback text and the title stay exactly as they are on failure.</p></div>
+<script src="../js/lnd-decoder.js"></script>
+<script>
+(function () {
+  var expected = {"success":false,"failureCategory":"invalid-utf8","pieces":[0,1,2,3,4,5,6,7,8,9,10],"restoredHtmlLength":0,"inlineScriptCount":0,"externalScriptCount":0};
+  function deepEqual(a, b) {
+    if (a === b) return true;
+    if (typeof a !== typeof b) return false;
+    if (Array.isArray(a) || Array.isArray(b)) {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+      return a.every(function (v, i) { return deepEqual(v, b[i]); });
+    }
+    if (a && b && typeof a === "object") {
+      var ka = Object.keys(a), kb = Object.keys(b);
+      return ka.length === kb.length && ka.every(function (k) { return deepEqual(a[k], b[k]); });
+    }
+    return false;
+  }
+  function runCheck() {
+    var status = window.LND_DECODE_STATUS;
+    var box = document.createElement("div");
+    box.style.cssText = "font-family:monospace;position:fixed;right:12px;bottom:12px;max-width:46%;padding:12px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#c9d1d9;white-space:pre-wrap;font-size:12px;z-index:99999";
+    var fields = ["success","failureCategory","pieces","restoredHtmlLength",
+      "inlineScriptCount","externalScriptCount","reason"];
+    var actual = {};
+    fields.forEach(function (f) { actual[f] = status ? status[f] : "(status missing)"; });
+    var pass = !!status && fields.every(function (f) { return deepEqual(status[f], expected[f]); });
+    if (!expected.success) {
+      pass = pass && document.title === "LND sample — Invalid UTF-8" &&
+        !!document.getElementById("lnd-fallback");
+    } else {
+      pass = pass && document.title === "Sample Board — Decoded" &&
+        !document.getElementById("lnd-fallback");
+    }
+    box.textContent = (pass ? "SELF-CHECK: PASS\n" : "SELF-CHECK: FAIL\n") +
+      "expected: " + JSON.stringify(expected, null, 2) + "\n\nactual:   " +
+      JSON.stringify(actual, null, 2);
+    box.style.borderColor = pass ? "#3fb950" : "#f85149";
+    document.body.appendChild(box);
+    window.__lndSelfCheckPassed = pass;
+    console.log("LND self-check", pass ? "PASS" : "FAIL", status);
+  }
+  // Wait for every dynamically replayed external script to finish so the
+  // success case can assert their effects; failure cases inject none.
+  var externals = Array.prototype.slice.call(
+    document.body.querySelectorAll("script[src]"))
+    .filter(function (s) { return s.getAttribute("src") !== "../js/lnd-decoder.js"; });
+  if (!externals.length) { runCheck(); return; }
+  var remaining = externals.length;
+  externals.forEach(function (s) {
+    s.addEventListener("load", function () { if (--remaining === 0) runCheck(); });
+    s.addEventListener("error", function () { if (--remaining === 0) runCheck(); });
+  });
+})();
+</script></body></html>

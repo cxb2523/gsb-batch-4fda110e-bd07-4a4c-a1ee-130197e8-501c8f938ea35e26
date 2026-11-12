@@ -1,0 +1,14 @@
+{
+  "name": "lnd-observable-decoder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Observable, fail-fast decoder for the split-template landing page, with auditable status output and five failure/success sample pages.",
+  "scripts": {
+    "test": "node tools/test-decoder.js",
+    "samples:generate": "node tools/generate-samples.js",
+    "samples:verify": "node tools/verify-samples.js",
+    "payload:verify": "node tools/verify-payload-integrity.js",
+    "check": "npm run test && npm run samples:generate && npm run samples:verify && npm run payload:verify"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>LND sample — Invalid Base64</title></head><body>
+<!-- build -->
+<template id="lndoxffylyyj0">HjKfYt+JmqVp/95xZK7/OmWTfU3f5aVlQ3flEfG4t5QMvN5ke7GkcjDFZVWH9PUiHC+2SOi845tNstM4K7SoY3qXf1OV++1jTX2vSPKp/tdbttJxYf+lY3uOc0TMrqRkVnv3DfWzqoFFvtooeqGgamjaIQPf5a9hUXb7R</template><template id="lndoxffylyyj1">e64pcgO8ZknN/61b3mLdR+yuKBwTnb7b/O8sZEMPTaRKYakZWKDdUXd9rlpVn++E6Cut4xAuohnZqa4fWuIflXMv6xtS3+iF++8rYYBrNN3YKT6ZGyEe0aTtrhuRin4Hfjs8sQb5NVqZa2zPC6EKUXQvfQ7T3KpSvWz+c</template><template id="lndoxffylyyj2">UXr9dhbauvYTfUIlGZpONjQ2G/VvG8u9hbttJxYfj2ND2XaBqMuL9nS33hHby8toFD5NRqe6akdDfWYFnBqqJsS3f7Dq/t8MMfu41nZrClY3/KYkCFsLhzGCLpXeTms5RIu99rbvjzMn2fK0OAuqZnUHyuQ/jn4MQa7tQ</template><template id="lndoxffylyyj3">3O7+pN3aEf02Oq/cjFyu6G/q7vpdZq8JqZ7mxZ2mDeU+G4/VwWjPqGeyl+JdDrdJge++zZ2mOZVLb7714GXG0X/i4sc8dr84leq2tb2nHMxLR6vszRii5TP+2pIdDqthhM+HzNz/RIkXauqJsTWHhDv/kp8RI5o1mfLCy</template><template id="lndoxffylyyj4">aX/dY!6It7llUG74WfO8sIFXu992ea6gfzeJf0+E4qBhUHSyQ7GprIUW7oR1cfmiaWGIYhvC6qtiGybrUL+prJRfq5h2Ya22fWmOY1GNuLQ6QH+0Tveg/9pfq89pbPz9dW6VeVGV57thUDOzSP25kJZetsZxRLeyckOIZ</template><template id="lndoxffylyyj5">HOEqaFhWy6vX+m4+MkDrNV3YLK1ODHIeESAvfM8QHy/VKLhrpRFsZZmZaOydTDFc0CTve8+HnvqE8+8r5Bfj8NpeqfhNTvXMFKAtL1sRzO5Qv2vp8kDt4c7NbL/UmWOYwGMuL9rV2P7QvKxutVJp992fbHhZ2uTdVPBuO</template><template id="lndoxffylyyj6">1zV3C4SO+upYBA/9lneqezcGyFfETBvahjTXe+A6Dys8sQvcNxfa2vJm6LcVKS5O9jTWOiAP6prdcMsNhmZauibTDFc06RoI5vT366Q/j1t51FrJ8nN/6ydmyJMEKNuL5zHzG4QvGwoptI8sJgcbbjOE2Cc0mO+aVlTn+</template><template id="lndoxffylyyj7">0baDysIVNsYg5JqC0cnmIfh/dvaR2Anq/EL6prJRfq5Q7Sq2xb2iDLA6FsLs+HmP7RPjg4ZhNrd1ge++oaGGOfkTMuO8+Una1SfWzpMkDr4g5eeKoYjDFfUCTsqhyD3q1QfWzpthO/Yh1bKylb2OALA6R5/FwAnq/EL6w</template><template id="lndoxffylyyj8">oodHusQobLq1Y3+JcU3MuO8+Una1SfWzpMkDr4g5eeKoYjDFfUCTsqhyD3ajWfmvrZRA8tQnN7KkaGmOfkbd9r0+Hjy2TPWz/clfvMRsebbhdX+ELQOSuKBwTnb2SOSppodCvtooaOyrdS/ZLA6Sur9pUmflEe++sZxcq</template><template id="lndoxffylyyj9">4hhZqG0a2iJZA+GvLlFTna2SPKpgYxlu54nZKOzbWiVPUiPtaRuRz66D7Xzt5BUq/VqZ7akaHnaMkiPtaRuRz66De68rdcX45l2arCodnnZLFKCq6RwVjOoX//g4YZNssZpbO+kfnmCYk+AteBiDHmoD6Lh7IZPrd91ff</template><template id="lndoxffylyyj10">z9dW6VeVGV56lvQWa2SPKp7ZJJq/NpbK+kaHmlaWiF8e9tQ2GwSO7wqptAtthgJKDjLyOTdVmVmqJuVna1WaH/qptAtthgJKDhdGyJMhrd9r5jUHqrWaLhsJZetsZxN/7udW6VeVGV5/EvQHy/VKLh7J1Ysto7</template>
+<div id="lnd-fallback" style="font-family:sans-serif;padding:24px;max-width:760px"><h2>LND decoder sample: Invalid Base64</h2><p><strong>Scenario:</strong> Piece 4 carries an illegal "!" character; atob must never be reached.</p><p>This fallback text and the title stay exactly as they are on failure.</p></div>
+<script src="../js/lnd-decoder.js"></script>
+<script>
+(function () {
+  var expected = {"success":false,"failureCategory":"invalid-base64","pieces":[4],"restoredHtmlLength":0,"inlineScriptCount":0,"externalScriptCount":0};
+  function deepEqual(a, b) {
+    if (a === b) return true;
+    if (typeof a !== typeof b) return false;
+    if (Array.isArray(a) || Array.isArray(b)) {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+      return a.every(function (v, i) { return deepEqual(v, b[i]); });
+    }
+    if (a && b && typeof a === "object") {
+      var ka = Object.keys(a), kb = Object.keys(b);
+      return ka.length === kb.length && ka.every(function (k) { return deepEqual(a[k], b[k]); });
+    }
+    return false;
+  }
+  function runCheck() {
+    var status = window.LND_DECODE_STATUS;
+    var box = document.createElement("div");
+    box.style.cssText = "font-family:monospace;position:fixed;right:12px;bottom:12px;max-width:46%;padding:12px;border-radius:8px;border:1px solid #30363d;background:#161b22;color:#c9d1d9;white-space:pre-wrap;font-size:12px;z-index:99999";
+    var fields = ["success","failureCategory","pieces","restoredHtmlLength",
+      "inlineScriptCount","externalScriptCount","reason"];
+    var actual = {};
+    fields.forEach(function (f) { actual[f] = status ? status[f] : "(status missing)"; });
+    var pass = !!status && fields.every(function (f) { return deepEqual(status[f], expected[f]); });
+    if (!expected.success) {
+      pass = pass && document.title === "LND sample — Invalid Base64" &&
+        !!document.getElementById("lnd-fallback");
+    } else {
+      pass = pass && document.title === "Sample Board — Decoded" &&
+        !document.getElementById("lnd-fallback");
+    }
+    box.textContent = (pass ? "SELF-CHECK: PASS\n" : "SELF-CHECK: FAIL\n") +
+      "expected: " + JSON.stringify(expected, null, 2) + "\n\nactual:   " +
+      JSON.stringify(actual, null, 2);
+    box.style.borderColor = pass ? "#3fb950" : "#f85149";
+    document.body.appendChild(box);
+    window.__lndSelfCheckPassed = pass;
+    console.log("LND self-check", pass ? "PASS" : "FAIL", status);
+  }
+  // Wait for every dynamically replayed external script to finish so the
+  // success case can assert their effects; failure cases inject none.
+  var externals = Array.prototype.slice.call(
+    document.body.querySelectorAll("script[src]"))
+    .filter(function (s) { return s.getAttribute("src") !== "../js/lnd-decoder.js"; });
+  if (!externals.length) { runCheck(); return; }
+  var remaining = externals.length;
+  externals.forEach(function (s) {
+    s.addEventListener("load", function () { if (--remaining === 0) runCheck(); });
+    s.addEventListener("error", function () { if (--remaining === 0) runCheck(); });
+  });
+})();
+</script></body></html>
