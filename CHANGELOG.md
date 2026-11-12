@@ -1,0 +1,254 @@
+# Changelog
+
+## [4.1.2] — Security update
+
+Updates Zod to 4.6.7 and affected runtime/publisher dependencies; preserves 24
+core tools, exact identity checks and existing safety/input/cleanup bounds.
+See docs/RELEASE_NOTES_4.1.2.md and docs/RELEASE_READINESS_4.1.2.md. No
+publication, native-client acceptance or live-provider claim.
+
+## [4.0.0] — Windows privacy boundary and offline retirement preview
+
+- Added `--retirement-preview` for bounded, path-free counts of one selected
+  browser profile. It never deletes state or authorizes coordinated erasure.
+- Added native Windows ACL creation and verification for profile, circuit,
+  budget and lock state under the actual `%USERPROFILE%` tree. Every state path
+  outside that tree now refuses, including previously accepted private custom
+  paths. Unverified existing state fails closed before sensitive writes. A hosted
+  second-user probe passed on synthetic state; existing exposed files and other
+  Windows policies are not certified.
+- Aligned Windows release fixtures with the private-state rules. The server
+  still exposes 22 tools; no LinkedIn route or write policy changed.
+
+## [3.1.0] — Offline convenience and build repair
+
+- Read-only `--setup <client> --config-file <path>` JSON/JSONC merge preview:
+  bounded parsing, duplicate/root/conflict checks, safe entry addition only and
+  no existing-file mutation or unrelated credential output.
+- Reconcile the original roadmap with merged main, closed draft PR #5 and the
+  unbuilt/unmeasured privacy, official-provider and first-use gates.
+- Offline `--data-inventory` reports fixed local state categories without reading
+  contents, printing paths, changing files or producing a deletion plan. Present
+  locks, aliases, unexpected types and uncertain observations fail closed.
+  Coordinated erasure and native Windows ACL privacy remain open.
+- Replaced the affected development build wrapper with patched direct esbuild.
+  The CLI contract and exact 15-file package inventory remain enforced.
+
+## [3.0.0] — Core safety and guided setup
+
+22 tools; default-disabled writes with issued preview proof, authenticated loopback
+HTTP, safe profile logout, offline setup/client exports, precise read contracts and
+strict 15-file packaging. See docs/RELEASE_NOTES_3.0.0.md and SETUP_GUIDE.md for
+breaking changes, migration and verified scope.
+
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.3] - 2026-06-17
+
+Stable release. The 5 write tools are promoted out of alpha — payloads captured
+and live-verified, each returning a structured status. All 22 tools shipping.
+
+### Added
+- Published across npm, GitHub Releases, GitHub Packages, and the official **MCP
+  Registry** (`io.github.devag7/linkedin-mcp`).
+- `glama.json` + Glama score/card badges; AI-discovery files (`llms.txt`,
+  `AGENTS.md`, `mcp-manifest.json`).
+- Single-source version (`src/version.ts`) wired through the server, CLI, and
+  `--version`; version-driven automated release pipeline.
+
+### Changed
+- Write tools (`connect_with_person`, `send_message`, `create_post`,
+  `react_to_post`, `comment_on_post`) classified into structured statuses
+  (`ok` / `duplicate` / `already_connected` / `restricted` / `quota_exhausted`
+  / `not_allowed` / `failed`) — no more blind `sent: true`.
+
+## [2.0.0] - 2026-06-14
+
+22 tools. Reads are live-verified; the 5 write tools are hardened and gated.
+
+### Added — tools
+- `get_company_posts`, `get_company_employees` (DOM fallback, like the other
+  company tools).
+- `get_pending_invitations` — received + sent, partial-tolerant (returns
+  whichever queue answers and reports per-direction errors).
+
+### Changed — reads
+- `get_profile` now also returns **skills, certifications, and languages**
+  (sections lazy-loaded in parallel via profile components). No 30-item
+  truncation — every walked entry is collected (avoids competitor #360).
+- `health_check` is now a **deep** check: cookie state **plus a live Voyager
+  probe** (confirms the API actually answers, not just that a cookie exists)
+  **plus** today's safety-budget headroom (per-action used/cap/remaining +
+  pending invites). Status is `healthy` / `degraded` / `logged_out`.
+
+### Changed — writes (hardening; ⚠️ alpha, verify on a throwaway account)
+- **No more false-positive success** (#365/#448): a new non-throwing
+  `voyagerPostRaw` keeps the response body, and every write is run through a
+  classifier that returns a structured status — `ok` / `duplicate` /
+  `already_connected` / `restricted` / `quota_exhausted` / `not_allowed` /
+  `failed` — instead of a blind `{ sent: true }`. The classifier also catches
+  the two sneaky live cases proven on the burner: an **HTTP-200 body with a
+  nested GraphQL `errors[]`** (how the share mutation reports failure) and a
+  **plain-text error in a 200**.
+- **`connect_with_person` rewired to the verified-live endpoint**: the old
+  `/growth/normInvitations` path was dead. `--writecapture` recovered the exact
+  call the SPA fires — `voyagerRelationshipsDashMemberRelationships?action=
+  verifyQuotaAndCreateV2` with `{invitee:{inviteeUnion:{memberProfile:<urn>}}}`.
+- **`create_post` rewired to the verified-live GraphQL share mutation**
+  (`voyagerContentcreationDashShares`); the old `normShares` REST-li 400'd. The
+  payload is byte-identical to the SPA's (confirmed by letting the SPA's own
+  request through — it returns the same result). NB: brand-new/unverified
+  accounts are posting-restricted; both our call and the SPA's get an HTTP-200
+  GraphQL restriction error, which the classifier now reports as `failed`.
+- **`react_to_post` rewired + VERIFIED LIVE** (HTTP 200 `ok`): the social-dash
+  reactions GraphQL mutation (`voyagerSocialDashReactions`), `{variables:{entity:
+  {reactionType},threadUrn:<activity urn>}}`. Old `/voyagerSocialDashReactions?
+  threadUrn=` 400'd. Targets the post's ACTIVITY urn.
+- **`comment_on_post` rewired + VERIFIED LIVE** (HTTP 201 `ok`): the social-dash
+  `voyagerSocialDashNormComments` collection, `{commentary:{text,attributesV2,
+  $type:TextViewModel},threadUrn:<activity urn>}`. Old `/feed/comments` 500'd.
+- **`send_message` rewired + reply path VERIFIED LIVE** (HTTP 200 `ok`): the
+  messenger-messages `createMessage` action (`voyagerMessagingDashMessengerMessages
+  ?action=createMessage`), body `{message:{body:{text,attributes:[]},
+  renderContentUnions:[],conversationUrn,originToken},mailboxUrn,trackingId,
+  dedupeByClientGeneratedToken:false}`. Old `/messaging/conversations?action=
+  create` was stale; this also fixes the "every reply spawns a new thread" bug
+  (#483/#434) — pass `thread_id`/`conversation_urn` to reply. The NEW-thread path
+  (`hostRecipientUrns`) is best-known (not yet captured).
+
+**All 5 writes are now verified** — connect, create_post, react, comment, and
+send_message (reply path live `200 ok`; new-thread `hostRecipientUrns` path
+structurally verified: a live fire to a non-connection returned HTTP 422
+`RECIPIENT_NOT_FIRST_DEGREE_CONNECTION`, confirming the server parsed the request
+and rejected only on the connection business-rule). Every legacy REST-li write
+endpoint was dead and has been replaced with the live SPA's actual request,
+recovered via `--writecapture`. The classifier maps the non-connection 422 to
+`not_allowed`.
+
+### Added — tooling
+- `--writeprobe`: live-fires create_post (+ react/comment on its own post) and
+  prints the classified status, with self-cleanup — the burner-side verification
+  loop for the writes.
+
+### Added — tooling
+- `--writecapture`: drives the authenticated burner UI to the moment each write
+  fires, intercepts the outgoing Voyager POST, and `abort()`s it — recovering the
+  exact path + payload the live SPA sends with **zero side effects** (no real
+  post/invite/message/reaction/comment). This is how write payloads get verified
+  rather than guessed.
+
+## [2.0.0-alpha.1] - 2026-06-13
+
+Complete rewrite of the data layer. v1 returned **zero data** in practice:
+LinkedIn fronts the Voyager API with Cloudflare bot-management that rejects
+stateless `fetch`/`curl` (endless 302 redirect even with a valid cookie).
+
+### Changed — architecture
+- **Stealth browser engine** ([patchright](https://github.com/Kaliiiiiiiiii-Vinyzu/patchright),
+  an undetected Playwright fork) clears the Cloudflare challenge with a real
+  browser fingerprint.
+- **In-page Voyager fetch**: queries run inside the authenticated, challenge-passed
+  page (same-origin, the exact path LinkedIn's web app uses) → structured JSON,
+  not scraped DOM. Locale-independent, resilient to UI redesigns.
+- One persistent browser per process; signal-handled teardown + process reap.
+
+### Added — safety/reliability layer (130+ unit tests)
+- Serial queue, human-paced jittered delays, per-action daily budgets, account
+  warmup ramp, pending-invite ceiling, and a circuit breaker that hard-stops on
+  any checkpoint/captcha/rate-limit (never auto-solves a challenge).
+
+### Added — tools (live-verified)
+- `get_my_profile`, `get_profile` (name, headline, summary, experience, education)
+- `get_feed`, `get_notifications`, `search_jobs`, `get_inbox`, `get_conversation`
+- `whoami`, `health_check`, `close_session`
+
+### Added — CLI
+- `--login` (headful interactive), `--spike` (verify), `--capture` (record live
+  Voyager endpoints), plus `--status` / `--logout`.
+
+### Removed
+- v1's stateless Voyager tools (proven 0-data). OAuth path (backed no working
+  tool). False README claims + the competitor comparison table.
+
+### Notes
+- Pre-release. Requires headful Chrome + a one-time `--login`. **No LinkedIn
+  automation is ban-proof** — see [DISCLAIMER.md](DISCLAIMER.md).
+
+## [1.0.0] - 2026-06-08
+
+### Added
+
+#### Core
+- MCP server with Streamable HTTP and stdio transport
+- TypeScript codebase with strict mode
+- Zod schema validation for all tool parameters
+- Structured JSON logging to stderr
+
+#### Authentication
+- LinkedIn OAuth 2.0 support with token validation
+- Cookie-based authentication (li_at + CSRF)
+- Unified AuthManager with automatic method detection
+- Cached credential validation (5-minute TTL)
+
+#### Tools — Profile (7)
+- `get_profile` — Get any LinkedIn profile with full details
+- `get_my_profile` — Get authenticated user's profile
+- `get_profile_skills` — Skills with endorsement counts
+- `get_profile_recommendations` — Recommendations given/received
+- `get_profile_activity` — Recent posts and activity
+- `get_sidebar_profiles` — "People also viewed" suggestions
+- `search_people` — Search with keyword, location, company filters
+
+#### Tools — Messaging (6)
+- `get_inbox` — List inbox conversations
+- `get_conversation` — Read conversation thread
+- `search_conversations` — Search messages by keyword
+- `send_message` — Send message (native multiline support)
+- `reply_to_thread` — Reply to existing thread
+- `mark_conversation_read` — Mark conversation as read
+
+#### Tools — Company (5)
+- `get_company` — Company profile and details
+- `get_company_posts` — Company feed posts
+- `get_company_employees` — Employee listing with filters
+- `search_companies` — Search companies by keyword
+- `get_company_jobs` — Open positions at company
+
+#### Tools — Jobs (4)
+- `search_jobs` — Search with keyword and location
+- `get_job_details` — Detailed job posting info
+- `get_saved_jobs` — User's saved/bookmarked jobs
+- `get_job_applicants` — Applicant info (recruiter)
+
+#### Tools — Network (6)
+- `connect_with_person` — Send connection request with note
+- `get_connections` — List 1st-degree connections
+- `get_pending_invitations` — Sent/received invitations
+- `withdraw_invitation` — Cancel sent invitation
+- `accept_invitation` — Accept received invitation
+- `get_network_stats` — Network growth metrics
+
+#### Tools — Feed & Content (6)
+- `get_feed` — Home feed posts
+- `create_post` — Create text post
+- `react_to_post` — React (like, celebrate, etc.)
+- `comment_on_post` — Add comment
+- `search_posts` — Search by keyword/hashtag
+- `get_notifications` — Recent notifications
+
+#### Tools — Utility (2)
+- `whoami` — Server info, auth status, capabilities
+- `health_check` — Health and connectivity status
+
+#### Infrastructure
+- Token bucket rate limiter with burst support
+- LRU cache with TTL expiration
+- Retry with exponential backoff
+- Multi-stage Docker build (~50MB image)
+- Docker Compose for self-hosting
+- GitHub Actions CI (lint, typecheck, test, build)
+- 42 automated tests across 3 test suites

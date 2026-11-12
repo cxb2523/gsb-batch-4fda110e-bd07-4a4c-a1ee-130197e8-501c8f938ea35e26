@@ -1,0 +1,15 @@
+# Experimental offline diagnosis only. No published ports or assumed login.
+# docker compose run --rm linkedin-mcp
+services:
+  linkedin-mcp:
+    build: .
+    command: ["--doctor"]
+    stdin_open: true
+    environment:
+      TRANSPORT: stdio
+      LOG_LEVEL: info
+      LINKEDIN_ENABLE_WRITES: "false"
+    volumes:
+      - linkedin-local-state:/home/node/.linkedin-mcp
+volumes:
+  linkedin-local-state:

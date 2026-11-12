@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Source checks (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Keep Windows fixtures under the current user profile
+        if: runner.os == 'Windows'
+        run: node --import tsx scripts/prepare-windows-ci-temp.ts
+
+      - name: Audit all locked dependencies
+        run: pnpm audit
+
+      - name: Check generated metadata
+        run: pnpm run metadata:check
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Verify build output
+        run: node dist/index.js --version
+
+  package:
+    name: Packed artifact (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Keep Windows fixtures under the current user profile
+        if: runner.os == 'Windows'
+        run: node --import tsx scripts/prepare-windows-ci-temp.ts
+      - run: pnpm run build
+      - name: Install packed package and verify offline CLI and MCP
+        run: npm run verify:package
+
+      # Historical published-package observations stay available through
+      # verify-published-first-use.mjs. Candidate gates audit the new archive,
+      # not older immutable releases whose dependencies now have advisories.
+      - name: Verify the runner's preinstalled Chrome on Windows
+        if: runner.os == 'Windows'
+        run: node -e 'const fs=require("node:fs"),p=require("node:path");const roots=[process.env.PROGRAMFILES,process.env["PROGRAMFILES(X86)"]].filter(Boolean);if(!roots.some(r=>fs.existsSync(p.join(r,"Google","Chrome","Application","chrome.exe"))))process.exit(1)'
+      - name: Verify the runner's preinstalled Chrome on Linux
+        if: runner.os == 'Linux'
+        run: |
+          command -v google-chrome
+          google-chrome --version
+      - name: Verify the runner's preinstalled Chrome on macOS
+        if: runner.os == 'macOS'
+        run: node -e 'require("node:fs").accessSync("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", require("node:fs").constants.X_OK)'
+      - name: Verify actual Chrome launch, ownership and cleanup without LinkedIn
+        run: pnpm run verify:browser
+
+  claude-bundle:
+    name: Claude packages (${{ matrix.os }}, Node 22)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Keep Windows bundle fixtures under the current user profile
+        if: runner.os == 'Windows'
+        run: node --import tsx scripts/prepare-windows-ci-temp.ts
+      - name: Reject unexpected private plugin template files
+        run: node --test scripts/claude-plugin-template.test.mjs scripts/claude-source-plugin.test.mjs
+      - run: pnpm run build
+      - name: Build, unpack and audit current candidate Claude bundle offline
+        run: npm run build:claude-mcpb -- --from-source
+      - name: Build, unpack and audit pinned public 4.4.0 Claude plugin offline
+        run: npm run build:claude-plugin
+      - name: Verify declared GitHub source launcher with cold local tools only
+        run: npm exec -- node scripts/verify-claude-source-plugin.mjs

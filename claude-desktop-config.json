@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "linkedin": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "linkedin-mcp-tools@4.4.0"
+      ]
+    }
+  }
+}

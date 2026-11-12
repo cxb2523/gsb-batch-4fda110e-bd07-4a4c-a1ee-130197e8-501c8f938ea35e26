@@ -1,0 +1,63 @@
+# AGENTS.md
+
+Guidance for AI agents using or contributing to **LinkedIn MCP**
+(`linkedin-mcp-tools`).
+
+## What this is
+
+An MCP server exposing LinkedIn to any MCP client (Claude, Cursor, …) as
+structured JSON. It drives a real stealth Chrome to pass Cloudflare, then calls
+LinkedIn's Voyager API from inside the authenticated page. Published 4.4.0 has
+24 tools, including two offline job-seeker tools introduced in 4.1.0.
+The earlier 4.0.0 had 22; publication is tracked in the version's release evidence.
+
+## Using it (as an agent / MCP client)
+
+1. The human runs the one-time login: `npx -y linkedin-mcp-tools@latest --login`.
+2. Configure the MCP server: command `npx`, args `["-y","linkedin-mcp-tools@latest"]`.
+   Claude Code users can instead install the pinned 4.4.0 plugin; see
+   [SETUP_GUIDE.md](SETUP_GUIDE.md#choose-one-claude-installation-route). Pick one installation.
+3. Call tools. Reads return structured JSON. **Writes are disabled by default.** After deliberate runtime opt-in, preview
+   with confirmation omitted/false, obtain explicit human approval, then submit
+   identical action/target/content with `confirm: true`, returned `operation_id`
+   and five-minute `preview_token`. The server cannot infer human consent. Writes
+   count against daily safety caps — only call them when the user explicitly asks,
+   and surface the returned `status` (`ok` / `duplicate` / `already_connected` /
+   `restricted` / `quota_exhausted` / `not_allowed` / `failed` / `unknown`) back to the user.
+4. Use cold `whoami` or offline `--doctor` for local diagnosis. `health_check`
+   makes a live account read; call it only within the authorized scope and request
+   budget. Stop at checkpoints rather than adding probes or retries.
+
+### Tool map
+
+- Profiles: `get_my_profile`, `get_profile`
+- Search: `search_people`, `search_jobs`, `get_job_details`, `search_companies`,
+  `get_company`, `get_company_posts`, `get_company_employees`,
+  `prepare_job_application`, `export_application_tracker` (published local
+  preparation/export; optional reusable evidence, draft materials, interview practice and optional follow-up timing; neither submits or stores applications)
+- Feed/messaging: `get_feed`, `get_notifications`, `get_inbox`, `get_conversation`,
+  `get_pending_invitations`
+- Writes (gated): `connect_with_person`, `send_message`, `create_post`,
+  `react_to_post`, `comment_on_post`
+- Session: `whoami`, `health_check`, `close_session`
+
+## Safety expectations
+
+Automating LinkedIn can get an account restricted — there is no ban-proof tool.
+Default to a secondary account, respect the built-in daily caps, never disable
+pacing for real use, and stop immediately if `health_check` reports a checkpoint.
+
+## Contributing (code agents)
+
+- TypeScript, strict. `pnpm run build` (esbuild), `pnpm run typecheck`, `pnpm test`
+  (vitest), `pnpm run lint` (eslint) — all must pass; CI enforces them.
+- Voyager endpoints rotate. Write endpoint shapes are captured live via
+  `--writecapture` (intercept the SPA's POST, abort it — zero side effects) and
+  verified via `--writeprobe`; do not guess payloads.
+- Version is single-sourced from `package.json` (`src/version.ts`). Releases are
+  automated on push to `main` when the version bumps (see `.github/workflows`).
+
+New submissions require preview proof; reuse an existing journal ID and identical
+inputs only to look up its outcome after timeout/restart. Never auto-retry unknown
+outcomes. `--setup <client>` and cold `whoami` are offline; live reads require
+separate authorization. Platform fixture checks do not establish provider support.

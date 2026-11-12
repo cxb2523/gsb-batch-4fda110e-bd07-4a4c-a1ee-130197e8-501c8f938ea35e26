@@ -1,0 +1,50 @@
+{
+  "scope": "Actual local MCP calls with synthetic inputs and a persistent stop; no live LinkedIn compatibility claim.",
+  "packageVersion": "3.0.0",
+  "setup": [
+    {
+      "client": "claude-desktop",
+      "status": "needs_attention",
+      "session": "not_checked",
+      "chrome": "missing",
+      "safetyState": "blocked",
+      "transport": "stdio",
+      "writesEnabled": false,
+      "manualLogin": "not run"
+    },
+    {
+      "client": "cursor",
+      "status": "needs_attention",
+      "session": "not_checked",
+      "chrome": "missing",
+      "safetyState": "blocked",
+      "transport": "stdio",
+      "writesEnabled": false,
+      "manualLogin": "not run"
+    },
+    {
+      "client": "vscode",
+      "status": "needs_attention",
+      "session": "not_checked",
+      "chrome": "missing",
+      "safetyState": "blocked",
+      "transport": "stdio",
+      "writesEnabled": false,
+      "manualLogin": "not run"
+    }
+  ],
+  "linkedInRequests": 0,
+  "browserLaunches": 0,
+  "toolCount": 22,
+  "sessionState": "not_checked",
+  "loggedIn": null,
+  "currentLiveChecks": 0,
+  "writesEnabled": false,
+  "preview": {
+    "writesEnabled": false,
+    "issuedProof": true,
+    "submitted": false
+  },
+  "readStatus": "CIRCUIT_OPEN",
+  "closed": true
+}

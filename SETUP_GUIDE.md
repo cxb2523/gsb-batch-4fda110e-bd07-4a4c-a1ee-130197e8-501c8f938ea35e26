@@ -1,0 +1,308 @@
+# Setup and client verification
+
+This guide targets the 24-tool **4.4.0 follow-up planning update**. Check
+[release availability](https://github.com/devag7/linkedin-mcp/releases/tag/v4.4.0)
+and the [readiness record](https://github.com/devag7/linkedin-mcp/blob/main/docs/RELEASE_READINESS_4.4.0.md)
+before installing. These instructions do not establish publication. Historical
+4.1.1 bytes have newly reported dependency advisories; their publication receipts
+are identity evidence, not current security clearance. For offline source setup,
+use a reviewed checkout with `pnpm run build` and `node dist/index.js --setup cursor`.
+Native first-use and broader live compatibility remain unproven.
+Node 20+ and installed Google Chrome are required. Login requires a local display.
+No OAuth/cookie value copied into environment variables activates an official API
+provider. There is no dotenv loader; use your shell or your client's env settings.
+
+## Choose one Claude installation route
+
+Pick one installation: running two of these routes for the same client
+duplicates the tools and browser sessions. Every route below targets 4.4.0 with
+writes disabled. None of them is an Anthropic directory listing. Only the Claude
+Code plugin has a recorded native install and MCP connect check (macOS, Claude
+Code 2.1.285, 2026-11-04, no tool calls); native 4.4.0 installation of the other
+routes remains unverified.
+
+| Route | For | Where to start |
+| --- | --- | --- |
+| Claude Code plugin | Claude Code | [Commands below](#claude-code-plugin) |
+| Desktop extension (`linkedin-mcp-tools-4.4.0.mcpb`) | Manual Claude Desktop extension install | [Claude Desktop extension](#claude-desktop-extension) |
+| Local plugin ZIP (`linkedin-mcp-local-4.4.0.zip`) | Local plugin trial with a reviewed, bundled dependency tree | [packaging/claude-plugin](packaging/claude-plugin/README.md) |
+| Generated JSON entry | Claude Desktop config file, Cursor, VS Code | [Guided offline first run](#guided-offline-first-run) with `--setup claude-desktop` |
+
+### Claude Code plugin
+
+From any terminal:
+
+```bash
+claude plugin marketplace add devag7/linkedin-mcp
+claude plugin install linkedin-mcp-source@devag7-linkedin-tools
+```
+
+Inside an interactive `claude` session the equivalents are
+`/plugin marketplace add devag7/linkedin-mcp` and
+`/plugin install linkedin-mcp-source@devag7-linkedin-tools`. Start a new Claude
+Code session afterwards. The plugin launches `linkedin-mcp-tools@4.4.0` through
+`npx` with writes disabled; account reads still need the one-time login
+(`npx -y linkedin-mcp-tools@4.4.0 --login`). Pick one installation: do not also
+add a JSON entry, the MCPB or the ZIP plugin. This is a community catalog, not an
+Anthropic directory listing. Review, removal and limits:
+[packaging/claude-source-plugin](packaging/claude-source-plugin/README.md).
+
+## Guided offline first run
+
+After checking 4.4.0 availability and verification, install it at a stable path
+and request the client report.
+On macOS/Linux:
+
+```sh
+npm install --prefix "$HOME/.local/share/linkedin-mcp" linkedin-mcp-tools@4.4.0
+node "$HOME/.local/share/linkedin-mcp/node_modules/linkedin-mcp-tools/dist/index.js" --setup cursor
+```
+
+On Windows PowerShell:
+
+```powershell
+npm install --prefix "$env:LOCALAPPDATA\linkedin-mcp" linkedin-mcp-tools@4.4.0
+node "$env:LOCALAPPDATA\linkedin-mcp\node_modules\linkedin-mcp-tools\dist\index.js" --setup cursor
+```
+
+Use `claude-desktop` or `vscode` instead of `cursor` for that client. The JSON
+report combines offline diagnosis, configuration and exact login/doctor command
+arrays. It never opens Chrome, downloads software, changes a client file or
+accesses LinkedIn. Exit1 means a local issue needs attention; login remains
+`not_checked`. For only the snippet, replace `--setup cursor` with
+`--client-config cursor`. Resolve diagnosis before merging the generated entry.
+Run its exact login command yourself when ready; use the same installed bundle
+and profile for login and MCP. On Windows, 4.1.1 refuses every state path outside
+the actual `%USERPROFILE%` tree. A custom profile under Public or another shared
+directory was unsafe with 3.1.0: a
+[native second-user probe](https://github.com/devag7/linkedin-mcp/actions/runs/38213175092)
+could list such a synthetic profile despite the requested mode bits. Use an
+account-private location and review its NTFS ACL before login. The
+[merged source guard](https://github.com/devag7/linkedin-mcp/pull/24) now refuses
+every state path outside the actual `%USERPROFILE%` tree and passed hosted
+second-user tests and remains in 4.1.1; see the
+[4.0.0 migration notes](docs/RELEASE_NOTES_4.0.0.md#upgrade-notes-and-limits).
+
+Source contributors can instead run `pnpm install`, `pnpm run build`, then
+`node dist/index.js --setup cursor` from a stable reviewed checkout.
+
+### Claude Desktop extension
+
+The unsigned `linkedin-mcp-tools-4.4.0.mcpb` and its `.sha256` companion are
+[4.4.0 Release assets](https://github.com/devag7/linkedin-mcp/releases/tag/v4.4.0).
+Verify the download against the checksum before installing it manually in Claude
+Desktop; it runs local Node code with your account's permissions. The
+[4.4.0 distribution record](docs/CLAUDE_DISTRIBUTION_4.4.0.md) covers its build,
+audit and asset checks; native 4.4.0 installation and account use remain
+unverified. Use it instead of, not alongside, the Claude Code plugin or a JSON
+entry. The default builder pins public 4.4.0 and keeps its zero-audit gate.
+
+The [unsigned 4.1.1 extension and checksum](https://github.com/devag7/linkedin-mcp/releases/tag/v4.1.1)
+remain historical identity evidence. Newly reported dependency findings mean
+they do not establish current security clearance.
+
+The `--from-source` mode builds an explicitly unreleased checkout bundle for
+offline verification; it does not claim public artifact identity. Native
+installation and account use remain unverified.
+The [bundle guide](docs/CLAUDE_DESKTOP_BUNDLE_2026-10-17.md) records historical
+checks: one 4.1.0 Claude for Mac cold check discovered 24 tools and returned
+`whoami` as `not_checked` without a LinkedIn read. That bundle predates the SDK
+input guard. The extension is not a listed Claude web connector.
+
+### Preview an existing client configuration
+
+This feature is in published **3.1.0** and absent from 3.0.0. After installing
+the package at a stable path, choose a client file explicitly:
+
+```sh
+node "$HOME/.local/share/linkedin-mcp/node_modules/linkedin-mcp-tools/dist/index.js" --setup cursor --config-file /absolute/path/to/mcp.json
+```
+
+The extra `configMerge` report distinguishes a missing file (`absent`), an entry
+ready to add (`ready_to_add`), an identical entry (`already_matches`), a conflicting
+entry (`conflict`) and invalid input (`invalid`). If profile diagnosis cannot
+generate a safe entry, it says `unavailable` and does not read the selected file.
+No existing client file is changed, server launched or provider contacted.
+
+JSON and JSONC comments/trailing commas are accepted using
+[Microsoft's JSONC parser](https://github.com/microsoft/node-jsonc-parser).
+Duplicate keys, malformed input, nonobject roots/maps and the wrong client's root
+are refused. Input is limited to1MiB,64 container levels and50,000 visited containers,
+properties and literals.
+The explicit native VS Code export expects `servers`; its newer portable
+`mcpServers` destination requires a different export and is deliberately refused
+here. See [VS Code's formats](https://code.visualstudio.com/docs/agent-customization/mcp-servers)
+and [Cursor's configuration guide](https://cursor.com/docs/mcp).
+
+Only a proposed JSON Patch addition for the generated `linkedin` entry is printed;
+unrelated names, settings, environment values, comments and raw parser/filesystem
+errors are not echoed. A conflict produces no replacement patch. Review locally
+and merge in your editor, preserving other servers and comments. This is a
+snapshot, not a transaction: rerun after changes, because applying a generic JSON
+Patch `add` to a stale document can replace an entry. No automatic patch application
+is provided. Final-component symlinks/junctions and unavailable file identity are
+refused; parent-directory aliases can resolve during this read-only operation.
+Opened-file identity/timestamp checks detect the tested replacement cases, not
+all possible concurrent changes or hostile filesystem behavior.
+
+`already_matches` proves only equality with this build's safe entry; it does not
+prove native client acceptance, runtime startup, login or provider compatibility.
+Overall exit1 can still reflect missing Chrome or a latched safety stop even when
+the merge plan is valid. Read `configMerge.status` separately from setup diagnosis.
+The published 3.0.0 volunteer protocol does not exercise this new command.
+
+The generated entry uses the absolute Node executable and this installed build,
+sets the same profile for login and MCP, forces stdio and disables writes. Merge
+only its `linkedin` entry into your existing configuration; preserve other servers.
+Keep the installation at a stable path outside temporary caches/iCloud. Regenerate
+when Node/package paths change or after an upgrade. Do not share local path details
+in public issue reports. No cookie or token is exported.
+
+Claude Desktop/Cursor exports use `mcpServers`; VS Code exports target native
+`.vscode/mcp.json` with `servers`. VS Code's newer portable `.mcp.json` format is
+also supported by the client but is not the selected export format. The generated
+commands are arrays, so paths with spaces require no shell-escaping guesses.
+
+`pnpm run verify:setup` tests all three generated entries with a real SDK client and
+an offline stop fixture. The installed tarball test repeats it. VS Code 1.139.1 also accepted the native export, launched it and discovered 22 tools on the earlier setup-only build in a disposable stopped profile. Claude/Cursor UI acceptance, full chat flows and authorized live first reads remain separate evidence gates.
+See the [execution plan](docs/PRODUCT_EXECUTION_PLAN_2026.md) for current proposals,
+maintenance/cash estimates and distribution measures.
+
+```bash
+pnpm install
+pnpm run build
+node dist/index.js --doctor
+```
+
+Doctor performs local checks without opening Chrome or contacting LinkedIn. Repair
+a reported package/Chrome/permission/state issue first. The normal server keeps
+Chrome headless; `--login` opens a visible window for manual authentication.
+After deliberate login, `--doctor --live` or `health_check` performs a live identity
+read. A cold `whoami` correctly reports `not_checked`; it does not validate a cookie.
+
+```bash
+node dist/index.js --login
+node dist/index.js --doctor --live
+```
+
+Stop other owners of this profile first. One runtime owns it, including during
+idle/close_session. Resolve checkpoint stops manually using the documented
+[recovery](README.md#recovering-from-a-checkpoint); do not delete safety history.
+Metered reads observe daily/monthly budgets and paced working hours, so a queued
+call may wait. HTTP is local-only and requires bearer authentication; see README.
+
+## Client matrix
+
+| Client/surface | Configuration | Evidence in this session |
+| --- | --- | --- |
+| SDK stdio client | Node + absolute built binary | Executed from source and fresh installed tarball; no LinkedIn calls |
+| SDK loopback HTTP client | 127.0.0.1 URL + bearer header | Local protocol/security tests |
+| Claude Desktop / Cursor compatible JSON config | Example below | Configuration example; application UI/first read untested |
+| Claude Desktop local extension | 4.4.0 `.mcpb` Release asset with `.sha256` companion; earlier 4.1.1 asset had hosted Mac/Windows cold/guard checks | Historical native 4.1.0 Mac 2.42304.0 discovery/cold/removal passed. Native 4.1.1/4.4.0 and live reads untested |
+| Claude Code plugin | `linkedin-mcp-source@devag7-linkedin-tools` from this repository's marketplace | Native install and MCP connect checked on macOS with Claude Code 2.1.285 (2026-11-04, no tool calls); Windows/Linux, tool use and live reads untested |
+| Other MCP clients | Use their documented stdio settings | No compatibility claim until a client/OS/version record exists |
+
+For a client accepting `mcpServers`, use an absolute path to the built file:
+
+```json
+{
+  "mcpServers": {
+    "linkedin": {
+      "command": "node",
+      "args": ["/absolute/path/to/linkedin-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+[claude-desktop-config.json](claude-desktop-config.json) pins the current declared
+npm version as a reference. Its contents follow package.json; publication receipts
+are independently recorded in launch evidence. This guide does not guess settings formats for
+untested applications. [First-use protocol](docs/FIRST_USE_VALIDATION.md) records
+client/OS/version and real completion evidence before adding a verified entry.
+
+Writes are disabled by default. If an account owner deliberately enables alpha
+writes, put LINKEDIN_ENABLE_WRITES=true in that client's env, review a local
+preview, obtain explicit human approval, then submit identical inputs with its operation ID and `preview_token` within five minutes. No bulk send
+example is provided. New message threads require separate experimental opt-in.
+
+Docker is experimental: a Debian/Chrome recipe and stdio compose example are
+included, but no container build, GUI login, profile portability or container
+runtime has been verified. A persistent browser cannot be a stateless/serverless
+service. Do not expose container HTTP ports; the listener binds only to loopback.
+
+## Local browser lifecycle evidence
+
+On 2026-10-01, the source-only `pnpm run verify:browser` check passed on macOS /
+Node22.14.0 / Chrome154 with an empty temporary profile, synthetic local content,
+observed process cleanup and released ownership. This is a browser lifecycle
+check, not a LinkedIn first read or client-application certification. See the
+[zero-cash execution record](docs/ZERO_COST_EXECUTION_EVIDENCE_2026-10-01.md).
+
+If `--setup` reports `profile: invalid`, it returns JSON with
+`status: needs_attention`, `configuration: null` and `commands: null`. Repair the
+selected `LINKEDIN_PROFILE_DIR`, including broken symlink/junction targets or parent
+aliases, before regenerating configuration. Stop owners first and preserve safety
+history. This diagnosis does not open Chrome, repair the path or access LinkedIn.
+
+## Migrating from 2.0.3 to 3.0.0
+
+3.0.0 is a major version because existing write and HTTP clients must change.
+Read tools remain available, but consumers must handle contract metadata and
+partial/empty/error states instead of assuming successful arrays are complete.
+
+1. Stop every server and associated Chrome process using the profile/shared
+   budget file. Back up the profile and external circuit/budget/journal files in
+   a private directory outside synchronization; do not upload these credentials.
+2. Install a verified 3.0.0 artifact at a stable path, regenerate `--setup` or
+   `--client-config`, and merge only its entry into the existing client config.
+   Node 20/22 and Chrome lifecycle are tested offline on Linux/macOS/Windows;
+   this does not certify live LinkedIn or native desktop chat on those platforms.
+3. Start in default read-only mode. Writes now require deliberate runtime opt-in,
+   then a local preview with `confirm:false`, explicit human approval of its exact
+   action/target/content, and an identical new submission with `confirm:true`,
+   returned `operation_id` and five-minute `preview_token`. The server verifies
+   its preview proof, not the human's consent. Old `confirm:true` calls alone fail.
+4. Keep the same operation ID and inputs for lookup of prior journaled outcomes,
+   including after timeout/restart/expired tokens. Never automatically resend an
+   `unknown` result or reset state to recover a checkpoint.
+5. HTTP is restricted to loopback and requires `LINKEDIN_HTTP_TOKEN` plus a bearer
+   header. Remote unauthenticated deployment and shared cloud profiles are not
+   supported migration paths. Prefer local stdio; generated configs force it.
+6. `whoami` is local and reports a cold session as `not_checked`. `health_check`,
+   `--doctor --live` and research reads can access the account; authorize those
+   separately. Offline diagnosis and fixture demos never prove authentication.
+7. State schema 1 retains counters and journal IDs; warmup uses verified local
+   first use, not guessed account age. Unknown/corrupt state fails closed. Old
+   versions that strip new fields must not share this state. A downgrade needs a
+   stopped runtime and separately preserved compatible state, not cap deletion.
+8. Logout refuses symlink/junction/ancestor aliases. A custom profile requires
+   explicit deletion confirmation; external safety files remain. Coordinated
+   erasure tooling remains open. Native Windows ACL enforcement is published in
+   4.0.0 and remains in 4.1.1; verify the installed version and Windows
+   directory privacy before account use. Hosted tests cover synthetic state.
+
+Pagination emits a continuation only when returned start/count/total agree with
+observed rows. Contradictory zero/short pages remain partial with no next cursor.
+Job details must identify the requested numeric job URN before a canonical URL is
+attached. Official OAuth remains unavailable; v1 cookie/OAuth
+environment variables do not enable it. New-thread messaging remains experimental.
+
+## Version 3.1.0 metadata inventory
+
+In the installed 3.1.0 package, run:
+
+```sh
+node "$HOME/.local/share/linkedin-mcp/node_modules/linkedin-mcp-tools/dist/index.js" --data-inventory
+```
+
+The command prints a path-free, read-only snapshot of known local state categories. It honors
+`LINKEDIN_PROFILE_DIR`; shared budget/journal and legacy credentials still refer
+to the OS home store. It neither requires nor tests login or Chrome, and does not
+validate configuration, file contents or permissions. Do not interpret an
+`observed` result or an absent lock as permission to delete state or reset caps.
+Exit 1 means a category was refused or uncertain; review the fixed reason and
+stop associated runtimes manually before considering a separate operation.
+
+This is absent from published 3.0.0. The exact scope, omissions and reason codes
+are in [inventory contract](docs/PRIVACY.md#inventory-json-contract).

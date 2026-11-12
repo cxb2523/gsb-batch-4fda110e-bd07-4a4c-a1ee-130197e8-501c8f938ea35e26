@@ -1,0 +1,14 @@
+{
+  "name": "linkedin-mcp-release-publisher",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@isaacs/nonrecursive-glob-match": "1.0.3",
+    "glob": "14.0.3",
+    "ip-address": "10.7.5",
+    "minimatch": "11.0.4",
+    "npm": "12.2.1",
+    "path-scurry": "3.0.0",
+    "undici": "6.29.1"
+  }
+}
