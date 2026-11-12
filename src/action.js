@@ -25,10 +25,10 @@ export function parseBool(value, name) {
 // Workflow commands carry their message on one line.
 const escapeData = (s) => String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
 
-function setOutput(name, value) {
-  if (!process.env.GITHUB_OUTPUT) return;
+function setOutput(name, value, env = process.env) {
+  if (!env.GITHUB_OUTPUT) return;
   const delimiter = `glancecard_${Date.now()}`;
-  appendFileSync(process.env.GITHUB_OUTPUT, `${name}<<${delimiter}\n${value}\n${delimiter}\n`);
+  appendFileSync(env.GITHUB_OUTPUT, `${name}<<${delimiter}\n${value}\n${delimiter}\n`);
 }
 
 // The bot's identity for every git call, the rebase included: a runner has
@@ -68,43 +68,49 @@ export function commit(workspace, files, message) {
   return true;
 }
 
-async function main() {
-  const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
-  const outDir = path.resolve(workspace, input("out-dir") || "glancecard");
-  const repos = parseList(input("repos"));
-  const profile = input("profile") || null;
+/** One `failures` output line per failed target: its name, category and message, tab-separated. */
+export const failureLines = (failures) => failures.map((f) => `${f.target}\t${f.category}\t${f.message}`).join("\n");
+
+export async function main({ env = process.env, client = null, now } = {}) {
+  const workspace = env.GITHUB_WORKSPACE || process.cwd();
+  const outDir = path.resolve(workspace, input("out-dir", env) || "glancecard");
+  const repos = parseList(input("repos", env));
+  const profile = input("profile", env) || null;
   if (!repos.length && !profile) throw new Error("set repos, profile, or both");
 
   const { files, failures, state } = await renderCards({
-    client: createClient({ token: input("token"), userAgent: `glancecard/${version}` }),
+    client: client ?? createClient({ token: input("token", env), userAgent: `glancecard/${version}` }),
     repos,
     profile,
     outDir,
-    themes: parseThemes(input("theme")),
-    timeZone: input("time-zone") || "UTC",
-    sections: parseSections(input("sections")),
-    calendar: parseCalendar(input("calendar")),
-    starsChart: parseStarsChart(input("stars-chart")),
-    maxCommits: parseCount(input("max-commits"), "max-commits", 5000),
-    allowPrivate: parseBool(input("allow-private") || "false", "allow-private"),
+    themes: parseThemes(input("theme", env)),
+    timeZone: input("time-zone", env) || "UTC",
+    sections: parseSections(input("sections", env)),
+    calendar: parseCalendar(input("calendar", env)),
+    starsChart: parseStarsChart(input("stars-chart", env)),
+    maxCommits: parseCount(input("max-commits", env), "max-commits", 5000),
+    allowPrivate: parseBool(input("allow-private", env) || "false", "allow-private"),
+    ...(now !== undefined && { now }),
     log: (line) => console.log(line),
   });
 
   const relative = files.map((f) => path.relative(workspace, f));
   for (const f of relative) console.log(`  ${f}`);
-  setOutput("files", relative.join("\n"));
+  setOutput("files", relative.join("\n"), env);
 
   let committed = false;
-  const event = process.env.GITHUB_EVENT_NAME ?? "";
-  if (parseBool(input("commit") || "true", "commit") && relative.length) {
+  const event = env.GITHUB_EVENT_NAME ?? "";
+  if (parseBool(input("commit", env) || "true", "commit") && relative.length) {
     if (event.startsWith("pull_request")) console.log("::notice title=glancecard::Not committing on a pull request; the cards are only rendered.");
-    else committed = commit(workspace, [...relative, ...kept(workspace, state)], input("commit-message") || "chore: refresh glancecard");
+    else committed = commit(workspace, [...relative, ...kept(workspace, state)], input("commit-message", env) || "chore: refresh glancecard");
   }
-  setOutput("committed", String(committed));
+  setOutput("committed", String(committed), env);
   console.log(committed ? "Committed the cards." : "No commit.");
 
-  for (const f of failures) console.log(`::error title=glancecard::${escapeData(`${f.target}: ${f.error.message}`)}`);
+  setOutput("failures", failureLines(failures), env);
+  for (const f of failures) console.log(`::error title=glancecard::${escapeData(`${f.target} [${f.category}]: ${f.message}`)}`);
   if (failures.length) process.exitCode = 1;
+  return { files, failures, committed };
 }
 
 // Imported by the tests for its helpers; run only as the action's entry point.

@@ -18,6 +18,24 @@ import { clock } from "./time.js";
 /** The file in the cards' folder the star histories are kept in. */
 export const STARS_FILE = ".stars.json";
 
+/** The kinds of failure a run reports, stable for the Action's `failures` output. */
+export const FAILURE_CATEGORIES = ["not-found", "private", "rate-limit", "network"];
+
+/**
+ * The category of a failed target, read from the messages the client and the
+ * fetchers throw (`src/github.js`, `src/repo/fetch.js`, `src/profile/fetch.js`):
+ * a spent rate limit, a private repository asked for without allow-private, a
+ * target that does not exist or the token cannot see, and anything else — a
+ * network or parsing error.
+ */
+export function classifyFailure(error) {
+  const message = String(error?.message ?? error);
+  if (/rate limit reached/.test(message)) return "rate-limit";
+  if (/is private; a card would publish its data/.test(message)) return "private";
+  if (/was not found, or this token cannot see it/.test(message) || /^No GitHub user "/.test(message)) return "not-found";
+  return "network";
+}
+
 /** Items separated by commas, spaces or newlines. */
 export const parseList = (value) =>
   String(value ?? "")
@@ -75,9 +93,10 @@ export const fileNames = (base, themes) => (themes.length > 1 ? themes.map((t) =
 
 /**
  * Renders a card per repository, plus the profile card when `profile` is set.
- * A target that fails is reported in `failures` and the others still render.
- * `state` lists the files kept for the next run (the star histories), to be
- * committed with the cards.
+ * A target that fails is reported in `failures` — its `target`, a stable
+ * `category` (one of FAILURE_CATEGORIES) and the error's `message` — and the
+ * others still render. `state` lists the files kept for the next run (the
+ * star histories), to be committed with the cards.
  */
 export async function renderCards({
   client,
@@ -139,7 +158,7 @@ export async function renderCards({
       }
       log(`${full}: ${model.totalCommits} commits, ${model.yearCommits} in the last year, ${model.repo.stargazerCount} stars`);
     } catch (error) {
-      failures.push({ target: full, error });
+      failures.push({ target: full, category: classifyFailure(error), message: error.message, error });
     }
   }
 
@@ -153,7 +172,7 @@ export async function renderCards({
       }
       log(`@${profile}: ${model.calendar.totalContributions} contributions in the last year, ${model.stars} stars`);
     } catch (error) {
-      failures.push({ target: `@${profile}`, error });
+      failures.push({ target: `@${profile}`, category: classifyFailure(error), message: error.message, error });
     }
   }
   const state = stars ? [await stars.save()] : [];

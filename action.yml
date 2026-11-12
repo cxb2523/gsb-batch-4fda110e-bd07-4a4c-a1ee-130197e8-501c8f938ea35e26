@@ -62,6 +62,8 @@ outputs:
     description: The cards written, one path per line, relative to the workspace.
   committed:
     description: true when a commit was pushed.
+  failures:
+    description: The targets that failed, one per line as target, category and message separated by tabs; empty when none did. Categories — not-found, private, rate-limit, network.
 
 runs:
   using: node24

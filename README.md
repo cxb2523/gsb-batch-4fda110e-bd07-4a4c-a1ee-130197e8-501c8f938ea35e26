@@ -169,7 +169,7 @@ Dependabot also follows a line pinned to a commit SHA with the version as a comm
 | `commit-message` | `chore: refresh glancecard` | |
 | `token` | `${{ github.token }}` | Token the API is read with. |
 
-**Outputs:** `files`, the cards written (one path per line), and `committed`, `true` when a commit was pushed.
+**Outputs:** `files`, the cards written (one path per line), and `committed`, `true` when a commit was pushed. `failures` lists the targets that failed, one per line as `target`, category and message separated by tabs — empty when none did — so a workflow can tell a clean run from a partial one; the categories are `not-found`, `private`, `rate-limit` and `network`.
 
 Repository cards are named after the repository (`octoscope-dark.svg`); two repositories with the same name from different owners become `owner-name`. The profile card is `profile-dark.svg` and `profile-light.svg`. Beside them, `.stars.json` keeps the star histories read, committed with the cards, so the next run asks GitHub for the newest weeks only; delete it and the next run reads them all again.
 
