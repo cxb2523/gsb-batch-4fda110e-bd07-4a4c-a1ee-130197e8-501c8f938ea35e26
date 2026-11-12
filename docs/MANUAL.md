@@ -297,6 +297,7 @@ Edits `mcp.json` for the scope: servers on the left, the JSON on the right.
 | 7.3a | Click inside a server in the JSON | Its row on the left is outlined and opens; clicking a row highlights it in the JSON | ☐ |
 | 7.4 | Toggle a server off/on | `disabled` flips in the JSON | ☐ |
 | 7.5 | Expand a working server | Its live tool list appears. Switch a tool off: it's written to `disabledTools` | ☐ |
+| 7.5a | Expand a remote server whose tools come in several pages | Every page is listed and each tool appears once; when the list can't be completed (a page failed, a reply was over 10 MiB, or the page limit was reached), a warning says the list is incomplete and why | ☐ |
 | 7.6 | Expand a broken server (wrong command) | A clear message that its tools couldn't be listed | ☐ |
 | 7.7 | Environment variable like `${GITHUB_TOKEN}` | Kept as written, not expanded | ☐ |
 | 7.8 | Break `mcp.json` by hand, reopen | It opens as text so you can fix it (**Open as text to fix it**) | ☐ |

@@ -27,9 +27,11 @@ type MCPError struct {
 	Message string `json:"message"`
 }
 
-// MCPToolsResult is the result of tools/list.
+// MCPToolsResult is the result of tools/list. NextCursor, when not empty,
+// asks for another page with a tools/list request carrying that cursor.
 type MCPToolsResult struct {
-	Tools []MCPTool `json:"tools"`
+	Tools      []MCPTool `json:"tools"`
+	NextCursor string    `json:"nextCursor,omitempty"`
 }
 
 // MCPTool describes one tool exposed by an MCP server.
@@ -53,7 +55,17 @@ type MCPServerConfig struct {
 
 // toolsListRequest builds a tools/list request with the given id.
 func toolsListRequest(id int) MCPRequest {
-	return MCPRequest{JSONRPC: "2.0", ID: id, Method: "tools/list"}
+	return toolsListPageRequest(id, "")
+}
+
+// toolsListPageRequest builds a tools/list request for one page; a non-empty
+// cursor asks for the page after the one that returned that cursor.
+func toolsListPageRequest(id int, cursor string) MCPRequest {
+	req := MCPRequest{JSONRPC: "2.0", ID: id, Method: "tools/list"}
+	if cursor != "" {
+		req.Params = map[string]string{"cursor": cursor}
+	}
+	return req
 }
 
 // initializeRequest builds the protocol handshake request.

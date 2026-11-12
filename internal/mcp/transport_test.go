@@ -78,11 +78,11 @@ func TestGetToolsFromConfig(t *testing.T) {
 	if _, ok := got["disabled"]; ok {
 		t.Error("disabled server must be skipped")
 	}
-	if r := got["remote"]; len(r.Tools) != 1 || r.Error != "" {
+	if r := got["remote"]; len(r.Tools) != 1 || r.Status != ToolsComplete || r.Reason != "" {
 		t.Errorf("remote tools: %#v", r)
 	}
-	if b := got["broken"]; b.Error == "" || b.Tools == nil {
-		t.Errorf("broken server must report an error and an empty list: %#v", b)
+	if b := got["broken"]; b.Status != ToolsFailed || b.Reason == "" || b.Tools == nil {
+		t.Errorf("broken server must report a failure and an empty list: %#v", b)
 	}
 	sizes := svc.kiroService.MCPSizes()
 	if size, ok := sizes.Lookup("remote", (&MCPServerConfig{URL: srv.URL}).launch()); !ok || size.Tools["t1"] == 0 {
@@ -124,6 +124,105 @@ func TestMeasureTools(t *testing.T) {
 	failed := svc.MeasureTools(map[string]system.MCPLaunch{"broken": broken})
 	if failed["broken"] == "" || kiro.MCPSizes().Failure("broken", broken) == "" {
 		t.Errorf("a failure is returned and remembered: %v", failed)
+	}
+}
+
+func TestGetToolsFromConfigPagination(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		var req struct {
+			Params struct {
+				Cursor string `json:"cursor"`
+			} `json:"params"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Params.Cursor == "" {
+			_, _ = w.Write([]byte(`{"result":{"tools":[{"name":"alpha"},{"name":"beta"}],"nextCursor":"p2"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":{"tools":[{"name":"beta","description":"dupe"},{"name":"gamma"}]}}`))
+	}))
+	defer srv.Close()
+
+	svc, kiro, _ := setupTestService(t)
+	got, err := svc.GetToolsFromConfig(map[string]*MCPServerConfig{"remote": {URL: srv.URL}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := got["remote"]
+	if r.Status != ToolsComplete || r.Reason != "" || len(r.Tools) != 3 {
+		t.Fatalf("two pages merge into three tools, complete: %#v", r)
+	}
+	if calls.Load() != 2 {
+		t.Errorf("one request per page: %d", calls.Load())
+	}
+	if r.Tools[1].Description != "" {
+		t.Errorf("the first occurrence of a repeated tool is kept: %#v", r.Tools[1])
+	}
+	size, ok := kiro.MCPSizes().Lookup("remote", (&MCPServerConfig{URL: srv.URL}).launch())
+	if !ok || len(size.Tools) != 3 || size.Tools["gamma"] == 0 {
+		t.Errorf("a complete listing is remembered as the size: %+v", size)
+	}
+}
+
+func TestGetToolsFromConfigIncomplete(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Params struct {
+				Cursor string `json:"cursor"`
+			} `json:"params"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Params.Cursor == "" {
+			_, _ = w.Write([]byte(`{"result":{"tools":[{"name":"alpha"}],"nextCursor":"p2"}}`))
+			return
+		}
+		http.Error(w, "boom", http.StatusBadGateway)
+	}))
+	defer srv.Close()
+
+	svc, kiro, _ := setupTestService(t)
+	got, err := svc.GetToolsFromConfig(map[string]*MCPServerConfig{"remote": {URL: srv.URL}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := got["remote"]
+	if r.Status != ToolsFailed || r.Reason == "" || !strings.Contains(r.Reason, "page 2") {
+		t.Errorf("a failed later page fails the listing and names the page: %#v", r)
+	}
+	if _, ok := kiro.MCPSizes().Lookup("remote", (&MCPServerConfig{URL: srv.URL}).launch()); ok {
+		t.Error("a failed listing is not remembered as a size")
+	}
+	if kiro.MCPSizes().Failure("remote", (&MCPServerConfig{URL: srv.URL}).launch()) == "" {
+		t.Error("the failure is remembered with its reason")
+	}
+}
+
+func TestMeasureToolsPagesAllPages(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Params struct {
+				Cursor string `json:"cursor"`
+			} `json:"params"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		if req.Params.Cursor == "" {
+			_, _ = w.Write([]byte(`{"result":{"tools":[{"name":"alpha"}],"nextCursor":"p2"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":{"tools":[{"name":"beta"}]}}`))
+	}))
+	defer srv.Close()
+
+	svc, kiro, _ := setupTestService(t)
+	launch := system.MCPLaunch{URL: srv.URL}
+	if failed := svc.MeasureTools(map[string]system.MCPLaunch{"remote": launch}); failed["remote"] != "" {
+		t.Errorf("a complete listing isn't a failure: %q", failed["remote"])
+	}
+	size, ok := kiro.MCPSizes().Lookup("remote", launch)
+	if !ok || len(size.Tools) != 2 {
+		t.Errorf("both pages are measured: %+v", size)
 	}
 }
 

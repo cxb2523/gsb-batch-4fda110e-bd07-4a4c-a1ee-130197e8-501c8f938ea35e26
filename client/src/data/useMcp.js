@@ -35,7 +35,7 @@ export function useSaveMcpConfig() {
  * @param {string} name
  * @param {Object} cfg the server's config entry.
  * @param {boolean} enabled fetch only when true (e.g. the row is open).
- * @returns query whose data is { tools: [{name, description}], error?: string }.
+ * @returns query whose data is { tools: [{name, description}], status: 'complete'|'incomplete'|'failed', reason?: string }.
  */
 export function useServerTools(name, cfg, enabled) {
   // Only connection settings decide the tool list; toggling a tool off must not refetch.

@@ -103,7 +103,7 @@ export const agentApi = {
 export const mcpApi = {
   config: () => data(http.get('/mcp/config')),
   saveConfig: (config) => data(http.post('/mcp/config', { config })),
-  /** Lists tools for the given servers: { [name]: { tools, error? } }. */
+  /** Lists tools for the given servers: { [name]: { tools, status, reason? } }. */
   tools: (mcpServers) => data(http.post('/mcp/tools/agent', { mcpServers }, { timeout: 45000 })),
 };
 

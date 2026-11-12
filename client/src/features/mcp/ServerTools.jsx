@@ -26,7 +26,7 @@ export function ServerTools({ name, cfg, onChange }) {
   if (query.isLoading) {
     return <Stack sx={{ alignItems: "center" }} direction="row" spacing={1}><CircularProgress size={16} /><Typography variant="body2" color="text.secondary">Starting {name}…</Typography></Stack>;
   }
-  const failure = query.isError ? errorMessage(query.error) : query.data?.error;
+  const failure = query.isError ? errorMessage(query.error) : (query.data?.status === 'failed' ? query.data?.reason : '');
   if (failure) {
     return (
       <Alert severity="warning" action={<Button size="small" onClick={() => query.refetch()}>Retry</Button>}>
@@ -34,10 +34,21 @@ export function ServerTools({ name, cfg, onChange }) {
       </Alert>
     );
   }
+  const incomplete = query.data?.status === 'incomplete';
   const tools = query.data?.tools || [];
-  if (!tools.length) return <Typography variant="body2" color="text.secondary">This server has no tools.</Typography>;
+  const note = incomplete ? (
+    <Alert severity="warning" sx={{ mb: 1 }} data-testid="tools-incomplete">
+      This list is incomplete, so some tools may be missing: {query.data?.reason}
+      <Button size="small" onClick={() => query.refetch()} sx={{ ml: 1 }}>Retry</Button>
+    </Alert>
+  ) : null;
+  if (!tools.length) {
+    if (incomplete) return note;
+    return <Typography variant="body2" color="text.secondary">This server has no tools.</Typography>;
+  }
   return (
     <Box>
+      {note}
       <Stack direction="row">
         <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1 }}>{tools.length - disabled.filter((d) => tools.some((t) => t.name === d)).length} of {tools.length} tools on</Typography>
         <Typography variant="caption" color="text.secondary">Without asking</Typography>
