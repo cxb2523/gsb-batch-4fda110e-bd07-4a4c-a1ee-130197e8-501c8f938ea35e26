@@ -1,0 +1,334 @@
+"""Config flow and options flow for HAGHS integration."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.const import UnitOfTime
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import label_registry as lr
+from homeassistant.helpers import selector
+
+from .const import (
+    _CONFIG_VERSION,
+    CONDITIONAL_IGNORE_DOMAINS,
+    CONF_BATTERY_GRACE_MINUTES,
+    CONF_CONDITIONAL_IGNORE_ENTITY,
+    CONF_CONDITIONAL_IGNORE_LABELS,
+    CONF_CPU_SENSOR,
+    CONF_DB_SENSOR,
+    CONF_IGNORE_LABELS,
+    CONF_IGNORE_PATTERNS,
+    CONF_IGNORED_INTEGRATION_ENTRIES,
+    CONF_RAM_SENSOR,
+    CONF_STALE_THRESHOLD_HOURS,
+    CONF_STALE_WATCH_LABELS,
+    CONF_STORAGE_TYPE,
+    CONF_UPDATE_INTERVAL,
+    CONF_ZOMBIE_GRACE_MINUTES,
+    DEFAULT_BATTERY_GRACE_MINUTES,
+    DEFAULT_IGNORE_LABEL_NAME,
+    DEFAULT_STALE_THRESHOLD_HOURS,
+    DEFAULT_STORAGE_TYPE,
+    DEFAULT_UPDATE_INTERVAL,
+    DEFAULT_ZOMBIE_GRACE_MINUTES,
+    DOMAIN,
+    STALE_THRESHOLD_MAX_HOURS,
+    STORAGE_TYPES,
+    SYSTEM_MONITOR_UNIQUE_IDS,
+)
+from .coordinator import HaghsDataUpdateCoordinator
+
+
+def _schema_with_psi(psi_available: bool) -> vol.Schema:
+    """Build the flow schema.
+
+    CPU/RAM are optional with and without PSI (#123): without PSI an empty field is not measured and is left out
+    of the hardware pillar; the setup never blocks on it. ``psi_available`` decides only the suggestion.
+    """
+    schema = {
+        vol.Optional(sensor): selector for sensor, selector in FALLBACK_SENSORS_SCHEMA.items()
+    }
+    return vol.Schema(schema).extend(_BASE_SCHEMA)
+
+
+def system_monitor_suggestion(hass: HomeAssistant) -> dict[str, str]:
+    """System Monitor's processor and memory use sensors, as suggested CPU/RAM fields.
+
+    Only a suggestion for a form the user submits; HAGHS never writes it into the options by itself (#123,
+    DEVELOPMENT_GUIDELINES "Setup & Configuration"). The registry key (domain, platform, unique id) is unique.
+    """
+    registry = er.async_get(hass)
+    found = {}
+    for option, unique_id in SYSTEM_MONITOR_UNIQUE_IDS.items():
+        entity_id = registry.async_get_entity_id("sensor", "systemmonitor", unique_id)
+        entry = registry.async_get(entity_id) if entity_id else None
+        if entry is not None and entry.disabled_by is None:
+            found[option] = entity_id
+    return found
+
+
+FALLBACK_SENSORS_SCHEMA = {
+    CONF_CPU_SENSOR: selector.EntitySelector(
+        selector.EntitySelectorConfig(filter=(selector.EntityFilterSelectorConfig(domain="sensor")))
+    ),
+    CONF_RAM_SENSOR: selector.EntitySelector(
+        selector.EntitySelectorConfig(filter=(selector.EntityFilterSelectorConfig(domain="sensor")))
+    ),
+}
+
+
+_BASE_SCHEMA = {
+    vol.Required(CONF_STORAGE_TYPE, default=DEFAULT_STORAGE_TYPE): selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=STORAGE_TYPES,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    ),
+    vol.Optional(CONF_IGNORE_LABELS): selector.LabelSelector(
+        selector.LabelSelectorConfig(multiple=True)
+    ),
+    vol.Optional(CONF_IGNORE_PATTERNS): selector.TextSelector(
+        selector.TextSelectorConfig(multiple=True)
+    ),
+    vol.Optional(CONF_DB_SENSOR): selector.EntitySelector(
+        selector.EntitySelectorConfig(filter=selector.EntityFilterSelectorConfig(domain="sensor"))
+    ),
+}
+
+# Optional fields the user must be able to clear. Without this normalization a
+# missing key in user_input would never reach entry.options, and the
+# {**data, **options} merge in the coordinator would resurrect the original
+# value from entry.data after every HA restart (community bug report).
+_NULLABLE_OPTIONAL_KEYS: tuple[str, ...] = (
+    CONF_DB_SENSOR,
+    CONF_CPU_SENSOR,
+    CONF_RAM_SENSOR,
+    CONF_IGNORE_LABELS,
+    CONF_IGNORE_PATTERNS,
+    CONF_IGNORED_INTEGRATION_ENTRIES,
+)
+_LIST_OPTIONAL_KEYS: frozenset[str] = frozenset(
+    {CONF_IGNORE_LABELS, CONF_IGNORE_PATTERNS, CONF_IGNORED_INTEGRATION_ENTRIES}
+)
+
+
+def _normalize_optional(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Force every leave-able optional field to an explicit None / []."""
+    for key in _NULLABLE_OPTIONAL_KEYS:
+        value = user_input.get(key)
+        if value in (None, "", []):
+            user_input[key] = [] if key in _LIST_OPTIONAL_KEYS else None
+    return user_input
+
+
+_EXTRA_OPTIONS_SCHEMA = {
+    vol.Optional(
+        CONF_STALE_THRESHOLD_HOURS, default=DEFAULT_STALE_THRESHOLD_HOURS
+    ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1,
+            max=STALE_THRESHOLD_MAX_HOURS,
+            step=1,
+            unit_of_measurement=UnitOfTime.HOURS,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    ),
+    vol.Optional(CONF_STALE_WATCH_LABELS): selector.LabelSelector(
+        selector.LabelSelectorConfig(multiple=True)
+    ),
+    vol.Optional(CONF_CONDITIONAL_IGNORE_LABELS): selector.LabelSelector(
+        selector.LabelSelectorConfig(multiple=True)
+    ),
+    vol.Optional(CONF_CONDITIONAL_IGNORE_ENTITY): selector.EntitySelector(
+        selector.EntitySelectorConfig(
+            filter=selector.EntityFilterSelectorConfig(domain=list(CONDITIONAL_IGNORE_DOMAINS))
+        )
+    ),
+    vol.Optional(
+        CONF_UPDATE_INTERVAL,
+        default=DEFAULT_UPDATE_INTERVAL,
+    ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=10,
+            max=3600,
+            step=1,
+            unit_of_measurement=UnitOfTime.SECONDS,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    ),
+    vol.Optional(
+        CONF_ZOMBIE_GRACE_MINUTES,
+        default=DEFAULT_ZOMBIE_GRACE_MINUTES,
+    ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1,
+            max=240,
+            step=1,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    ),
+    vol.Optional(
+        CONF_BATTERY_GRACE_MINUTES,
+        default=DEFAULT_BATTERY_GRACE_MINUTES,
+    ): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1,
+            max=240,
+            step=1,
+            unit_of_measurement=UnitOfTime.MINUTES,
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    ),
+}
+
+
+def _ensure_default_label(hass) -> str | None:
+    """Ensure the default ignore label exists and return its label_id."""
+    label_reg = lr.async_get(hass)
+    for label_id, label_entry in label_reg.labels.items():
+        if label_entry.name.lower() == DEFAULT_IGNORE_LABEL_NAME.lower():
+            return label_id
+    try:
+        created = label_reg.async_create(DEFAULT_IGNORE_LABEL_NAME)
+        return created.label_id
+    except ValueError:
+        for label_id, label_entry in label_reg.labels.items():
+            if label_entry.name.lower() == DEFAULT_IGNORE_LABEL_NAME.lower():
+                return label_id
+    return None
+
+
+class HaghsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for HAGHS."""
+
+    VERSION = _CONFIG_VERSION.major
+    MINOR_VERSION = _CONFIG_VERSION.minor
+
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> HaghsOptionsFlowHandler:
+        """Return the options flow handler."""
+        return HaghsOptionsFlowHandler(config_entry)
+
+    async def async_step_user(
+        self, user_input: dict[str, str] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Handle the initial step."""
+
+        if user_input is not None:
+            return self.async_create_entry(
+                title="Global Health Score",
+                data=_normalize_optional(user_input),
+            )
+        psi = await self.hass.async_add_executor_job(HaghsDataUpdateCoordinator._read_psi_sync)
+        schema = _schema_with_psi(psi.available)
+
+        ignore_label_id = _ensure_default_label(self.hass)
+        suggested: dict[str, Any] = {} if psi.available else system_monitor_suggestion(self.hass)
+        if ignore_label_id:
+            suggested[CONF_IGNORE_LABELS] = [ignore_label_id]
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(schema, suggested),
+        )
+
+
+class HaghsOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle HAGHS options — storage type, ignore label, update interval."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Manage the options."""
+        entries = sorted(
+            self.hass.config_entries.async_entries(),
+            key=lambda entry: (entry.title, entry.domain, entry.entry_id),
+        )
+        entry_ids = {entry.entry_id for entry in entries}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            threshold = user_input.get(CONF_STALE_THRESHOLD_HOURS, DEFAULT_STALE_THRESHOLD_HOURS)
+            if (
+                isinstance(threshold, bool)
+                or not isinstance(threshold, (int, float))
+                or not 1 <= threshold <= STALE_THRESHOLD_MAX_HOURS
+                or threshold != int(threshold)
+            ):
+                errors[CONF_STALE_THRESHOLD_HOURS] = "invalid_stale_threshold"
+            labels = list(user_input.get(CONF_CONDITIONAL_IGNORE_LABELS) or [])
+            helper = user_input.get(CONF_CONDITIONAL_IGNORE_ENTITY) or None
+            if bool(labels) != bool(helper):
+                errors[CONF_CONDITIONAL_IGNORE_ENTITY] = "conditional_ignore_incomplete"
+            if not errors:
+                user_input[CONF_CONDITIONAL_IGNORE_LABELS] = labels
+                user_input[CONF_CONDITIONAL_IGNORE_ENTITY] = helper
+                user_input[CONF_STALE_THRESHOLD_HOURS] = int(threshold)
+                user_input[CONF_STALE_WATCH_LABELS] = list(
+                    user_input.get(CONF_STALE_WATCH_LABELS) or []
+                )
+                user_input[CONF_IGNORED_INTEGRATION_ENTRIES] = [
+                    entry_id
+                    for entry_id in user_input.get(CONF_IGNORED_INTEGRATION_ENTRIES) or []
+                    if entry_id in entry_ids
+                ]
+                return self.async_create_entry(title="", data=_normalize_optional(user_input))
+
+        # Current values: options take priority, then data, then defaults
+        current = {**self._config_entry.data, **self._config_entry.options}
+        if user_input is not None:
+            current.update(user_input)
+        current[CONF_IGNORED_INTEGRATION_ENTRIES] = [
+            entry_id
+            for entry_id in current.get(CONF_IGNORED_INTEGRATION_ENTRIES) or []
+            if entry_id in entry_ids
+        ]
+        psi = await self.hass.async_add_executor_job(HaghsDataUpdateCoordinator._read_psi_sync)
+        schema = (
+            _schema_with_psi(psi.available)
+            .extend(_EXTRA_OPTIONS_SCHEMA)
+            .extend(
+                {
+                    vol.Optional(CONF_IGNORED_INTEGRATION_ENTRIES): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(
+                                    value=entry.entry_id,
+                                    label=(
+                                        f"{entry.title or entry.domain} "
+                                        f"({entry.domain}, {entry.entry_id})"
+                                    ),
+                                )
+                                for entry in entries
+                            ],
+                            multiple=True,
+                            custom_value=False,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            )
+        )
+
+        if not psi.available:
+            for option, entity_id in system_monitor_suggestion(self.hass).items():
+                if not current.get(option):
+                    current[option] = entity_id
+        return self.async_show_form(
+            step_id="init",
+            errors=errors,
+            data_schema=self.add_suggested_values_to_schema(
+                schema,
+                current,
+            ),
+        )

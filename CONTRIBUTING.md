@@ -1,0 +1,204 @@
+# Contributing to HAGHS
+
+Thanks for considering a contribution. HAGHS (Home Assistant Global Health
+Score) aims to become the community standard for Home Assistant instance
+health monitoring, with a long-term path into HA Core. To keep that path
+open, contributions must follow the project's engineering and philosophical
+standards.
+
+## Before You Open a Pull Request
+
+**Mandatory reading:**
+
+1. [`HAGHS_PHILOSOPHY.md`](./HAGHS_PHILOSOPHY.md): vision, scope, hard rules
+   on local-only data, transparency and backward compatibility.
+2. [`DEVELOPMENT_GUIDELINES.md`](./DEVELOPMENT_GUIDELINES.md): Home Assistant
+   Core coding standards we align with.
+
+If your PR contradicts either document, it will be asked to change or be
+closed.
+
+## Branching
+
+- Target branch for all PRs: **`dev`**. Never open PRs against `main`.
+- Create your feature branch off the latest `dev` (`feat/*`, `fix/*`,
+  `chore/*`).
+- PRs into `dev` are merged as **squash merges**, once CI is green.
+- `main` is release-only: it receives changes exclusively through a release
+  PR from `dev`, merged with a **merge commit** so the `dev` history is
+  preserved. See [`RELEASING.md`](./RELEASING.md) for the release flow.
+
+## Language
+
+- All code, variables, class names, docstrings, comments, commit messages,
+  PR titles, PR descriptions and review discussion: **English only**.
+- User-facing text belongs in `strings.json` + `translations/*.json`, never
+  hardcoded in Python.
+
+## Documentation
+
+The Marketplace (HACS up to Home Assistant 2026.10) shows the README in Home Assistant, so it stays short. These rules apply
+to every pull request (feature, fix or docs) and are checked by
+`tests/test_docs_layout.py`:
+
+- **Length budget:** `README.md` has at most 2 000 words and 400 lines, and no
+  paragraph, list item or table cell has more than 80 words. A README attribute
+  row keeps name and type of its `docs/attributes.md` row and describes it in
+  one sentence of at most 20 words.
+- **Where things go:** a new feature gets at most one to three sentences plus a
+  link in the README. Details, tables, YAML examples and options go into the
+  matching page under `docs/`; extend an existing page, add a new one only when
+  none fits.
+- **Attributes:** every attribute is documented in `docs/attributes.md`. The
+  README table lists only the most used ones; adding one there means another
+  one leaves.
+- **Short sections:** a README section that summarizes a docs page starts with
+  a `> **Short version.** …` notice that links the page and ends with the same
+  link (`[All … →](…)`). The section and its page are registered in
+  `tests/data/readme_sections.json`.
+- **Every docs page** starts with a link back to the README and is listed in
+  the README's "Detailed documentation" block.
+- **Links:** full GitHub URLs
+  (`https://github.com/HA-Pulse/home-assistant-global-health-score/blob/main/…`),
+  never relative links in the README. The test checks that every repository
+  link names a file (and heading) of the checkout.
+- The dashboard cards live in `docs/cards/lite.yaml` and `docs/cards/pro.yaml`;
+  their first line carries the card version.
+- **Behaviour follows into the docs:** a change to the score, a penalty, a
+  threshold, a default, an option, an attribute, a recommendation, a repair,
+  the setup or a migration updates the README/docs places that describe it in
+  the same pull request. This applies to external pull requests too.
+- **Generated blocks:** the attribute table and the recommendation texts in
+  `docs/attributes.md` and the options table in `docs/configuration.md` are
+  generated from the code between `<!-- BEGIN GENERATED: … -->` and
+  `<!-- END GENERATED: … -->`. Never edit them by hand: change the code (or
+  the attribute wording in `script/docs_attributes.py`) and run
+  `python script/gen_docs.py`. `tests/test_docs_generated.py` fails in CI when
+  a block is out of date, an attribute has no row or a row names an attribute
+  the sensor no longer publishes.
+- **No test counts** in the README, `ROADMAP.md` or `docs/`: a count goes out
+  of date with every pull request. Changelog files may keep the counts of
+  their time.
+
+## Changelog
+
+- Every change that lands on `dev` must include a matching entry in
+  the current active changelog file (`v2.4.0_CHANGELOG.md`).
+- The entry should describe the *why*, list files touched, and flag any
+  behavior change users might notice.
+- Silent behavior changes (constant removal, default changes, etc.) must be
+  explicitly called out.
+
+## Scope
+
+- One topic per PR. Split refactors, features and fixes.
+- Purely decorative features (UI polish unrelated to health signals) are
+  low priority or declined; see `HAGHS_PHILOSOPHY.md` §Core Focus.
+- Don't refactor neighboring code unless it's necessary for the change.
+
+## Hard Rules
+
+### Local-only
+
+- No outbound network calls. No external APIs. No cloud services.
+- Every new dependency must be audited for embedded telemetry.
+
+### Backward compatibility
+
+- Score formulas that change between versions need justification in the
+  changelog so users understand why their score moved.
+- Renaming or removing sensor attributes is a breaking change and requires
+  either a migration (`async_migrate_entry`) or a major version bump with
+  release notes.
+- Removing constants or defaults that users relied on is also a breaking
+  change: document it.
+
+### Home Assistant Core rules
+
+- **Async-first.** Any I/O must go through `async def` / `await` or
+  `hass.async_add_executor_job(...)`. Blocking the event loop will be
+  rejected.
+- **Config Flow / Options Flow only.** YAML configuration is deprecated and
+  will not be accepted.
+- **DataUpdateCoordinator.** All periodic work goes through the coordinator.
+  No standalone `time.sleep` loops.
+- **Safety net.** New scoring sub-calculations must use the `_safe_calc`
+  pattern with a timeout. A failing pillar must never crash the sensor or
+  raise out of the coordinator.
+
+### Localization
+
+- All user-facing strings live in `strings.json`.
+- `translations/en.json` must mirror `strings.json` 1:1.
+- Translation keys used at runtime must match exactly. Mismatches are a
+  blocker, not a nit.
+- For repair issues, the schema marks `issues.<id>.description` and
+  `issues.<id>.fix_flow` as mutually exclusive (`vol.Exclusive("fixable")`).
+  A fixable issue uses **only** `fix_flow` plus its inner step description;
+  putting both at the same level fails hassfest with the cryptic message
+  *"two or more values in the same group of exclusion 'fixable'"*.
+
+### Code quality
+
+- Type hints on every public function and method (PEP 484 / strict mode).
+- Formatting and linting: `ruff` clean.
+- PEP 8 naming. Module-private names start with a single underscore.
+
+## Tests
+
+The test suite lives under `tests/`. Bootstrap, migration coverage and the
+first per-pillar test landed in v2.3 (issue #54).
+
+**Required for every PR that changes integration code:**
+
+- New scoring logic: unit tests with known input/output pairs. See
+  `tests/test_hardware_power.py` for the pilot pillar pattern and
+  `tests/test_zombies.py` for ratio/grace-period coverage.
+- Migration logic: tests for every branch (value present / absent, label
+  exists / doesn't exist, idempotency at the current version). See
+  `tests/test_migration.py`.
+
+**Run locally:**
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements_test.txt
+pytest
+pytest --cov=custom_components.haghs --cov-report=term-missing
+```
+
+`pytest-asyncio` is configured in `auto` mode in `pyproject.toml`, so async
+tests do not need a per-test marker.
+
+Manual validation steps still belong in the PR description under
+"Test plan". They complement unit tests, not replace them.
+
+## Checks That Must Pass
+
+Three GitHub Actions workflows run on pull requests and on pushes (the CI
+workflow on pushes to `main` and `dev`). All must be green
+before merge:
+
+- **Hassfest** (`.github/workflows/hassfest.yaml`): Home Assistant manifest,
+  `strings.json` / `translations` schema, integration metadata.
+- **HACS Validation** (`.github/workflows/hacs_validation.yaml`): HACS
+  packaging and naming rules.
+- **CI** (`.github/workflows/ci.yml`): `ruff check`, `ruff format --check`
+  and `pytest` with coverage scoped to `custom_components/haghs`.
+
+If one of these fails on your PR, fix the underlying issue rather than
+disabling the check.
+
+## Review Process
+
+- Maintainer is `@D-N91`.
+- Responses in English only.
+- Expect at least one review round before merge. Don't force-push during an
+  active review; append commits instead. The maintainer squash-merges PRs
+  into `dev`.
+
+## Reporting Issues Instead
+
+If you're not sure whether a change is wanted, open an issue first. It's
+cheaper than a rejected PR.
