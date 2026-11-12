@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="pt-br" data-theme="dark" data-lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Claude Sessions Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27%23D97757%27%3E%3Cpath%20d%3D%27M12%202L2%208l10%206%2010-6-10-6zM2%2012l10%206%2010-6M2%2016l10%206%2010-6%27%20stroke%3D%27%23D97757%27%20stroke-width%3D%271.8%27%20fill%3D%27none%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E" />
+</head>
+<body>
+  <!-- SVG icon sprite (lucide-inspired) -->
+  <svg xmlns="http://www.w3.org/2000/svg" class="sr-only" aria-hidden="true" style="position:absolute;width:0;height:0">
+    <defs>
+      <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"></path><path d="M3 21v-5h5"></path></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"></polygon></symbol>
+      <symbol id="i-star-filled" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"></polygon></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6 18 20a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></symbol>
+      <symbol id="i-rotate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></symbol>
+      <symbol id="i-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></symbol>
+      <symbol id="i-message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></symbol>
+      <symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><path d="M3 12a9 3 0 0 0 18 0"></path></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.86 10.9.58.11.79-.25.79-.56 0-.28-.01-1.01-.02-1.98-3.2.69-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.04 11.04 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.12 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.4-5.25 5.68.41.36.78 1.06.78 2.13 0 1.54-.01 2.78-.01 3.15 0 .31.21.68.8.56 4.56-1.53 7.85-5.83 7.85-10.9C23.5 5.65 18.35.5 12 .5z"></path></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path></symbol>
+      <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M7 12h10"></path><path d="M10 18h4"></path></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" x2="20" y1="19" y2="19"></line></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+      <symbol id="i-move" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2"></path><path d="M2 13h10"></path><path d="m9 16 3-3-3-3"></path></symbol>
+    </defs>
+  </svg>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+              <path d="M12 2 2 8l10 6 10-6-10-6z"/><path d="M2 14l10 6 10-6"/>
+            </svg>
+          </span>
+          <div class="brand-text">
+            <strong>Claude Sessions</strong>
+            <span class="brand-sub">Manager</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" data-i18n-aria="nav.main.label" aria-label="Navegação principal">
+        <div class="nav-section">
+          <h3 class="nav-heading" data-i18n="nav.section.view">Visualizar</h3>
+          <button class="nav-item active" data-filter="all" type="button">
+            <svg class="icon"><use href="#i-inbox"></use></svg>
+            <span data-i18n="nav.all">Todas</span>
+            <span class="nav-count" data-count="all">·</span>
+          </button>
+          <button class="nav-item" data-filter="favorites" type="button">
+            <svg class="icon"><use href="#i-star"></use></svg>
+            <span data-i18n="nav.favorites">Favoritas</span>
+            <span class="nav-count" data-count="favorites">·</span>
+          </button>
+          <button class="nav-item" data-filter="trash" type="button">
+            <svg class="icon"><use href="#i-trash"></use></svg>
+            <span data-i18n="nav.trash">Lixeira</span>
+            <span class="nav-count" data-count="trash">·</span>
+          </button>
+        </div>
+
+        <div class="nav-section">
+          <h3 class="nav-heading" data-i18n="nav.section.projects">Projetos</h3>
+          <div id="project-list" class="project-list">
+            <div class="skeleton-nav"></div>
+            <div class="skeleton-nav"></div>
+            <div class="skeleton-nav"></div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="lang-switch" role="group" aria-label="Idioma"></div>
+        <button class="repo-link whats-new" id="whats-new-btn" type="button" data-state="quiet">
+          <svg class="icon"><use href="#i-sparkle"></use></svg>
+          <span data-i18n="whatsNew.button">Novidades</span>
+          <span class="whats-new-dot" aria-hidden="true"></span>
+        </button>
+        <a class="repo-link" href="https://github.com/krugerrgabriel/claude-sessions-manager" target="_blank" rel="noopener">
+          <svg class="icon"><use href="#i-github"></use></svg>
+          <span data-i18n="footer.github">Ver no GitHub</span>
+          <svg class="icon external"><use href="#i-external"></use></svg>
+        </a>
+        <div class="hint" data-i18n-html="footer.hint">
+          <kbd>/</kbd> focar busca · <kbd>Esc</kbd> fechar
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="main-header">
+        <button class="icon-btn mobile-menu" id="toggle-sidebar" data-i18n-aria="header.toggleMenu" aria-label="Alternar menu" type="button">
+          <svg class="icon"><use href="#i-menu"></use></svg>
+        </button>
+
+        <div class="search-wrap">
+          <svg class="icon search-icon"><use href="#i-search"></use></svg>
+          <input id="search" type="search" data-i18n-placeholder="search.placeholder" placeholder="Buscar título, descrição, projeto, branch, id…" autocomplete="off" spellcheck="false" />
+          <kbd class="search-kbd">/</kbd>
+        </div>
+
+        <div class="header-actions">
+          <button id="update-btn" class="icon-btn" data-i18n-aria="update.checking" aria-label="Checking for updates…" type="button">
+            <svg class="icon"><use href="#i-download"></use></svg>
+            <span class="update-badge hidden" aria-hidden="true"></span>
+          </button>
+          <button id="settings-btn" class="icon-btn" data-i18n-tooltip="settings.title" data-i18n-aria="settings.title" data-tooltip="Configurações" aria-label="Configurações" type="button">
+            <svg class="icon"><use href="#i-settings"></use></svg>
+          </button>
+          <button id="refresh" class="icon-btn" data-i18n-tooltip="header.refresh" data-i18n-aria="header.refresh" data-tooltip="Recarregar sessões" aria-label="Recarregar sessões" type="button">
+            <svg class="icon"><use href="#i-refresh"></use></svg>
+          </button>
+
+          <!-- Last item in the header: sits at the far right edge, so its
+               dropdown panel is right-aligned to stay inside the viewport. -->
+          <div class="copy-wrap">
+            <span class="copy-label" data-i18n="copy.label">Copiar:</span>
+            <!-- Enhanced into a custom dropdown by app.js; the select stays as
+                 the source of truth (value + i18n) and as the no-JS fallback. -->
+            <select id="copy-mode" data-i18n-aria="copy.label" aria-label="Formato do comando copiado">
+              <option value="terminal" data-i18n="copy.mode.terminal">Comando de terminal</option>
+              <option value="inline" data-i18n="copy.mode.inline">Comando dentro do Claude</option>
+              <option value="ask" data-i18n="copy.mode.ask">Perguntar sempre</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <div class="main-sub">
+        <div class="crumbs">
+          <span id="crumb-view">Todas as sessões</span>
+          <span class="crumb-sep" aria-hidden="true">/</span>
+          <span id="crumb-scope">Todos os projetos</span>
+        </div>
+        <div class="sub-right">
+          <div class="sort-wrap">
+            <select id="sort-select" data-i18n-aria="sort.label" aria-label="Ordenar sessões">
+              <option value="recent" data-i18n="sort.recent">Mais recentes</option>
+              <option value="oldest" data-i18n="sort.oldest">Mais antigas</option>
+              <option value="tokens-desc" data-i18n="sort.tokens-desc">Maior contexto</option>
+              <option value="tokens-asc" data-i18n="sort.tokens-asc">Menor contexto</option>
+              <option value="size-desc" data-i18n="sort.size-desc">Maior tamanho</option>
+              <option value="name" data-i18n="sort.name">Nome (A-Z)</option>
+            </select>
+          </div>
+          <div class="result-count" id="result-count"></div>
+          <button id="empty-trash" class="btn bulk-action bulk-action-danger empty-trash" type="button" hidden>
+            <svg class="icon"><use href="#i-trash"></use></svg>
+            <span data-i18n="trash.emptyAll">Esvaziar lixeira</span>
+          </button>
+        </div>
+        <div class="bulk-bar" role="toolbar" aria-label="Bulk actions">
+          <span class="bulk-count"><span id="bulk-n">0</span> <span id="bulk-noun" data-i18n="bulk.count.plural">selecionadas</span></span>
+          <div class="bulk-actions">
+            <button id="bulk-fav" class="btn bulk-action bulk-action-warning" type="button">
+              <svg class="icon"><use href="#i-star"></use></svg>
+              <span id="bulk-fav-label" data-i18n="bulk.favorite">Favoritar</span>
+            </button>
+            <button id="bulk-move" class="btn bulk-action bulk-action-accent" type="button">
+              <svg class="icon"><use href="#i-move"></use></svg>
+              <span data-i18n="bulk.move">Mover para…</span>
+            </button>
+            <button id="bulk-trash" class="btn bulk-action bulk-action-danger" type="button">
+              <svg class="icon"><use href="#i-trash"></use></svg>
+              <span data-i18n="bulk.trash">Mover para lixeira</span>
+            </button>
+            <button id="bulk-restore" class="btn bulk-action bulk-action-success" type="button" hidden>
+              <svg class="icon"><use href="#i-rotate"></use></svg>
+              <span data-i18n="bulk.restore">Restaurar</span>
+            </button>
+            <button id="bulk-purge" class="btn bulk-action bulk-action-danger" type="button" hidden>
+              <svg class="icon"><use href="#i-x"></use></svg>
+              <span data-i18n="bulk.purge">Excluir permanentemente</span>
+            </button>
+          </div>
+          <button id="bulk-clear" class="btn bulk-action" type="button" data-i18n="bulk.clear">Limpar seleção</button>
+        </div>
+      </div>
+
+      <section class="content" id="content">
+        <div class="grid" id="skeleton-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Edit modal -->
+  <div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-head">
+        <h2 id="modal-title" data-i18n="modal.edit.title">Editar sessão</h2>
+        <button class="icon-btn" data-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <label class="field">
+        <span data-i18n="modal.edit.name">Nome</span>
+        <input id="edit-name" type="text" maxlength="120" data-i18n-placeholder="modal.edit.namePlaceholder" placeholder="Ex: Refactor financeiro" />
+      </label>
+      <label class="field">
+        <span data-i18n="modal.edit.desc">Descrição</span>
+        <textarea id="edit-desc" rows="5" maxlength="1000" data-i18n-placeholder="modal.edit.descPlaceholder" placeholder="Anotações sobre o contexto desta sessão…"></textarea>
+      </label>
+      <div class="modal-meta">
+        <div><span class="muted" data-i18n="modal.edit.idLabel">ID:</span> <code id="edit-id"></code></div>
+        <div><span class="muted" data-i18n="modal.edit.projectLabel">Projeto:</span> <span id="edit-cwd"></span></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-close data-i18n="btn.cancel" type="button">Cancelar</button>
+        <button id="edit-save" class="btn primary" type="button">
+          <svg class="icon"><use href="#i-check"></use></svg>
+          <span data-i18n="btn.save">Salvar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm dialog -->
+  <div id="confirm-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-confirm-cancel></div>
+    <div class="modal-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="confirm-head">
+        <div class="confirm-icon" id="confirm-icon">
+          <svg class="icon"><use href="#i-alert"></use></svg>
+        </div>
+        <div>
+          <h2 id="confirm-title">Confirmar?</h2>
+          <p id="confirm-message" class="confirm-message"></p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-confirm-cancel data-i18n="btn.cancel" type="button">Cancelar</button>
+        <button id="confirm-ok" class="btn primary" type="button">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-settings-close></div>
+    <div class="modal-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <h2 id="settings-title" data-i18n="settings.title">Configurações</h2>
+        <button class="icon-btn" data-settings-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <section class="settings-section">
+        <div class="settings-row">
+          <div class="settings-text">
+            <h3 data-i18n="settings.autoTrash.title">Lixeira automática</h3>
+            <p data-i18n="settings.autoTrash.desc">Sessões sem uso por esse período vão sozinhas para a lixeira.</p>
+          </div>
+          <select id="auto-trash-days" data-i18n-aria="settings.autoTrash.title" aria-label="Lixeira automática">
+            <option value="0" data-i18n="settings.autoTrash.off">Desativado</option>
+            <option value="7" data-i18n="settings.autoTrash.d7">7 dias</option>
+            <option value="14" data-i18n="settings.autoTrash.d14">14 dias</option>
+            <option value="30" data-i18n="settings.autoTrash.d30">30 dias</option>
+            <option value="60" data-i18n="settings.autoTrash.d60">60 dias</option>
+            <option value="90" data-i18n="settings.autoTrash.d90">90 dias</option>
+            <option value="180" data-i18n="settings.autoTrash.d180">180 dias</option>
+          </select>
+        </div>
+        <p id="auto-trash-preview" class="settings-preview" hidden></p>
+        <ul class="settings-notes">
+          <li data-i18n="settings.autoTrash.noteFav">Favoritas nunca são movidas.</li>
+          <li data-i18n="settings.autoTrash.noteDisk">Nada é apagado do disco: a sessão só vai para a lixeira, de onde dá para restaurar.</li>
+          <li data-i18n="settings.autoTrash.noteResume">Se você retomar uma sessão que foi para a lixeira sozinha, ela volta.</li>
+        </ul>
+      </section>
+      <div class="modal-actions">
+        <button class="btn ghost" data-settings-close data-i18n="btn.cancel" type="button">Cancelar</button>
+        <button id="settings-save" class="btn primary" type="button">
+          <svg class="icon"><use href="#i-check"></use></svg>
+          <span data-i18n="btn.save">Salvar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move modal -->
+  <div id="move-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-move-close></div>
+    <div class="modal-card move-card" role="dialog" aria-modal="true" aria-labelledby="move-title">
+      <div class="modal-head">
+        <h2 id="move-title" data-i18n="move.title">Mover sessão</h2>
+        <button class="icon-btn" data-move-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <p id="move-intro" class="move-intro"></p>
+      <div class="search-wrap move-search">
+        <svg class="icon search-icon"><use href="#i-search"></use></svg>
+        <input id="move-search" type="search" data-i18n-placeholder="move.search" placeholder="Buscar projeto…" autocomplete="off" spellcheck="false" />
+      </div>
+      <div id="move-list" class="move-list" role="listbox" aria-labelledby="move-title"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-move-close data-i18n="btn.cancel" type="button">Cancelar</button>
+        <button id="move-confirm" class="btn primary" type="button" disabled>
+          <svg class="icon"><use href="#i-move"></use></svg>
+          <span data-i18n="move.btn">Mover</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copy-format chooser (only in "ask every time" mode) -->
+  <div id="copy-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-copy-close></div>
+    <div class="modal-card copy-card" role="dialog" aria-modal="true" aria-labelledby="copy-title">
+      <div class="modal-head">
+        <h2 id="copy-title" data-i18n="copy.ask.title">Como você quer copiar?</h2>
+        <button class="icon-btn" data-copy-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <p class="copy-intro" data-i18n="copy.ask.intro">Os dois retomam a mesma conversa, muda só onde você vai colar.</p>
+      <div class="copy-options">
+        <button class="copy-option" type="button" data-mode="terminal">
+          <span class="copy-option-head">
+            <span class="copy-option-ic"><svg class="icon"><use href="#i-terminal"></use></svg></span>
+            <span class="copy-option-title" data-i18n="copy.ask.terminal.title">Comando de terminal</span>
+          </span>
+          <code class="copy-option-cmd" data-cmd="terminal"></code>
+          <span class="copy-option-desc" data-i18n="copy.ask.terminal.desc">Para colar no terminal, com o Claude Code fechado. Abre esta conversa numa sessão nova.</span>
+        </button>
+        <button class="copy-option" type="button" data-mode="inline">
+          <span class="copy-option-head">
+            <span class="copy-option-ic"><svg class="icon"><use href="#i-message"></use></svg></span>
+            <span class="copy-option-title" data-i18n="copy.ask.inline.title">Comando dentro do Claude</span>
+          </span>
+          <code class="copy-option-cmd" data-cmd="inline"></code>
+          <span class="copy-option-desc" data-i18n="copy.ask.inline.desc">Para colar num Claude Code já aberto. Troca para esta conversa sem fechar a sessão atual.</span>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-copy-close data-i18n="btn.cancel" type="button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Release notes for the installed version, fetched from the GitHub API. -->
+  <div id="whatsnew-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-whatsnew-close></div>
+    <div class="modal-card whatsnew-card" role="dialog" aria-modal="true" aria-labelledby="whatsnew-title">
+      <div class="modal-head">
+        <div class="whatsnew-head">
+          <span class="whatsnew-icon"><svg class="icon"><use href="#i-sparkle"></use></svg></span>
+          <h2 id="whatsnew-title">Novidades</h2>
+        </div>
+        <button class="icon-btn" data-whatsnew-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <div class="whatsnew-body" id="whatsnew-body" tabindex="0"></div>
+      <div class="modal-actions">
+        <a class="btn ghost" id="whatsnew-link" href="#" target="_blank" rel="noopener">
+          <svg class="icon"><use href="#i-github"></use></svg>
+          <span data-i18n="whatsNew.onGitHub">Ver no GitHub</span>
+        </a>
+        <button class="btn primary" data-whatsnew-close type="button" data-i18n="whatsNew.close">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shown when an update cannot be applied from here and needs the terminal. -->
+  <div id="manual-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" data-manual-close></div>
+    <div class="modal-card manual-card" role="dialog" aria-modal="true" aria-labelledby="manual-title">
+      <div class="modal-head">
+        <div class="manual-head">
+          <span class="manual-icon"><svg class="icon"><use href="#i-terminal"></use></svg></span>
+          <h2 id="manual-title" data-i18n="update.manual.title">Esta atualização precisa do terminal</h2>
+        </div>
+        <button class="icon-btn" data-manual-close data-i18n-aria="modal.close" aria-label="Fechar" type="button">
+          <svg class="icon"><use href="#i-x"></use></svg>
+        </button>
+      </div>
+      <p class="manual-body" id="manual-body" data-i18n="update.manual.body">Esta versão muda o instalador ou a configuração do servidor, e isso exige permissão de administrador. Rode o comando abaixo no terminal.</p>
+      <div class="manual-cmd">
+        <code id="manual-command"></code>
+        <button class="btn" id="manual-copy" type="button">
+          <svg class="icon"><use href="#i-copy"></use></svg>
+          <span data-i18n="update.manual.copyBtn">Copiar comando</span>
+        </button>
+      </div>
+      <details class="manual-detail" id="manual-detail-wrap">
+        <summary data-i18n="update.manual.detailLabel">Detalhes técnicos</summary>
+        <pre id="manual-detail"></pre>
+      </details>
+      <div class="modal-actions">
+        <button class="btn primary" data-manual-close type="button" data-i18n="update.manual.close">Entendi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- First-run coach mark for the copy-format picker. Shown once, ever. -->
+  <div id="coach" class="coach hidden" role="dialog" aria-labelledby="coach-title" aria-describedby="coach-body">
+    <div class="coach-arrow" aria-hidden="true"></div>
+    <h3 id="coach-title" data-i18n="coach.copy.title">Novo: escolha como copiar</h3>
+    <p id="coach-body" data-i18n-html="coach.copy.body">Este seletor decide o que vai para o clipboard ao copiar uma conversa.</p>
+    <button id="coach-ok" class="btn primary" type="button" data-i18n="coach.copy.btn">Entendi</button>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- Custom tooltip bubble (singleton, positioned via JS) -->
+  <div id="tooltip" class="tooltip-bubble" role="tooltip" aria-hidden="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
