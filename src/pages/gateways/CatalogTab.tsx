@@ -1,15 +1,36 @@
 /**
  * The target catalog. Every filter and "load more" run on the server, so
  * a large Argo CD never reaches the browser whole.
+ *
+ * The collection is checkable, not just an infinite scroll: the
+ * CollectionPanel states how many targets have loaded, whether another
+ * page exists or a page failure interrupted the run, and the effective
+ * value of every filter. A filter change swaps the whole TanStack query
+ * key, so the new collection restarts at the first page with the empty
+ * cursor — an old cursor is never attached to new conditions. A failed
+ * page keeps every row already loaded and offers a retry; retries go
+ * through the de-duplicating accumulator, so an entry can't be inserted
+ * twice.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { ApiError } from '../../api/client';
-import { type CatalogFilter, type CatalogItem, useGatewayCatalog } from '../../api/gateways';
+import {
+  type CatalogFilter,
+  type CatalogItem,
+  useGatewayCatalog,
+} from '../../api/gateways';
 import type { Project } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { TARGET_STATUS_LABEL, TARGET_STATUS_TONE, words } from '../../lib/gatewayStatus';
+import { CatalogCollectionAccumulator } from '../../lib/catalogCollection';
+import {
+  CONNECTOR_UNAVAILABLE_LABEL,
+  TARGET_STATUS_LABEL,
+  TARGET_STATUS_TONE,
+  isConnectorUnavailable,
+  words,
+} from '../../lib/gatewayStatus';
 import { formatExact } from '../../lib/time';
 import { useDebounced } from '../../lib/useDebounced';
 import { Banner } from '../../ui/Banner';
@@ -19,19 +40,32 @@ import { EmptyState } from '../../ui/EmptyState';
 import { Field, Input, Select } from '../../ui/Field';
 import { ToneStatus } from '../../ui/Status';
 import { BindingDrawer } from '../admin/gateways/BindingDrawer';
+import { CollectionPanel } from './CollectionPanel';
 import { TargetIdentity } from './TargetIdentity';
 
 // The api's own patterns, for feedback before it answers 400.
 const Q_RE = /^[a-z0-9.-]{1,63}$/;
+const GATEWAY_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
 const APP_PROJECT_RE = /^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/;
 const NAMESPACE_RE = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 
-const LOOK_ALIKE_HINT = 'Another target on this Gateway has the same name in a different AppProject or namespace.';
+const LOOK_ALIKE_HINT =
+  'Another target on this Gateway has the same name in a different AppProject or namespace.';
 
 function Flags({ item }: { item: CatalogItem }) {
+  const sourceUnavailable = isConnectorUnavailable(item.status);
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-      <ToneStatus tone={TARGET_STATUS_TONE[item.status] ?? 'neutral'}>{words(item.status, TARGET_STATUS_LABEL)}</ToneStatus>
+      <ToneStatus tone={TARGET_STATUS_TONE[item.status] ?? 'neutral'}>
+        {words(item.status, TARGET_STATUS_LABEL)}
+      </ToneStatus>
+      {sourceUnavailable && (
+        <span title="The Gateway connector that reported this target is missing or disabled. The row is kept so the gap is visible.">
+          <ToneStatus tone="bad">
+            {words(item.status, CONNECTOR_UNAVAILABLE_LABEL)}
+          </ToneStatus>
+        </span>
+      )}
       {item.is_new && <ToneStatus tone="neutral">New</ToneStatus>}
       {item.look_alike && (
         <span title={LOOK_ALIKE_HINT}>
@@ -52,38 +86,103 @@ interface Props {
   onClearConnector: () => void;
 }
 
-export function CatalogTab({ projects, projectsLoaded, projectId, onProject, connectorId, onClearConnector }: Props) {
+export function CatalogTab({
+  projects,
+  projectsLoaded,
+  projectId,
+  onProject,
+  connectorId,
+  onClearConnector,
+}: Props) {
   const { hasPermission } = useAuth();
   const canBind = hasPermission('gateway.bind');
   const [q, setQ] = useState('');
+  const [gatewayId, setGatewayId] = useState('');
   const [appProject, setAppProject] = useState('');
   const [namespace, setNamespace] = useState('');
   const [status, setStatus] = useState('');
   const [binding, setBinding] = useState<CatalogItem | null>(null);
 
-  const qErr = q && !Q_RE.test(q) ? 'Lowercase letters, digits, dots and hyphens only.' : undefined;
-  const projectErr = appProject && !APP_PROJECT_RE.test(appProject) ? "That isn't an AppProject name." : undefined;
-  const namespaceErr = namespace && !NAMESPACE_RE.test(namespace) ? "That isn't a namespace." : undefined;
+  const qErr =
+    q && !Q_RE.test(q)
+      ? 'Lowercase letters, digits, dots and hyphens only.'
+      : undefined;
+  const gatewayErr =
+    gatewayId && !GATEWAY_ID_RE.test(gatewayId)
+      ? 'Letters, digits, underscores and hyphens only.'
+      : undefined;
+  const projectErr =
+    appProject && !APP_PROJECT_RE.test(appProject)
+      ? "That isn't an AppProject name."
+      : undefined;
+  const namespaceErr =
+    namespace && !NAMESPACE_RE.test(namespace)
+      ? "That isn't a namespace."
+      : undefined;
 
   const typedQ = useDebounced(qErr ? '' : q);
+  const typedGateway = useDebounced(gatewayErr ? '' : gatewayId);
   const typedProject = useDebounced(projectErr ? '' : appProject);
   const typedNamespace = useDebounced(namespaceErr ? '' : namespace);
   const filter: CatalogFilter = {
     project_id: projectId || undefined,
     connector_uuid: connectorId || undefined,
+    gateway_id: typedGateway || undefined,
     q: typedQ || undefined,
     app_project: typedProject || undefined,
     namespace: typedNamespace || undefined,
     status: status || undefined,
   };
   const catalog = useGatewayCatalog(filter);
-  const items = (catalog.data?.pages ?? []).flatMap((p) => p.items ?? []);
-  const forbidden = catalog.error instanceof ApiError && catalog.error.status === 403;
-  const narrowed = !!(filter.q || filter.app_project || filter.namespace || filter.status);
+  const errorText =
+    catalog.error instanceof ApiError
+      ? `${catalog.error.status}: ${catalog.error.message}`
+      : 'Network error.';
+
+  // Fold every loaded page through the de-duplicating accumulator. It is
+  // keyed on the query data/error via useMemo, so a filter change starts a
+  // brand-new tally at page one instead of reusing the old cursor's rows.
+  // A failed page is recorded, not swallowed: the loaded rows remain and
+  // the summary carries the interruption point for the panel and banner.
+  const collection = useMemo(() => {
+    const acc = new CatalogCollectionAccumulator();
+    for (const page of catalog.data?.pages ?? []) acc.appendPage(page);
+    if (catalog.isError) acc.recordFailure(errorText);
+    return acc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog.data, catalog.isError, catalog.error]);
+
+  const summary = collection.summary;
+  const items = summary.items;
+  const forbidden =
+    catalog.error instanceof ApiError && catalog.error.status === 403;
+  const firstPageError = catalog.isError && !catalog.data;
+  const pageError = catalog.isError && !!catalog.data;
+  const narrowed = !!(
+    filter.q ||
+    filter.app_project ||
+    filter.namespace ||
+    filter.status ||
+    filter.gateway_id
+  );
+  const projectName = useMemo(
+    () => new Map(projects.map((p) => [p.id, p.name])),
+    [projects],
+  );
+
+  const retry = () => {
+    if (catalog.isError && catalog.data) void catalog.fetchNextPage();
+    else void catalog.refetch();
+  };
 
   const bindButton = (t: CatalogItem) =>
     canBind && projectId && t.status === 'present' ? (
-      <Button variant="secondary" size="sm" onClick={() => setBinding(t)} aria-label={`Bind ${t.name ?? t.target_id}`}>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => setBinding(t)}
+        aria-label={`Bind ${t.name ?? t.target_id}`}
+      >
         Bind…
       </Button>
     ) : null;
@@ -92,10 +191,31 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
     {
       key: 'target',
       header: 'Target',
-      render: (t) => <TargetIdentity targetId={t.target_id} name={t.name} appProject={t.app_project} namespace={t.namespace} isStatic={t.source === 'static'} />,
+      render: (t) => (
+        <TargetIdentity
+          targetId={t.target_id}
+          name={t.name}
+          appProject={t.app_project}
+          namespace={t.namespace}
+          isStatic={t.source === 'static'}
+        />
+      ),
     },
-    { key: 'connector', header: 'Connector', render: (t) => <span className="font-mono text-mono-small whitespace-nowrap">{t.connector_id}</span> },
-    { key: 'seen', header: 'First seen', render: (t) => formatExact(t.first_seen_at), className: 'whitespace-nowrap' },
+    {
+      key: 'connector',
+      header: 'Connector',
+      render: (t) => (
+        <span className="font-mono text-mono-small whitespace-nowrap">
+          {t.connector_id}
+        </span>
+      ),
+    },
+    {
+      key: 'seen',
+      header: 'First seen',
+      render: (t) => formatExact(t.first_seen_at),
+      className: 'whitespace-nowrap',
+    },
     { key: 'flags', header: 'State', render: (t) => <Flags item={t} /> },
     {
       key: 'bind',
@@ -109,17 +229,22 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
   if (forbidden) {
     return (
       <EmptyState title="You can't view Argo CD targets.">
-        This needs gateway.bind scoped to a team. A grant scoped to one project doesn't count. Ask an administrator.
+        This needs gateway.bind scoped to a team. A grant scoped to one project
+        doesn't count. Ask an administrator.
       </EmptyState>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Field id="ct-project" label="Project" className="max-lg:col-span-2">
           {(p) => (
-            <Select {...p} value={projectId} onChange={(e) => onProject(e.target.value)}>
+            <Select
+              {...p}
+              value={projectId}
+              onChange={(e) => onProject(e.target.value)}
+            >
               <option value="">All projects</option>
               {projects.map((pr) => (
                 <option key={pr.id} value={pr.id}>
@@ -129,18 +254,62 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
             </Select>
           )}
         </Field>
-        <Field id="ct-q" label="Name contains" error={qErr} className="max-lg:col-span-2">
-          {(p) => <Input {...p} value={q} onChange={(e) => setQ(e.target.value.trim())} className="font-mono" autoComplete="off" spellCheck={false} />}
+        <Field id="ct-gateway" label="Gateway id" error={gatewayErr}>
+          {(p) => (
+            <Input
+              {...p}
+              value={gatewayId}
+              onChange={(e) => setGatewayId(e.target.value.trim())}
+              className="font-mono"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="gw-…"
+            />
+          )}
+        </Field>
+        <Field id="ct-q" label="Name contains" error={qErr}>
+          {(p) => (
+            <Input
+              {...p}
+              value={q}
+              onChange={(e) => setQ(e.target.value.trim())}
+              className="font-mono"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          )}
         </Field>
         <Field id="ct-app-project" label="AppProject" error={projectErr}>
-          {(p) => <Input {...p} value={appProject} onChange={(e) => setAppProject(e.target.value.trim())} className="font-mono" autoComplete="off" spellCheck={false} />}
+          {(p) => (
+            <Input
+              {...p}
+              value={appProject}
+              onChange={(e) => setAppProject(e.target.value.trim())}
+              className="font-mono"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          )}
         </Field>
         <Field id="ct-namespace" label="Namespace" error={namespaceErr}>
-          {(p) => <Input {...p} value={namespace} onChange={(e) => setNamespace(e.target.value.trim())} className="font-mono" autoComplete="off" spellCheck={false} />}
+          {(p) => (
+            <Input
+              {...p}
+              value={namespace}
+              onChange={(e) => setNamespace(e.target.value.trim())}
+              className="font-mono"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          )}
         </Field>
         <Field id="ct-status" label="State" className="max-lg:col-span-2">
           {(p) => (
-            <Select {...p} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <Select
+              {...p}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
               <option value="">Any</option>
               {Object.entries(TARGET_STATUS_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -155,28 +324,69 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
       {connectorId && (
         <p className="text-ui text-muted">
           Showing one connector.{' '}
-          <button type="button" onClick={onClearConnector} className="text-accent-ink hover:underline">
+          <button
+            type="button"
+            onClick={onClearConnector}
+            className="text-accent-ink hover:underline"
+          >
             Show every connector
           </button>
         </p>
       )}
       {canBind && projectsLoaded && projects.length === 0 && (
         <Banner tone="note" title="You can't see any projects to bind into.">
-          Binding also needs secret.list or secret.request for your team, so the console can list its projects. Ask an administrator.
+          Binding also needs secret.list or secret.request for your team, so the
+          console can list its projects. Ask an administrator.
         </Banner>
       )}
-      {canBind && !projectId && projects.length > 0 && <p className="text-ui text-muted">Choose a project to see what it can bind.</p>}
+      {canBind && !projectId && projects.length > 0 && (
+        <p className="text-ui text-muted">
+          Choose a project to see what it can bind.
+        </p>
+      )}
 
-      {catalog.isError && !forbidden && (
-        <Banner tone="error" title="Couldn't load the targets.">
-          {catalog.error instanceof ApiError ? `${catalog.error.status}: ${catalog.error.message}` : 'Network error.'}
+      {firstPageError && (
+        <Banner
+          tone="error"
+          title="Couldn't start the target collection. No rows were loaded."
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={retry}
+              disabled={catalog.isFetching}
+              aria-busy={catalog.isFetching}
+            >
+              {catalog.isFetching ? 'Retrying…' : 'Retry'}
+            </Button>
+          }
+        >
+          {errorText}
         </Banner>
       )}
+
+      {catalog.data && (
+        <CollectionPanel
+          filter={filter}
+          summary={summary}
+          loadingFirstPage={catalog.isLoading}
+          projectName={(id) => projectName.get(id)}
+          onRetry={retry}
+          retrying={catalog.isFetchingNextPage}
+        />
+      )}
+
       {catalog.isLoading && <p className="text-muted">Loading targets…</p>}
       {catalog.isSuccess && items.length === 0 && (
-        <EmptyState title={narrowed || projectId ? 'No targets match.' : 'No targets yet.'}>
-          {narrowed || projectId
-            ? 'A project only lists targets whose AppProject maps to its team or a team above it.'
+        <EmptyState
+          title={
+            narrowed || projectId || connectorId
+              ? 'No targets match.'
+              : 'No targets yet.'
+          }
+        >
+          {narrowed || projectId || connectorId
+            ? 'A project only lists targets whose AppProject maps to its team or a team above it. The filters above all ran on the server.'
             : 'Targets appear here once a platform admin approves a Gateway connector and maps its AppProjects to teams.'}
         </EmptyState>
       )}
@@ -190,7 +400,13 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
           alignTop
           stacked={(t) => (
             <div className="flex flex-col gap-2">
-              <TargetIdentity targetId={t.target_id} name={t.name} appProject={t.app_project} namespace={t.namespace} isStatic={t.source === 'static'} />
+              <TargetIdentity
+                targetId={t.target_id}
+                name={t.name}
+                appProject={t.app_project}
+                namespace={t.namespace}
+                isStatic={t.source === 'static'}
+              />
               <span className="text-caption text-muted">
                 {t.connector_id} · first seen {formatExact(t.first_seen_at)}
               </span>
@@ -202,12 +418,34 @@ export function CatalogTab({ projects, projectsLoaded, projectId, onProject, con
       )}
       {catalog.hasNextPage && (
         <div>
-          <Button variant="secondary" onClick={() => void catalog.fetchNextPage()} disabled={catalog.isFetchingNextPage} aria-busy={catalog.isFetchingNextPage}>
-            {catalog.isFetchingNextPage ? 'Loading…' : 'Load more'}
+          <Button
+            variant="secondary"
+            onClick={() => void (pageError ? retry() : catalog.fetchNextPage())}
+            disabled={catalog.isFetchingNextPage}
+            aria-busy={catalog.isFetchingNextPage}
+          >
+            {catalog.isFetchingNextPage
+              ? 'Loading…'
+              : pageError
+                ? `Retry page ${summary.failure?.page ?? ''}`.trim()
+                : 'Load more'}
           </Button>
         </div>
       )}
-      {binding && <BindingDrawer source={{ kind: 'catalog', item: binding, projectId }} onClose={() => setBinding(null)} />}
+      {!catalog.hasNextPage &&
+        items.length > 0 &&
+        !summary.failure &&
+        catalog.isSuccess && (
+          <p className="text-caption text-muted">
+            All matching targets are loaded.
+          </p>
+        )}
+      {binding && (
+        <BindingDrawer
+          source={{ kind: 'catalog', item: binding, projectId }}
+          onClose={() => setBinding(null)}
+        />
+      )}
     </div>
   );
 }

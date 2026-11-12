@@ -70,6 +70,24 @@ export const TARGET_STATUS_TONE: Record<string, Tone> = {
   identity_changed: 'warn',
 };
 
+/**
+ * Connector states in which the catalog row's source can't serve it: the
+ * connector was disabled by an admin or stopped advertising (missing).
+ * The row stays listed so the gap is visible instead of the target
+ * silently vanishing.
+ */
+export const CONNECTOR_UNAVAILABLE_STATUSES = ['missing', 'disabled'] as const;
+
+export function isConnectorUnavailable(status: string | undefined): boolean {
+  return !!status && (CONNECTOR_UNAVAILABLE_STATUSES as readonly string[]).includes(status);
+}
+
+/** Exact word for the source-unavailable mark, keyed by the connector status. */
+export const CONNECTOR_UNAVAILABLE_LABEL: Record<string, string> = {
+  missing: 'Source unavailable: connector missing',
+  disabled: 'Source unavailable: connector disabled',
+};
+
 export const SUSPENDED_LABEL: Record<string, string> = {
   target_missing: 'Target missing',
   mapping_removed: 'Mapping removed',

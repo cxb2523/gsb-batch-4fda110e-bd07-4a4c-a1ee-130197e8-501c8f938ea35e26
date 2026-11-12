@@ -413,7 +413,7 @@ export interface CatalogItem {
   team_ids?: string[];
 }
 
-interface CatalogPage {
+export interface CatalogPage {
   items: CatalogItem[] | null;
   next_cursor?: string;
 }
@@ -425,6 +425,16 @@ function queryString(f: object): string {
   return s ? `?${s}` : '';
 }
 
+/**
+ * The catalog as a cursor-paged infinite query. Every filter in
+ * {@link CatalogFilter} is applied by the server *before* paging, and the
+ * server hands the next position back as `next_cursor`. Because the whole
+ * filter object is part of the query key, any filter change starts a fresh
+ * query whose first page uses the empty initial cursor: an old cursor can
+ * never be attached to new filter conditions. `retry: false` keeps the
+ * pages already loaded when a later page fails; the caller surfaces the
+ * break and retries against the same cursor.
+ */
 export function useGatewayCatalog(filter: CatalogFilter, enabled = true) {
   return useInfiniteQuery({
     queryKey: gatewaysKey.catalog(filter),
