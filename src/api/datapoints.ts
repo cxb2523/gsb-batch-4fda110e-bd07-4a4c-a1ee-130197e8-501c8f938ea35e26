@@ -18,6 +18,7 @@ import { GOOGLE_OAUTH_CLIENT_ID } from "@/config";
 
 import { graduallyStale } from "./cache-settings";
 import { formatAsCivilDateTime, formatAsDate } from "./datetime";
+import type { ServerError } from "./request";
 
 /** Union fields on DataPoint that correspond to a listable data type. */
 type DataPointDataKey = Exclude<keyof DataPoint, "name" | "dataSource">;
@@ -85,6 +86,12 @@ export type DataPointFor<T extends DataType> = DataPoint & {
 
 export type ListDatapointsResult<T extends DataType> = {
   dataPoints: Array<DataPointFor<T>>;
+};
+
+/** A single page of data points plus the token for the next page, if any. */
+export type DataPointPage<T extends DataType> = {
+  dataPoints: Array<DataPointFor<T>>;
+  nextPageToken?: string;
 };
 
 /** Union fields on DailyRollupDataPoint that correspond to a rollup value. */
@@ -332,10 +339,7 @@ export async function listDataPointsPage<T extends DataType>(
   filter?: string,
   pageToken?: string,
   pageSize?: number,
-): Promise<{
-  dataPoints: Array<DataPointFor<T>>;
-  nextPageToken?: string;
-}> {
+): Promise<DataPointPage<T>> {
   const response = await healthUsersDataTypesDataPointsList("me", dataType, {
     ...(filter ? { filter } : {}),
     pageSize: Math.min(
@@ -365,6 +369,123 @@ export async function listDataPoints<T extends DataType>(
   } while (pageToken);
 
   return { dataPoints };
+}
+
+/**
+ * Why a paged collection stopped before every page had been read.
+ *
+ * - `rate-limit`: the API returned HTTP 429.
+ * - `account-not-linked`: the Google account is not linked to Google Health.
+ * - `http-error`: any other HTTP error response.
+ * - `network-error`: the request failed before a response was received.
+ * - `pagination-error`: the API returned the same `nextPageToken` twice, so
+ *   continuing would loop forever.
+ */
+export type DatapointCollectionFailureReason =
+  | "rate-limit"
+  | "account-not-linked"
+  | "http-error"
+  | "network-error"
+  | "pagination-error";
+
+/**
+ * Outcome of a paged collection that keeps whatever was fetched before a
+ * failure instead of discarding it.
+ *
+ * `complete` is true only when every page was read, including when the API
+ * returned no data points at all. `failureReason` is absent exactly when
+ * `complete` is true.
+ */
+export type CollectDatapointsResult<T extends DataType> =
+  | {
+      dataPoints: Array<DataPointFor<T>>;
+      complete: true;
+      failureReason?: undefined;
+    }
+  | {
+      dataPoints: Array<DataPointFor<T>>;
+      complete: false;
+      failureReason: DatapointCollectionFailureReason;
+    };
+
+/**
+ * Classify a page request failure into one of the collection failure reasons.
+ *
+ * Errors thrown by {@link makeRequest} carry the HTTP status (and an
+ * account-not-linked marker); anything without a status never received an
+ * HTTP response and is treated as a network failure.
+ */
+function classifyCollectionFailure(
+  error: unknown,
+): DatapointCollectionFailureReason {
+  const serverError = error as ServerError | undefined;
+
+  // An HTTP status means a response was received. No status means the
+  // request failed before reaching the API (or during token refresh).
+  if (serverError?.status === undefined) {
+    return "network-error";
+  }
+
+  if (serverError.status === 429) {
+    return "rate-limit";
+  }
+
+  if (serverError.accountNotLinked) {
+    return "account-not-linked";
+  }
+
+  return "http-error";
+}
+
+/**
+ * Collect data points across every page, preserving partial results.
+ *
+ * Unlike {@link listDataPoints}, a failing page does not throw: the data
+ * points already collected are returned along with `complete: false` and a
+ * `failureReason`. If the first page fails the result simply has no data
+ * points. An empty collection with no further pages counts as complete.
+ *
+ * Account-not-linked and rate-limit side effects (the events dispatched by
+ * {@link makeRequest}) are preserved because pages are fetched through
+ * {@link listDataPointsPage}.
+ */
+export async function collectDataPoints<T extends DataType>(
+  dataType: T,
+  filter?: string,
+): Promise<CollectDatapointsResult<T>> {
+  const dataPoints: Array<DataPointFor<T>> = [];
+  let pageToken: string | undefined;
+
+  while (true) {
+    let page: DataPointPage<T>;
+
+    try {
+      page = await listDataPointsPage(dataType, filter, pageToken);
+    } catch (error) {
+      return {
+        dataPoints,
+        complete: false,
+        failureReason: classifyCollectionFailure(error),
+      };
+    }
+
+    dataPoints.push(...page.dataPoints);
+
+    if (!page.nextPageToken) {
+      return { dataPoints, complete: true };
+    }
+
+    if (page.nextPageToken === pageToken) {
+      // Paging would keep requesting the same page forever.
+      return {
+        dataPoints,
+        complete: false,
+        failureReason: "pagination-error",
+      };
+    }
+
+    pageToken = page.nextPageToken;
+  }
 }
 
 /** The DataPoint union value for a given data type. */

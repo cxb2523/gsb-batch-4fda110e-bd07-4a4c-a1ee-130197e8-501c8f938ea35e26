@@ -24,6 +24,8 @@ export interface ServerError extends Error {
   status: Response["status"];
   errors?: ErrorResponseBody["errors"];
   errorText?: string;
+  /** Set when the error body indicates the Google account is not linked. */
+  accountNotLinked?: boolean;
 }
 
 /** Whether a thrown API error includes the given Google RPC / Fitbit error type. */
@@ -70,8 +72,9 @@ export async function makeRequest(
     }
 
     const { errors, json } = await readErrorResponse(response);
+    const accountNotLinked = isAccountNotLinkedError(json);
 
-    if (isAccountNotLinkedError(json)) {
+    if (accountNotLinked) {
       window.dispatchEvent(new CustomEvent(ACCOUNT_NOT_LINKED_EVENT_TYPE));
     }
 
@@ -88,6 +91,7 @@ export async function makeRequest(
     err.status = response.status;
     err.errors = errors;
     err.errorText = errorText;
+    err.accountNotLinked = accountNotLinked;
 
     throw err;
   }
