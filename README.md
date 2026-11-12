@@ -18,7 +18,10 @@ First Responder is a lightweight job scraper that monitors company career pages 
   * Hacker News
   * Custom career pages
 * Keyword-based filtering (allow / deny lists)
-* Deduplicates jobs using a database
+* Normalized, duplicate-resistant dedup (whitespace/case-insensitive
+  titles; trailing-slash and tracking-param-insensitive links)
+* Auditable per-run report distinguishing successful, timeout-skipped and
+  selector-missing companies, with scraped/filtered/new entry counts
 * Fully automated with GitHub Actions
 * Discord webhook integration
 
@@ -105,6 +108,47 @@ DATABASE_URL
 uv sync
 uv run playwright install
 uv run main.py
+```
+
+---
+
+## Run Results & Dedup
+
+Every run prints a report that can be checked after the fact:
+
+```text
+[REPORT] Run summary:
+  companies total      : 12
+  succeeded            : 9 (Acme, Beta, ...)
+  timeout skipped      : 2 (Slow Co, ...)
+  selector missing     : 1 (Stale Co)
+  other failures       : 0 (-)
+  entries scraped      : 140
+  entries after filter : 35
+  duplicates dropped   : 6
+  new entries          : 29
+```
+
+* A **timeout-skipped** or **selector-missing** company is a recorded
+  failure, never an empty result, and one company failing does not stop the
+  others.
+* Dedup keys normalize titles (trim + lowercase) and links (strip trailing
+  slash and common tracking parameters such as `utm_*`, `gclid`, `ref`), so
+  the same posting appearing on different pages — or with cosmetic
+  differences — is stored and pushed to Discord exactly once.
+* Only the normalized, deduplicated new-job set is written to the database
+  and sent to Discord.
+
+## Tests
+
+The test suite uses self-made local HTML pages and a headless browser; it
+never contacts a real career site, Discord webhook or production database
+(the database and HTTP layers are replaced by fakes):
+
+```bash
+uv sync
+uv run playwright install chromium
+uv run pytest
 ```
 
 ---
