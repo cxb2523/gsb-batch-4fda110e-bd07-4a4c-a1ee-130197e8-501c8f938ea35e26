@@ -1,0 +1,605 @@
+/**
+ * Gateways (Release 1, Argo CD only; api#293 and api#294).
+ *
+ *   GET    /admin/gateways                                    gateway.list (with a connector summary)
+ *   GET    /admin/gateways/:id                                gateway.list
+ *   GET    /admin/gateways/:id/tasks?state=&limit=            gateway.list
+ *   POST   /admin/gateways                                    gateway.mint, fresh MFA
+ *   POST   /admin/gateways/:id/enrollment-token               gateway.mint, fresh MFA
+ *   POST   /admin/gateway-enrollment-tokens/:id/revoke        gateway.mint, fresh MFA
+ *   POST   /admin/gateways/:id/revoke {reason?}               gateway.revoke, fresh MFA
+ *   PUT    /admin/gateways/:id/enabled {enabled}              gateway.revoke, fresh MFA
+ *   POST   /admin/gateways/:id/connectors/:cid/approve        gateway.bind, fresh MFA
+ *   GET    /admin/gateways/:id/connectors/:cid/project-teams  gateway.list
+ *   PUT    /admin/gateways/:id/connectors/:cid/project-teams  gateway.bind, fresh MFA
+ *   POST   .../connectors/:cid/targets/:tid/confirm-identity  gateway.bind, fresh MFA
+ *   GET    /gateway-catalog                                   global gateway.list or gateway.bind, or team-scoped gateway.bind
+ *   GET    /gateway-bindings                                  same; a team-scoped caller gets its teams' projects
+ *   GET    /admin/gateway-bindings?gateway_id=                gateway.list
+ *   POST   /admin/gateway-bindings                            gateway.bind at global or team scope, fresh MFA
+ *   DELETE /admin/gateway-bindings/:id                        gateway.bind at global or team scope, fresh MFA
+ *   GET    /admin/environments/:id/observation-source         gateway.list
+ *   PUT    /admin/environments/:id/observation-source         gateway.bind, fresh MFA
+ *   GET    /requests/:id/observations                         same read check as the request
+ *
+ * A write that needs a fresh second factor comes back 401 step-up and
+ * client.ts runs the step-up dialog, then retries once.
+ *
+ * Nothing here is a credential except the enrollment token, which is in
+ * the mint response only. That mutation is a sensitive one: the caller
+ * copies the token into component state and calls reset().
+ */
+
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { api } from './client';
+import { useSensitiveMutation } from './sensitiveMutation';
+
+export type GatewayStatus = 'pending' | 'active' | 'stale' | 'disabled' | 'revoked';
+
+export interface Gateway {
+  id: string;
+  name: string;
+  boundary: string;
+  environment_id?: string;
+  status: GatewayStatus;
+  gateway_version?: string;
+  contract_versions: string[] | null;
+  max_replicas: number;
+  max_inflight_tasks: number;
+  catalog_version?: string;
+  catalog_updated_at?: string;
+  last_seen_at?: string;
+  /** The last heartbeat's status: ok, degraded, not_ready, over_privileged, shutting_down. */
+  last_status?: string;
+  enrolled_at?: string;
+  revoked_at?: string;
+  replicas_seen: number;
+  /** A replica seen in the replica window last reported more Argo CD rights than read-only (api#299). */
+  over_privileged: boolean;
+  /** That replica's latest heartbeat. */
+  over_privileged_reported_at?: string;
+  created_by: string;
+  created_at: string;
+}
+
+/** A connector line of GET /admin/gateways: no target ids or names. */
+export interface GatewayConnectorSummary {
+  id: string;
+  connector_id: string;
+  kind: string;
+  status: GatewayConnectorStatus;
+  target_count: number;
+}
+
+/** One GET /admin/gateways item: the Gateway and its connector summary. */
+export interface GatewayListItem extends Gateway {
+  connectors: GatewayConnectorSummary[] | null;
+}
+
+export interface GatewayConnectorHealth {
+  connector_id: string;
+  kind: string;
+  status: string;
+}
+
+export interface GatewayReplica {
+  replica_id: string;
+  gateway_version?: string;
+  status: string;
+  in_flight: number;
+  catalog_version?: string;
+  connectors: GatewayConnectorHealth[] | null;
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export interface GatewayTarget {
+  target_id: string;
+  namespace?: string;
+  name?: string;
+  refresh_interval_seconds?: number;
+  progress_deadline_seconds?: number;
+  stale: boolean;
+  /** unpinned, pinned or identity_changed (bindings suspended until re-confirmed). */
+  identity_status?: string;
+}
+
+export type GatewayConnectorStatus = 'advertised' | 'approved' | 'disabled' | 'missing';
+
+export interface GatewayConnector {
+  /** The row id, used in the approve path and the binding body. */
+  id: string;
+  /** The connector's name as the Gateway advertises it. */
+  connector_id: string;
+  kind: string;
+  status: GatewayConnectorStatus;
+  targets: GatewayTarget[] | null;
+  approved_by?: string;
+  approved_at?: string;
+  last_advertised_at?: string;
+  /** scope_changed, scope_mismatch_between_replicas or snapshot_stale. */
+  status_reason?: string;
+  /** What every live replica reports now; an approve body carries it. */
+  scope_digest?: string;
+  /** The live replicas disagree on the scope. */
+  scope_mismatch?: boolean;
+  approved_scope_digest?: string;
+  /** The scope of the latest upload, which allowed_projects came from. */
+  discovery_scope_digest?: string;
+  discovery_enabled?: boolean;
+  discovery_generation?: number;
+  last_discovery_at?: string;
+  allowed_projects?: string[];
+}
+
+export interface GatewayBinding {
+  id: string;
+  gateway_id: string;
+  project_id: string;
+  environment_id: string;
+  secret_id?: string;
+  provider_connection_id?: string;
+  secret_ref?: string;
+  expected_stages: string[] | null;
+  argocd_connector_id?: string;
+  argocd_target_id?: string;
+  observation_timeout_seconds: number;
+  enabled: boolean;
+  /** target_missing, mapping_removed, scope_changed or identity_changed. */
+  suspended_reason?: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GatewayEnrollmentTokenMeta {
+  id: string;
+  expected_cluster_name?: string;
+  expires_at: string;
+  consumed_at?: string;
+  revoked_at?: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GatewayDetail {
+  gateway: Gateway;
+  replicas: GatewayReplica[] | null;
+  connectors: GatewayConnector[] | null;
+  bindings: GatewayBinding[] | null;
+  enrollment_tokens: GatewayEnrollmentTokenMeta[] | null;
+}
+
+export type ObservationTaskState = 'queued' | 'leased' | 'done' | 'dead' | 'cancelled';
+export type ObservationVerdict = 'pending' | 'verified' | 'partially_observed' | 'unverified' | 'timed_out';
+
+export interface ObservationTask {
+  id: string;
+  request_id: string;
+  gateway_id: string;
+  gateway_name?: string;
+  binding_id: string;
+  environment_id: string;
+  correlation_id: string;
+  connector_refs: { connector_id: string; target_id: string; stage: string }[] | null;
+  expected_stages: string[] | null;
+  state: ObservationTaskState;
+  verdict: ObservationVerdict;
+  verdict_reason?: string;
+  version_source: string;
+  attempt_count: number;
+  failure_count: number;
+  leased_replica_id?: string;
+  lease_expires_at?: string;
+  not_before: string;
+  deadline_at: string;
+  executed_at: string;
+  last_result_at?: string;
+  created_at: string;
+  terminal_at?: string;
+}
+
+export interface GatewayTasks {
+  items: ObservationTask[] | null;
+  /** Per state, over every task of the Gateway (not only the returned page). */
+  counts: Partial<Record<ObservationTaskState, number>> | null;
+  /** Every task of the Gateway. */
+  total: number;
+}
+
+/** control_plane was retired with the Gateway cutover; the api refuses it (source_retired). */
+export type ObservationSource = 'gateway' | 'none';
+
+export const gatewaysKey = {
+  all: ['gateways'] as const,
+  list: ['gateways', 'list'] as const,
+  one: (id: string) => ['gateways', 'one', id] as const,
+  tasks: (id: string) => ['gateways', 'tasks', id] as const,
+  source: (envId: string) => ['gateways', 'observation-source', envId] as const,
+  observations: (requestId: string) => ['requests', requestId, 'observations'] as const,
+  catalog: (f: CatalogFilter) => ['gateways', 'catalog', f] as const,
+  bindings: (f: BindingFilter) => ['gateways', 'bindings', f] as const,
+  projectTeams: (gatewayId: string, connectorId: string) => ['gateways', 'project-teams', gatewayId, connectorId] as const,
+};
+
+const gw = (id: string) => `/api/v1/admin/gateways/${encodeURIComponent(id)}`;
+
+export function useGateways(opts: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: gatewaysKey.list,
+    queryFn: async () => (await api.get<{ items: GatewayListItem[] | null }>('/api/v1/admin/gateways')).items ?? [],
+    enabled: opts.enabled ?? true,
+    // Heartbeats move "last heartbeat" every 30 s; keep the table fresh
+    // while it is on screen, no faster.
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useGateway(id: string | undefined) {
+  return useQuery({
+    queryKey: id ? gatewaysKey.one(id) : gatewaysKey.all,
+    queryFn: () => api.get<GatewayDetail>(gw(id!)),
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useGatewayTasks(id: string | undefined, limit = 25) {
+  return useQuery({
+    queryKey: id ? [...gatewaysKey.tasks(id), limit] : gatewaysKey.all,
+    queryFn: () => api.get<GatewayTasks>(`${gw(id!)}/tasks?limit=${limit}`),
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export interface CreateGatewayInput {
+  name: string;
+  boundary: string;
+  environment_id?: string;
+  max_replicas?: number;
+  max_inflight_tasks?: number;
+}
+
+export function useCreateGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateGatewayInput) => api.post<Gateway>('/api/v1/admin/gateways', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+export interface GatewayEnrollmentToken {
+  id: string;
+  gateway_id: string;
+  enrollment_token: string;
+  expires_at: string;
+}
+
+/**
+ * Mints a one-time enrollment token. The response carries the token, so
+ * this is a sensitive mutation: copy it into component state, then
+ * reset(). The metadata list is refreshed on success.
+ */
+export function useMintGatewayToken() {
+  const qc = useQueryClient();
+  return useSensitiveMutation({
+    mutationFn: ({ gatewayId, ...body }: { gatewayId: string; expires_in_seconds?: number; expected_cluster_name?: string }) =>
+      api.post<GatewayEnrollmentToken>(`${gw(gatewayId)}/enrollment-token`, body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: gatewaysKey.one(v.gatewayId) }),
+  });
+}
+
+export function useRevokeGatewayToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tokenId }: { tokenId: string; gatewayId: string }) =>
+      api.post<void>(`/api/v1/admin/gateway-enrollment-tokens/${encodeURIComponent(tokenId)}/revoke`),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: gatewaysKey.one(v.gatewayId) }),
+  });
+}
+
+export function useRevokeGateway() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.post<Gateway>(`${gw(id)}/revoke`, reason ? { reason } : {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+export function useSetGatewayEnabled() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => api.put<Gateway>(`${gw(id)}/enabled`, { enabled }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+const connector = (gatewayId: string, connectorId: string) => `${gw(gatewayId)}/connectors/${encodeURIComponent(connectorId)}`;
+
+/**
+ * Approve a connector. scopeDigest is the digest the admin was shown:
+ * the api refuses another with scope_digest_changed, so an admin never
+ * approves a scope they didn't see. A contract 1 Gateway reports none.
+ */
+export function useApproveConnector() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ gatewayId, connectorId, scopeDigest }: { gatewayId: string; connectorId: string; scopeDigest?: string }) =>
+      api.post<GatewayConnector>(`${connector(gatewayId, connectorId)}/approve`, scopeDigest ? { scope_digest: scopeDigest } : undefined),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+/** Keep a target's new identity. Its suspended bindings resume. */
+export function useConfirmTargetIdentity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ gatewayId, connectorId, targetId }: { gatewayId: string; connectorId: string; targetId: string }) =>
+      api.post<GatewayConnector>(`${connector(gatewayId, connectorId)}/targets/${encodeURIComponent(targetId)}/confirm-identity`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+// --- AppProject to team mapping ---------------------------------------------
+
+export interface ProjectTeamMapping {
+  app_project: string;
+  team_ids: string[] | null;
+}
+
+export interface ProjectTeams {
+  mappings: ProjectTeamMapping[] | null;
+  /** The AppProjects of the latest upload. */
+  allowed_projects: string[] | null;
+  /** The latest upload's AppProjects are all mapped. */
+  complete: boolean;
+}
+
+export function useProjectTeams(gatewayId: string, connectorId: string, enabled = true) {
+  return useQuery({
+    queryKey: gatewaysKey.projectTeams(gatewayId, connectorId),
+    queryFn: () => api.get<ProjectTeams>(`${connector(gatewayId, connectorId)}/project-teams`),
+    enabled,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/** A full replace. A change that uncovers a binding suspends it. */
+export function usePutProjectTeams() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ gatewayId, connectorId, mappings }: { gatewayId: string; connectorId: string; mappings: ProjectTeamMapping[] }) =>
+      api.put<ProjectTeams>(`${connector(gatewayId, connectorId)}/project-teams`, { mappings }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+// --- the catalog and the team-filtered bindings -----------------------------
+
+/** Every filter runs on the server, before paging. */
+export interface CatalogFilter {
+  gateway_id?: string;
+  connector_uuid?: string;
+  /** Only the targets this project can bind. */
+  project_id?: string;
+  app_project?: string;
+  namespace?: string;
+  q?: string;
+  status?: string;
+}
+
+export type CatalogSource = 'discovered' | 'static';
+
+/** One target. A view never shows its name without the rest (ADR 0002 C5). */
+export interface CatalogItem {
+  gateway_id: string;
+  connector_uuid: string;
+  connector_id: string;
+  target_id: string;
+  source: CatalogSource;
+  status: string;
+  /** Absent on a static target. */
+  app_project?: string;
+  namespace?: string;
+  name?: string;
+  first_seen_at: string;
+  last_seen_at?: string;
+  is_new: boolean;
+  look_alike: boolean;
+  binding_count: number;
+  team_ids?: string[];
+}
+
+interface CatalogPage {
+  items: CatalogItem[] | null;
+  next_cursor?: string;
+}
+
+function queryString(f: object): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') q.set(k, String(v));
+  const s = q.toString();
+  return s ? `?${s}` : '';
+}
+
+export function useGatewayCatalog(filter: CatalogFilter, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: gatewaysKey.catalog(filter),
+    queryFn: ({ pageParam }) => api.get<CatalogPage>(`/api/v1/gateway-catalog${queryString({ ...filter, cursor: pageParam })}`),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.next_cursor || undefined,
+    enabled,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export interface BindingFilter {
+  gateway_id?: string;
+  project_id?: string;
+  suspended?: boolean;
+}
+
+/**
+ * A binding with its target. app_project, namespace and name are absent
+ * when the caller can't see the target, which happens to a team once a
+ * mapping or scope change takes the target away. Such a binding stays
+ * listed so the team can see why it stopped, and a team-scoped delete of
+ * it answers 404.
+ */
+export interface GatewayBindingItem extends GatewayBinding {
+  app_project?: string;
+  namespace?: string;
+  name?: string;
+}
+
+interface BindingPage {
+  items: GatewayBindingItem[] | null;
+  next_cursor?: string;
+}
+
+export function useTeamBindings(filter: BindingFilter, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: gatewaysKey.bindings(filter),
+    queryFn: ({ pageParam }) => api.get<BindingPage>(`/api/v1/gateway-bindings${queryString({ ...filter, cursor: pageParam })}`),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.next_cursor || undefined,
+    enabled,
+    retry: false,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * POST /admin/gateway-bindings. The secret scope is either a catalog
+ * secret bound to the project (secret_id) or a provider connection plus
+ * a secret path (provider_connection_id and secret_ref), never both.
+ */
+export interface CreateBindingInput {
+  gateway_id: string;
+  project_id?: string;
+  environment_id: string;
+  secret_id?: string;
+  provider_connection_id?: string;
+  secret_ref?: string;
+  argocd_connector_id: string;
+  argocd_target_id: string;
+  observation_timeout_seconds?: number;
+}
+
+export function useCreateBinding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateBindingInput) => api.post<GatewayBinding>('/api/v1/admin/gateway-bindings', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+export function useDeleteBinding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => api.delete<void>(`/api/v1/admin/gateway-bindings/${encodeURIComponent(id)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: gatewaysKey.all }),
+  });
+}
+
+export function useObservationSource(envId: string, enabled = true) {
+  return useQuery({
+    queryKey: gatewaysKey.source(envId),
+    queryFn: async () =>
+      (await api.get<{ environment_id: string; observation_source: ObservationSource }>(
+        `/api/v1/admin/environments/${encodeURIComponent(envId)}/observation-source`,
+      )).observation_source,
+    enabled,
+    retry: false,
+  });
+}
+
+export interface SetObservationSourceResult {
+  environment_id: string;
+  observation_source: ObservationSource;
+  previous_observation_source: ObservationSource;
+  tasks_cancelled: number;
+}
+
+export function useSetObservationSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ envId, source }: { envId: string; source: ObservationSource }) =>
+      api.put<SetObservationSourceResult>(`/api/v1/admin/environments/${encodeURIComponent(envId)}/observation-source`, {
+        observation_source: source,
+      }),
+    onSuccess: (_d, v) => {
+      void qc.invalidateQueries({ queryKey: gatewaysKey.source(v.envId) });
+      void qc.invalidateQueries({ queryKey: gatewaysKey.all });
+    },
+  });
+}
+
+// --- the request page -------------------------------------------------------
+
+export type ObservationRollup = ObservationVerdict | 'none';
+
+export interface EvidenceStage {
+  stage: string;
+  /** The control plane's outcome after its checks. */
+  outcome: string;
+  /** What the Gateway reported, before those checks. */
+  reported_outcome: string;
+  observed_at: string;
+  received_at: string;
+  gateway_id: string;
+  replica_id: string;
+  attempt_id: string;
+  connector_id: string;
+  target_id: string;
+  confidence: string;
+  linkage: string;
+  caveats: string[] | null;
+  facts: Record<string, unknown> | null;
+  label: string;
+}
+
+export interface RequestObservationTask {
+  task_id: string;
+  gateway_id: string;
+  gateway_name: string;
+  state: ObservationTaskState;
+  verdict: ObservationVerdict;
+  verdict_reason?: string;
+  expected_stages: string[] | null;
+  version_source: string;
+  attempt_count: number;
+  deadline_at: string;
+  created_at: string;
+  terminal_at?: string;
+  stages: EvidenceStage[] | null;
+  /** Shown as timed out because the deadline passed before the sweeper closed the task (api#297). */
+  timed_out_at_read?: boolean;
+}
+
+export interface RequestObservations {
+  observation_source: ObservationSource | '' | null;
+  rollup: ObservationRollup;
+  label: string;
+  tasks: RequestObservationTask[] | null;
+}
+
+/**
+ * The request's Gateway evidence. Refetched when the window regains
+ * focus, and every 20 s only while the rollup is pending.
+ */
+export function useRequestObservations(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: id ? gatewaysKey.observations(id) : gatewaysKey.all,
+    queryFn: () => api.get<RequestObservations>(`/api/v1/requests/${encodeURIComponent(id!)}/observations`),
+    enabled: enabled && !!id,
+    retry: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: (q) => (q.state.data?.rollup === 'pending' ? 20_000 : false),
+    refetchIntervalInBackground: false,
+  });
+}

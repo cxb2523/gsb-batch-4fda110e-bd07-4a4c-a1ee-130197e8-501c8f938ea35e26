@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Keep in step with the build stage in the Dockerfile.
+          node-version: "24"
+          cache: npm
+      - name: install
+        run: npm ci --no-audit --no-fund
+      - name: lint
+        run: npm run lint
+      - name: typecheck
+        run: npx tsc -b
+      - name: audit (runtime deps)
+        # Only what ships in the bundle; dev-only tooling advisories
+        # (tailwind 3's glob deps etc.) are tracked via dependabot.
+        run: npm audit --omit=dev --audit-level=high
+      - name: build
+        run: npm run build
+      - name: bundle-size budget
+        run: |
+          set -e
+          # FR-13 — initial route ≤ 500 KB gzipped. We approximate by
+          # gzipping every file in dist/assets and summing; failing
+          # the CI when the total exceeds the cap forces a perf
+          # conversation before the bundle creeps.
+          total=$(find dist/assets -type f \( -name "*.js" -o -name "*.css" \) -exec sh -c 'gzip -c "$1" | wc -c' _ {} \; | awk '{s+=$1} END {print s+0}')
+          echo "gzipped asset bytes: $total"
+          if [ "$total" -gt 512000 ]; then
+            echo "::error::initial bundle exceeds 500 KB gzipped (FR-13)"
+            exit 1
+          fi
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: docker build
+        # Smoke-tests the multi-stage Dockerfile every PR. The build
+        # stage runs the same tsc + vite build as the `build` job;
+        # the serve stage assembles the nginx image. Failure here
+        # means the production image won't ship.
+        run: docker build -t sb-ui:ci .

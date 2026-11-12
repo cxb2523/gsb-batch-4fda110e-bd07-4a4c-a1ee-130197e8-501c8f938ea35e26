@@ -1,0 +1,21 @@
+node_modules
+.pnpm-store
+dist
+dist-ssr
+*.local
+.DS_Store
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# editor cruft
+.vscode
+.idea
+
+# logs
+*.log
+npm-debug.log*
+
+# browser e2e (ui#152): state holds generated secrets, out holds test output
+e2e/.state
+e2e/.out

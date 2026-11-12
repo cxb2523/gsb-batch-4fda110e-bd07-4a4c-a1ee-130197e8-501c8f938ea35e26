@@ -1,0 +1,382 @@
+@import 'tailwindcss';
+
+/*
+ * Switchboard design tokens: warm graphite, a chartreuse accent, blue for
+ * success. The theme is chosen by `data-theme` on <html>, which
+ * public/theme-init.js sets before the first paint (stored choice, else
+ * the system setting). The media query covers a page that runs no script.
+ *
+ * Never copy a hex value into a component. Use the utilities below
+ * (bg-surface, text-muted, border-edge, text-ok and so on).
+ *
+ * Lime is a fill, never a line. On the light background it is about
+ * 1.2:1, so anything thin (text, borders, rings, radios, small marks)
+ * uses accent-ink, and a filled control keeps lime with an accent-edge
+ * border. ESLint refuses `text-accent` and its relatives.
+ */
+:root,
+[data-theme='light'] {
+  --bg: #f5f4ef;
+  --side: #edece6;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --field: #ffffff;
+  --hover: #efeee8;
+  --press: #e6e5de;
+  --ink: #161614;
+  --muted: #5e5c55;
+  --border: #dcdad2;
+  --rule: #e8e6df;
+  --edge: #85837b;
+  --accent: #d4f24c;
+  --accent-hover: #c6e63a;
+  --accent-ink: #4a6600;
+  --accent-edge: #7e9420;
+  --on-accent: #161614;
+  --accent-soft: #f1f8d6;
+  --accent-line: #b9cf6a;
+  --ok: #1f6fb8;
+  --ok-bg: #e7f1fb;
+  --ok-line: #a9cbec;
+  --warn: #9a5a00;
+  --warn-bg: #fff2de;
+  --warn-line: #ebc58c;
+  --bad: #b42318;
+  --bad-bg: #fdecea;
+  --bad-line: #f1b8b3;
+  --info: #4a4943;
+  --info-bg: #f0efea;
+  --info-line: #d6d4cc;
+  --stripe: rgba(22, 22, 20, 0.45);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235e5c55' stroke-width='1.9'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --scrim: rgba(22, 22, 20, 0.36);
+  --overlay: 0 1px 2px rgba(22, 22, 20, 0.06), 0 16px 40px rgba(22, 22, 20, 0.16);
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #111110;
+  --side: #0d0d0c;
+  --surface: #1a1a18;
+  --raised: #232321;
+  --field: #0b0b0a;
+  --hover: #1e1e1c;
+  --press: #272724;
+  --ink: #f4f2ea;
+  --muted: #adaba1;
+  --border: #2a2a27;
+  --rule: #222220;
+  --edge: #76756d;
+  --accent: #d4f24c;
+  --accent-hover: #e3f984;
+  --accent-ink: #d4f24c;
+  --accent-edge: transparent;
+  --on-accent: #111110;
+  --accent-soft: #20260f;
+  --accent-line: #4b5a1a;
+  --ok: #72bbff;
+  --ok-bg: #0f1e2c;
+  --ok-line: #24476a;
+  --warn: #ffae52;
+  --warn-bg: #2a1e0e;
+  --warn-line: #5a3f1c;
+  --bad: #ff7070;
+  --bad-bg: #2c1414;
+  --bad-line: #5e2828;
+  --info: #cac8be;
+  --info-bg: #1c1c1a;
+  --info-line: #34342f;
+  --stripe: rgba(244, 242, 234, 0.5);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adaba1' stroke-width='1.9'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --scrim: rgba(0, 0, 0, 0.62);
+  --overlay: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #111110;
+    --side: #0d0d0c;
+    --surface: #1a1a18;
+    --raised: #232321;
+    --field: #0b0b0a;
+    --hover: #1e1e1c;
+    --press: #272724;
+    --ink: #f4f2ea;
+    --muted: #adaba1;
+    --border: #2a2a27;
+    --rule: #222220;
+    --edge: #76756d;
+    --accent: #d4f24c;
+    --accent-hover: #e3f984;
+    --accent-ink: #d4f24c;
+    --accent-edge: transparent;
+    --on-accent: #111110;
+    --accent-soft: #20260f;
+    --accent-line: #4b5a1a;
+    --ok: #72bbff;
+    --ok-bg: #0f1e2c;
+    --ok-line: #24476a;
+    --warn: #ffae52;
+    --warn-bg: #2a1e0e;
+    --warn-line: #5a3f1c;
+    --bad: #ff7070;
+    --bad-bg: #2c1414;
+    --bad-line: #5e2828;
+    --info: #cac8be;
+    --info-bg: #1c1c1a;
+    --info-line: #34342f;
+    --stripe: rgba(244, 242, 234, 0.5);
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adaba1' stroke-width='1.9'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adaba1' stroke-width='1.9'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    --scrim: rgba(0, 0, 0, 0.62);
+    --overlay: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+}
+
+:root {
+  --control-md: 38px;
+  --control-sm: 32px;
+  --control-field: 40px;
+  --control-touch: 44px;
+  --sidebar: 240px;
+  --rail: 320px;
+}
+
+/* `dark:` follows the resolved theme, not only the system setting. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Only token colours exist. Tailwind's default palette is cleared so a
+ * stray `text-red-300` generates nothing instead of a colour that fails
+ * contrast in one of the two themes.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-bg: var(--bg);
+  --color-side: var(--side);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-field: var(--field);
+  --color-hover: var(--hover);
+  --color-press: var(--press);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-edge: var(--edge);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-edge: var(--accent-edge);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-line: var(--ok-line);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-bad-line: var(--bad-line);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-info-line: var(--info-line);
+  --color-scrim: var(--scrim);
+
+  /* Older pages say text-text for body copy; it is ink. */
+  --color-text: var(--ink);
+
+  --shadow-overlay: var(--overlay);
+}
+
+@theme {
+  --font-sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Titles and counts only. */
+  --font-display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+
+  /* 6 tags, 8 controls, 10 wells, 12 panels, 14 dialogs, 18 sheets. */
+  --radius-*: initial;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 18px;
+
+  --spacing-sidebar: 240px;
+  --spacing-rail: 320px;
+
+  /*
+   * Tailwind 3 line-heights for the default size scale, kept so pages
+   * that set only a size keep their v3 metrics.
+   */
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+
+  /* Console type styles. Geist Mono is added with `font-mono`; the two
+     display styles set their own family further down. */
+  --text-block-heading: 15px;
+  --text-block-heading--line-height: 22px;
+  --text-block-heading--font-weight: 600;
+  --text-body: 14.5px;
+  --text-body--line-height: 22px;
+  --text-ui: 14px;
+  --text-ui--line-height: 20px;
+  --text-caption: 13.5px;
+  --text-caption--line-height: 20px;
+  --text-label: 12.5px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 500;
+  --text-mono: 12.5px;
+  --text-mono--line-height: 18px;
+  --text-mono-small: 11.5px;
+  --text-mono-small--line-height: 16px;
+}
+
+/* Bricolage Grotesque: titles and counts only. */
+@utility text-console-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+
+  @media (width < 900px) {
+    font-size: 24px;
+    line-height: 29px;
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility text-dialog-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+@utility text-count {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+@utility bg-prod-hatch {
+  background-image: repeating-linear-gradient(135deg, var(--stripe) 0 4px, transparent 4px 10px);
+}
+
+/* Native select with the design's chevron, in each theme's muted colour. */
+@utility select-chevron {
+  appearance: none;
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  background-size: 16px;
+}
+
+@layer components {
+  .logo-square {
+    fill: var(--accent);
+  }
+  .logo-route {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 4;
+  }
+  .logo-ring {
+    fill: var(--bg);
+    stroke: var(--accent);
+    stroke-width: 3;
+  }
+  [data-theme='light'] .logo-square {
+    fill: var(--ink);
+  }
+  [data-theme='light'] .logo-route {
+    stroke: var(--ink);
+  }
+  [data-theme='light'] .logo-ring {
+    fill: var(--accent);
+    stroke: var(--ink);
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14.5px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-variant-numeric: tabular-nums;
+    text-wrap: pretty;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
+    opacity: 1;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* 2px accent-ink ring with a 2px gap on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 2px;
+  }
+
+  /* Headings and regions that receive focus on route change. */
+  [tabindex='-1']:focus {
+    outline: none;
+  }
+}
+
+/* Nothing in the product needs animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

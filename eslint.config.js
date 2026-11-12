@@ -1,0 +1,82 @@
+// ESLint flat config (UI-N-07). Before this file existed `npm run
+// lint` exited 2 ("couldn't find an eslint.config"), so none of the
+// rules below, including the react-hooks ones behind the existing
+// `eslint-disable` comments, were ever enforced. CI now runs lint.
+//
+// Mirrors the Vite React + TS template, using only the plugins already
+// in devDependencies (no type-aware rules, so lint stays fast and needs
+// no tsconfig project wiring).
+import js from '@eslint/js';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+
+export default [
+  { ignores: ['dist', 'coverage', 'node_modules'] },
+  js.configs.recommended,
+  // parser + plugin + eslint-recommended overrides (turns off core rules
+  // TypeScript already checks, e.g. no-undef) + the recommended set.
+  ...tsPlugin.configs['flat/recommended'],
+  // public/theme-init.js runs as a classic script before the app.
+  {
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: { window: 'readonly', document: 'readonly' },
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      // rules-of-hooks stays an error; exhaustive-deps is the plugin's
+      // default warn (intentional omissions carry a disable comment
+      // with the reason next to them).
+      ...reactHooks.configs.recommended.rules,
+      'react-hooks/rules-of-hooks': 'error',
+      // Fast-refresh hint only (dev HMR granularity), not a correctness
+      // or security rule. Several modules export a hook or helper next
+      // to a component on purpose; splitting them is a refactor, so it
+      // stays a warning.
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // `_`-prefixed args / vars are the deliberate "unused" marker.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  // Lime is a fill, never a line: on the light background it is about
+  // 1.2:1, so a missed one fails silently. Thin things use accent-ink.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...['Literal[value', 'TemplateElement[value.raw'].map((node) => ({
+          selector: `${node}=/(^|[\\s:])(text|border|ring|outline|accent|fill|stroke|decoration)-accent([\\s/]|$)/]`,
+          message: 'Lime is a fill only: use accent-ink for text, borders, rings and native controls.',
+        })),
+      ],
+    },
+  },
+  // Playwright specs and helpers (ui#152): node-side test code, not React.
+  // Playwright's fixture callback is named `use`, which the hooks rules
+  // would read as a React hook.
+  {
+    files: ['e2e/**/*.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+];

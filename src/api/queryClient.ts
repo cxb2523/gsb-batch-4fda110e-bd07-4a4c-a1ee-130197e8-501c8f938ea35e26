@@ -1,0 +1,62 @@
+import { QueryClient } from '@tanstack/react-query';
+
+import { ApiError } from './client';
+
+import { setSessionExpiredHandler } from '../auth/stepUp';
+import { handleSessionExpired } from '../auth/sessionExpiry';
+
+/**
+ * Global QueryClient instance.
+ *
+ * Defaults chosen for the dashboard's read-mostly access pattern:
+ * - 30s staleTime: list queries don't refetch on every refocus
+ * - retry once on network blips; admin pages would rather show a clear
+ *   error than spin forever
+ * - never cache mutation responses; every mutation invalidates the
+ *   relevant list query explicitly
+ * - mutations `gcTime: 0` (UI-N-02): a finished mutation keeps its
+ *   variables and response in the MutationCache until gcTime after its
+ *   last observer goes (5 minutes by default), and some of them carry
+ *   passwords, values or tokens. With 0 it's dropped on the next tick
+ *   after `reset()` or unmount. Nothing in the SPA reads mutation state
+ *   after unmount (no useMutationState / useIsMutating). Hooks that
+ *   carry secrets also go through `useSensitiveMutation`, which pins
+ *   this per mutation and resets on unmount.
+ *
+ * Session expiry (UI-N-05): `client.ts` reports a 401 that isn't a
+ * step-up challenge or a login attempt, and `handleSessionExpired`
+ * signs the tab out. Wired here because it needs this instance.
+ *
+ * MFA-shaped error routing (401 step_up_required, 412
+ * mfa_enrollment_required, 401 factor_compromised) used to live here
+ * as queryCache/mutationCache `onError` hooks. It moved into
+ * `client.ts`'s `request()` after we shipped a Tier-2 reveal flow
+ * that called the raw `revealWrap()` helper directly (no TanStack
+ * hook), so the global onError never fired and the step-up modal
+ * never mounted. Routing at the source means BOTH paths — hooked
+ * and direct — get the same modal/redirect behaviour.
+ *
+ * Hard rule kept in mind: NEVER persist Query cache to localStorage.
+ * The default in-memory cache is correct — secret-adjacent metadata
+ * (mappings, requests) MUST NOT survive a tab close.
+ */
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      // Once, except when the api asked for a second factor (a step-up
+      // 401 or a 412 for a missing one). The fetch already opened the
+      // step-up modal; retrying would open it again after a Cancel.
+      retry: (failureCount, error) =>
+        failureCount < 1 && !(error instanceof ApiError && (error.stepUp || error.status === 412)),
+    },
+    mutations: {
+      retry: 0,
+      gcTime: 0,
+    },
+  },
+});
+
+setSessionExpiredHandler(() => handleSessionExpired(queryClient));
