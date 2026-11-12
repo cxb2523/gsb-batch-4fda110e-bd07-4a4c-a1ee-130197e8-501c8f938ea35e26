@@ -1405,10 +1405,20 @@ def setCache(signatureStr: str, response: str, finalUrl: str, contentType: str) 
             os.replace(tmpFilepath, filepath)
         conn.commit()
 
+# maxAgeSeconds value that disables the cache entirely and forces a fresh fetch.
+# 0 is not enough since entries created in the current second satisfy createdAt>=now.
+noCacheAge = -1
+
 def getCache(signatureStr: str, maxAgeSeconds: int = 0) -> tuple[bool, str, str, str]:
     """
-    Returns cachedFound, data, finalUrl 
+    Returns cachedFound, data, finalUrl, contentType
+
+    maxAgeSeconds == 0 keeps the legacy behaviour of accepting entries created
+    in the very same second, use noCacheAge to guarantee a cache miss
     """
+    if maxAgeSeconds < 0:
+        return False, "", "", ""
+
     key = sha1(signatureStr)
     result = None
     with sqlite3.connect(cacheDBPath) as conn:
@@ -1432,6 +1442,18 @@ def getCache(signatureStr: str, maxAgeSeconds: int = 0) -> tuple[bool, str, str,
             return True, f.read(), result["finalUrl"], result["contentType"]
     else:
         return False, "", "", ""
+
+def deleteCache(signatureStr: str) -> None:
+    """ removes a cache entry (db row and, if any, its file) """
+    key = sha1(signatureStr)
+    with sqlite3.connect(cacheDBPath) as conn:
+        conn.execute('DELETE FROM cache WHERE "key"=?', (key,))
+        conn.commit()
+
+    idStart = key[:2]
+    idTail = key[2:]
+    filePath = Path(os.path.join(cacheDirPath, f"{idStart}/{idTail}.html"))
+    if filePath.exists(): os.remove(str(filePath))
 
 def clearCache(maxAgeSeconds: int):
     ''' cleans up cache thats older than maxAgeSeconds '''
@@ -1527,26 +1549,44 @@ def resolveRelativeUrls(htmlStr: str, baseUrl: str) -> str:
     assert isinstance(response, str)
     return response
 
+def paginationMarkerSignature(multiSignatureStrRoot: str, pageCount: int) -> str:
+    """ signature of the virtual cache entry that marks 'pageCount' pages as available """
+    return multiSignatureStrRoot + "::::" + str(pageCount)
+
+def multiSignatureRoot(url: str, actions: list[Action], render: bool, sessionID: str, useStorage: bool) -> str:
+    """ signature root shared by all cached pages of one paginated request """
+    root = url + "::::" + generateSignature(actions) + "::::" + generateSignature(render)
+    if useStorage: root += "::::" + generateSignature(sessionID)
+    return root
+
+def paginationMarkerExists(signatureStr: str, maxAgeSeconds: int) -> bool:
+    """ a marker is only usable if it exists and is not older than maxAgeSeconds """
+    if maxAgeSeconds <= 0: return False
+    cachedFound, _, _, _ = getCache(signatureStr, maxAgeSeconds=maxAgeSeconds)
+    return cachedFound
+
 async def getMulti(url: str, render: bool = False, actions: list[Action] = [], debug: bool=False, maxCacheAge: int = 0, pagination: Pagination | None = None, proxy: str = "", browser: BrowserInfo|None = None, sessionID: str = "defaultSession", useStorage: bool = False) -> tuple[list[str], list[str], list[str]]:
-    """ 
+    """
     Behaves similar to Get but supports pagination
     Returns array for each return value of Get
     """
 
     htmlStrs, finalUrls, signatureStrs = [], [], []
 
-    multiSignatureStrRoot = url + "::::" + generateSignature(actions) + "::::" + generateSignature(render) 
-    if useStorage: multiSignatureStrRoot += "::::" + generateSignature(sessionID)
+    multiSignatureStrRoot = multiSignatureRoot(url, actions, render, sessionID, useStorage)
 
+    requestedPages = 1
     if pagination:
-        # Since we assume pagination requires browser state of the previous pages, 
-        # When pagination.maxPages is higher than before we need to go through rendering all previous pages again 
+        requestedPages = max(1, int(pagination.maxPages))
 
-        cachedFound, _, _, _ = getCache(multiSignatureStrRoot + "::::" + str(pagination.maxPages), maxAgeSeconds=maxCacheAge)
-        if not cachedFound: maxCacheAge = 0
+        # A marker only proves that a complete run for exactly this page count exists.
+        # It says nothing about other page counts, so a higher/lower requested count
+        # must refetch from page 1. maxCacheAge 0 (or an expired marker) always refetches too.
+        if not paginationMarkerExists(paginationMarkerSignature(multiSignatureStrRoot, requestedPages), maxCacheAge):
+            maxCacheAge = noCacheAge
 
     htmlStr, finalUrl, signatureStr = await get(
-        url=url, render=render, actions=actions, debug=debug, 
+        url=url, render=render, actions=actions, debug=debug,
         maxCacheAge=maxCacheAge, proxy=proxy, browser=browser, sessionID=sessionID, useStorage=useStorage
     )
 
@@ -1556,16 +1596,16 @@ async def getMulti(url: str, render: bool = False, actions: list[Action] = [], d
 
     if pagination:
         # create virtual cache entry for first page
-        setCache(multiSignatureStrRoot + "::::" + str(1), "", "", "")
+        setCache(paginationMarkerSignature(multiSignatureStrRoot, 1), "", "", "")
 
-        for i in range(int(pagination.maxPages)-1):
+        for i in range(requestedPages-1):
             actions = []
             url = ""
             if render:
-                actions = [Action(actionSelect, str(pagination.nextPageXPath), ""), Action(actionClick, "", ""), Action(actionSleep, str(pagination.clickDelaySeconds), "")] 
+                actions = [Action(actionSelect, str(pagination.nextPageXPath), ""), Action(actionClick, "", ""), Action(actionSleep, str(pagination.clickDelaySeconds), "")]
             else:
                 selection = html.fromstring(htmlStr).xpath(pagination.nextPageXPath)
-                if not selection or not isinstance(selection, list): 
+                if not selection or not isinstance(selection, list):
                     # matches action behaviour since it will raise an error if a selector is not found in browser inside ActionLoop
                     raise ScrapingException(f"No elements found with selector '{pagination.nextPageXPath}'")
                 elif not isinstance(selection[0], html.HtmlElement):
@@ -1577,12 +1617,8 @@ async def getMulti(url: str, render: bool = False, actions: list[Action] = [], d
 
             # signatureStr of previous page is to cache in combination with all previous pages urls, actions, ...
 
-            #TODO there is a possible issue if we get for example 
-            # first 4 pages then e.g. set maxCacheAge=0 and just get 2 pages 
-            # overwriting the first 2 pages of the 4 page cached request
-            # this may not be an issue
             htmlStr, finalUrl, signatureStr = await get(
-                url=url, render=render, actions=actions, debug=debug, 
+                url=url, render=render, actions=actions, debug=debug,
                 maxCacheAge=maxCacheAge, proxy=proxy, browser=browser, sessionID=sessionID, useStorage=useStorage, prevSignatureStr=signatureStr
             )
 
@@ -1591,9 +1627,17 @@ async def getMulti(url: str, render: bool = False, actions: list[Action] = [], d
             signatureStrs.append(signatureStr)
 
             # virtual cache entry for every page up to maxPages
-            # +1: since pagination starts at page 2, 
+            # +1: since pagination starts at page 2,
             # +1: 1-indexed
-            setCache(multiSignatureStrRoot + "::::" + str(i+1+1), "", "", "")
+            setCache(paginationMarkerSignature(multiSignatureStrRoot, i+1+1), "", "", "")
+
+        # A site may run out of pages before requestedPages is reached, so markers must
+        # describe what was actually fetched. Larger counts are stale (from an earlier
+        # longer run or simply never reached), they must not be reused later.
+        actualPages = len(htmlStrs)
+        setCache(paginationMarkerSignature(multiSignatureStrRoot, actualPages), "", "", "")
+        for n in range(actualPages + 1, requestedPages + 1):
+            deleteCache(paginationMarkerSignature(multiSignatureStrRoot, n))
 
     return htmlStrs, finalUrls, signatureStrs
 
