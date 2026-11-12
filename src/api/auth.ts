@@ -1,0 +1,967 @@
+"use client";
+
+import { atom, getDefaultStore, useAtomValue } from "jotai";
+import { atomEffect } from "jotai-effect";
+
+import { singleAsync } from "@/utils/async";
+import { logError } from "@/utils/log-error";
+import { withBasePath } from "@/config";
+
+import { disableGoogleAutoSelect } from "./google-identity";
+
+// Refresh when token is expiring soon
+const EXPIRING_SOON_MILLIS = 2 * 60 * 1000;
+
+const ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY = "auth:encrypted-health-token";
+const ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY = "auth:encrypted-drive-token";
+export const STAY_LOGGED_IN_MINUTES_STORAGE_KEY = "auth:stay-logged-in-minutes";
+const AUTH_TOKEN_UPDATE_EVENT_TYPE = "authtokenupdated";
+
+export const STAY_LOGGED_IN_DURATION_OPTIONS = [
+  { minutes: 8 * 60, label: "8 hours" },
+  { minutes: 24 * 60, label: "1 day" },
+  { minutes: 3 * 24 * 60, label: "3 days" },
+] as const;
+export const DEFAULT_STAY_LOGGED_IN_MINUTES = 3 * 24 * 60;
+export type StayLoggedInMinutes =
+  (typeof STAY_LOGGED_IN_DURATION_OPTIONS)[number]["minutes"];
+
+const SESSION_PATH = withBasePath("/auth/session");
+const SESSION_LOGOUT_PATH = withBasePath("/auth/session/logout");
+const HEALTH_ACCESS_PATH = withBasePath("/auth/health/access");
+const DRIVE_LOGOUT_PATH = withBasePath("/auth/drive/logout");
+const DRIVE_ACCESS_PATH = withBasePath("/auth/drive/access");
+
+interface SessionClaims {
+  sub: string;
+  exp: number;
+}
+
+interface TokenEndpointResponse {
+  accessToken?: string;
+  expiresIn?: number;
+  scope?: string;
+  sub?: string;
+  exp?: number;
+  encryptedHealthToken?: string;
+  encryptedDriveToken?: string;
+  error?: string;
+  errorDescription?: string;
+}
+
+interface CachedAccessToken {
+  accessToken: string;
+  expiresAt?: number;
+}
+
+let currentHealthAccessToken: CachedAccessToken | null = null;
+let currentDriveAccessToken: CachedAccessToken | null = null;
+let sessionClaims: SessionClaims | null = null;
+let encryptedHealthRefreshToken: string | null = null;
+let encryptedDriveRefreshToken: string | null = null;
+/** Bumped when Drive auth is cleared so in-flight refreshes cannot re-persist tokens. */
+let driveAuthGeneration = 0;
+
+/**
+ * After Google Health access is granted during login, keep the login box
+ * visible until the user finishes the remaining steps (Drive storage and
+ * remember-me).
+ */
+export const pendingRememberMeChoiceAtom = atom(false);
+
+/** True while a persisted Health token is being restored on page load. */
+export const authTokenRestorationPendingAtom = atom(true);
+
+/** Space-separated Google Health scopes from the latest access-token response. */
+export const grantedScopesAtom = atom<string | undefined>(undefined);
+
+/** Space-separated Google Drive scopes from the latest drive access-token response. */
+export const grantedDriveScopesAtom = atom<string | undefined>(undefined);
+
+function readEncryptedHealthTokenFromLocalStorage() {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY);
+}
+
+function readEncryptedDriveTokenFromLocalStorage() {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem(ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY);
+}
+
+/** True when an encrypted health token was saved for return visits. */
+export function hasPersistedEncryptedHealthToken() {
+  return !!readEncryptedHealthTokenFromLocalStorage();
+}
+
+/** Persist encrypted health/drive tokens across visits when the user chose remember me. */
+function isPersistingAuthTokens() {
+  return hasPersistedEncryptedHealthToken();
+}
+
+function isSessionUnexpired(claims: SessionClaims | null = sessionClaims) {
+  return !!claims?.sub && claims.exp * 1000 > Date.now();
+}
+
+function isStayLoggedInMinutes(value: number): value is StayLoggedInMinutes {
+  return STAY_LOGGED_IN_DURATION_OPTIONS.some(
+    (option) => option.minutes === value,
+  );
+}
+
+export function getStayLoggedInMinutes(): StayLoggedInMinutes {
+  if (typeof localStorage === "undefined") {
+    return DEFAULT_STAY_LOGGED_IN_MINUTES;
+  }
+
+  const stored = localStorage.getItem(STAY_LOGGED_IN_MINUTES_STORAGE_KEY);
+
+  if (stored === null) {
+    localStorage.setItem(
+      STAY_LOGGED_IN_MINUTES_STORAGE_KEY,
+      String(DEFAULT_STAY_LOGGED_IN_MINUTES),
+    );
+    return DEFAULT_STAY_LOGGED_IN_MINUTES;
+  }
+
+  const option = STAY_LOGGED_IN_DURATION_OPTIONS.find(
+    (item) => String(item.minutes) === stored,
+  );
+
+  if (option) {
+    return option.minutes;
+  }
+
+  localStorage.setItem(
+    STAY_LOGGED_IN_MINUTES_STORAGE_KEY,
+    String(DEFAULT_STAY_LOGGED_IN_MINUTES),
+  );
+  return DEFAULT_STAY_LOGGED_IN_MINUTES;
+}
+
+export function setStayLoggedInMinutes(minutes: number) {
+  if (!isStayLoggedInMinutes(minutes)) {
+    throw new RangeError("invalid stay-logged-in duration");
+  }
+
+  localStorage.setItem(STAY_LOGGED_IN_MINUTES_STORAGE_KEY, String(minutes));
+}
+
+export function getEncryptedHealthTokenFromStorage() {
+  if (encryptedHealthRefreshToken) {
+    return encryptedHealthRefreshToken;
+  }
+
+  const stored = readEncryptedHealthTokenFromLocalStorage();
+  if (stored) {
+    encryptedHealthRefreshToken = stored;
+  }
+
+  return encryptedHealthRefreshToken;
+}
+
+export function getEncryptedDriveTokenFromStorage() {
+  if (encryptedDriveRefreshToken) {
+    return encryptedDriveRefreshToken;
+  }
+
+  const stored = readEncryptedDriveTokenFromLocalStorage();
+  if (stored) {
+    encryptedDriveRefreshToken = stored;
+  }
+
+  return encryptedDriveRefreshToken;
+}
+
+/** True when an encrypted Google Drive refresh token is available. */
+export function hasEncryptedDriveToken() {
+  return !!getEncryptedDriveTokenFromStorage();
+}
+
+export interface AuthSession {
+  encryptedHealthToken: string | null;
+  encryptedDriveToken: string | null;
+  sub?: string;
+  exp?: number;
+}
+
+function getAuthSession(): AuthSession {
+  return {
+    encryptedHealthToken: getEncryptedHealthTokenFromStorage(),
+    encryptedDriveToken: getEncryptedDriveTokenFromStorage(),
+    sub: sessionClaims?.sub,
+    exp: sessionClaims?.exp,
+  };
+}
+
+function getCachedGrantedScope() {
+  return getDefaultStore().get(grantedScopesAtom);
+}
+
+function getCachedGrantedDriveScope() {
+  return getDefaultStore().get(grantedDriveScopesAtom);
+}
+
+/** Raw space-separated scope string from the latest access-token response. */
+export function getGrantedScopesRaw(): string | undefined {
+  return getCachedGrantedScope();
+}
+
+/** Raw space-separated scope string from the latest drive access-token response. */
+export function getGrantedDriveScopesRaw(): string | undefined {
+  return getCachedGrantedDriveScope();
+}
+
+function setGrantedHealthScope(scope: string | undefined) {
+  getDefaultStore().set(grantedScopesAtom, scope);
+}
+
+function setGrantedDriveScope(scope: string | undefined) {
+  getDefaultStore().set(grantedDriveScopesAtom, scope);
+}
+
+function notifyAuthChanged() {
+  window.dispatchEvent(new CustomEvent(AUTH_TOKEN_UPDATE_EVENT_TYPE));
+  // Keep the jotai snapshot in sync even if syncAuthTokenEffect isn't mounted yet.
+  getDefaultStore().set(authSessionAtom, getAuthSession());
+}
+
+export function getSessionSubject() {
+  return sessionClaims?.sub;
+}
+
+function saveSessionClaims(claims: SessionClaims | null) {
+  sessionClaims = claims;
+  notifyAuthChanged();
+}
+
+function saveEncryptedHealthToken(encryptedHealthToken?: string) {
+  if (!encryptedHealthToken) {
+    notifyAuthChanged();
+    return;
+  }
+
+  const shouldPersist = isPersistingAuthTokens();
+  encryptedHealthRefreshToken = encryptedHealthToken;
+
+  if (shouldPersist) {
+    localStorage.setItem(
+      ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY,
+      encryptedHealthToken,
+    );
+  }
+
+  notifyAuthChanged();
+}
+
+function saveEncryptedDriveToken(encryptedDriveToken?: string) {
+  if (!encryptedDriveToken) {
+    notifyAuthChanged();
+    return;
+  }
+
+  const shouldPersist = isPersistingAuthTokens();
+  encryptedDriveRefreshToken = encryptedDriveToken;
+
+  if (shouldPersist) {
+    localStorage.setItem(
+      ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY,
+      encryptedDriveToken,
+    );
+  }
+
+  notifyAuthChanged();
+}
+
+/**
+ * Store encrypted health/drive refresh tokens in memory and localStorage.
+ * Used by developer debug login; does not change the session cookie.
+ */
+export function saveEncryptedAuthTokens({
+  encryptedHealthToken,
+  encryptedDriveToken,
+}: {
+  encryptedHealthToken?: string;
+  encryptedDriveToken?: string;
+}) {
+  if (encryptedHealthToken) {
+    encryptedHealthRefreshToken = encryptedHealthToken;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(
+        ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY,
+        encryptedHealthToken,
+      );
+    }
+  }
+
+  if (encryptedDriveToken) {
+    encryptedDriveRefreshToken = encryptedDriveToken;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(
+        ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY,
+        encryptedDriveToken,
+      );
+    }
+  }
+
+  if (encryptedHealthToken || encryptedDriveToken) {
+    notifyAuthChanged();
+  }
+}
+
+/** Persist encrypted tokens and apply the selected session lifetime. */
+export async function persistAuthTokens(sessionLifetimeMinutes: number) {
+  await updateSessionLifetime(sessionLifetimeMinutes);
+
+  const encryptedHealthToken = getEncryptedHealthTokenFromStorage();
+  const encryptedDriveToken = getEncryptedDriveTokenFromStorage();
+
+  if (encryptedHealthToken) {
+    localStorage.setItem(
+      ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY,
+      encryptedHealthToken,
+    );
+  }
+
+  if (encryptedDriveToken) {
+    localStorage.setItem(
+      ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY,
+      encryptedDriveToken,
+    );
+  }
+
+  notifyAuthChanged();
+}
+
+async function updateSessionLifetime(sessionLifetimeMinutes: number) {
+  requireActiveSession();
+  const response = await fetch(SESSION_PATH, {
+    method: "PATCH",
+    mode: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ sessionLifetimeMinutes }),
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    forceSignOut();
+  }
+
+  if (!response.ok) {
+    throw new Error("session update request failed");
+  }
+
+  const payload: TokenEndpointResponse = await response.json();
+  if (!payload.sub || typeof payload.exp !== "number") {
+    throw new Error("invalid session update response");
+  }
+
+  saveSessionClaims({ sub: payload.sub, exp: payload.exp });
+}
+
+function cacheGrantedScope(scope?: string) {
+  if (!scope) {
+    return;
+  }
+
+  setGrantedHealthScope(scope);
+}
+
+function cacheGrantedDriveScope(scope?: string) {
+  if (!scope) {
+    return;
+  }
+
+  setGrantedDriveScope(scope);
+}
+
+function requireActiveSession() {
+  if (!isSessionUnexpired()) {
+    throw new Error("no session token available");
+  }
+}
+
+function cacheAccessToken(response: TokenEndpointResponse) {
+  const expiresInSeconds = Number(response.expiresIn);
+
+  if (!response.accessToken) {
+    return;
+  }
+
+  currentHealthAccessToken = {
+    accessToken: response.accessToken,
+    expiresAt: Number.isFinite(expiresInSeconds)
+      ? Date.now() + expiresInSeconds * 1000
+      : undefined,
+  };
+}
+
+function cacheDriveAccessToken(response: TokenEndpointResponse) {
+  const expiresInSeconds = Number(response.expiresIn);
+
+  if (!response.accessToken) {
+    return;
+  }
+
+  currentDriveAccessToken = {
+    accessToken: response.accessToken,
+    expiresAt: Number.isFinite(expiresInSeconds)
+      ? Date.now() + expiresInSeconds * 1000
+      : undefined,
+  };
+}
+
+function isCachedAccessTokenFresh(
+  cached: CachedAccessToken | null = currentHealthAccessToken,
+) {
+  return (
+    !!cached &&
+    !!cached.expiresAt &&
+    cached.expiresAt > Date.now() + EXPIRING_SOON_MILLIS
+  );
+}
+
+/** Clear local session + health JWE when a session/health endpoint returns 401/403. */
+function forceSignOut() {
+  disableGoogleAutoSelect();
+  clearAllAuthTokens();
+}
+
+export async function postSessionJson(
+  path: string,
+  body?: Record<string, string>,
+): Promise<TokenEndpointResponse> {
+  requireActiveSession();
+
+  const response = await fetch(path, {
+    method: "POST",
+    mode: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    forceSignOut();
+    let description = response.status === 401 ? "unauthorized" : "forbidden";
+
+    try {
+      const payload = (await response.json()) as TokenEndpointResponse;
+      description = payload.errorDescription || payload.error || description;
+    } catch {
+      // ignore JSON parse failures; still signed out locally
+    }
+
+    throw new Error(description);
+  }
+
+  const payload: TokenEndpointResponse = await response.json();
+
+  if (!response.ok || payload.error) {
+    throw new Error(
+      payload.errorDescription || payload.error || "token request failed",
+    );
+  }
+
+  return payload;
+}
+
+export function applyHealthTokenResponse(payload: TokenEndpointResponse) {
+  cacheAccessToken(payload);
+  cacheGrantedScope(payload.scope);
+  saveEncryptedHealthToken(payload.encryptedHealthToken);
+}
+
+export function applyDriveTokenResponse(
+  payload: TokenEndpointResponse,
+  generation = driveAuthGeneration,
+) {
+  if (generation !== driveAuthGeneration) {
+    return;
+  }
+
+  cacheDriveAccessToken(payload);
+  cacheGrantedDriveScope(payload.scope);
+  saveEncryptedDriveToken(payload.encryptedDriveToken);
+}
+
+export async function createSession(
+  idToken: string,
+  sessionLifetimeMinutes?: number,
+) {
+  const response = await fetch(SESSION_PATH, {
+    method: "POST",
+    mode: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      idToken,
+      ...(sessionLifetimeMinutes === undefined
+        ? {}
+        : { sessionLifetimeMinutes }),
+    }),
+  });
+
+  const payload: TokenEndpointResponse = await response.json();
+
+  if (
+    !response.ok ||
+    payload.error ||
+    !payload.sub ||
+    typeof payload.exp !== "number"
+  ) {
+    throw new Error(
+      payload.errorDescription || payload.error || "session request failed",
+    );
+  }
+
+  currentHealthAccessToken = null;
+  currentDriveAccessToken = null;
+  setGrantedHealthScope(undefined);
+  setGrantedDriveScope(undefined);
+  saveSessionClaims({ sub: payload.sub, exp: payload.exp });
+
+  if (sessionLifetimeMinutes !== undefined) {
+    await updateSessionLifetime(sessionLifetimeMinutes);
+  }
+
+  // Session JWTs can expire while the encrypted health refresh token remains.
+  // After Sign In With Google recreates the session, restore an access token
+  // (page-load restoreAccessToken already no-oped while the session was expired).
+  await restoreAccessToken();
+  await restoreDriveAccessToken();
+}
+
+async function requestAccessToken() {
+  const encryptedHealthToken = getEncryptedHealthTokenFromStorage();
+
+  if (!encryptedHealthToken) {
+    throw new Error("no encrypted token available");
+  }
+
+  const payload = await postSessionJson(HEALTH_ACCESS_PATH, {
+    encryptedHealthToken,
+  });
+  applyHealthTokenResponse(payload);
+
+  if (!payload.accessToken) {
+    throw new Error("no access token returned");
+  }
+
+  return payload.accessToken;
+}
+
+async function requestDriveAccessToken() {
+  const generation = driveAuthGeneration;
+  const encryptedDriveToken = getEncryptedDriveTokenFromStorage();
+
+  if (!encryptedDriveToken) {
+    throw new Error("no encrypted drive token available");
+  }
+
+  const payload = await postSessionJson(DRIVE_ACCESS_PATH, {
+    encryptedDriveToken,
+  });
+
+  if (generation !== driveAuthGeneration) {
+    throw new Error("drive authorization was cleared");
+  }
+
+  applyDriveTokenResponse(payload, generation);
+
+  if (!payload.accessToken) {
+    throw new Error("no drive access token returned");
+  }
+
+  return payload.accessToken;
+}
+
+export async function logout() {
+  const encryptedHealthToken = getEncryptedHealthTokenFromStorage();
+  const encryptedDriveToken = getEncryptedDriveTokenFromStorage();
+
+  disableGoogleAutoSelect();
+
+  try {
+    await postSessionLogout({
+      encryptedHealthToken,
+      encryptedDriveToken,
+    });
+  } finally {
+    clearAllAuthTokens(true);
+  }
+}
+
+/** Revoke Google Health and Drive access and invalidate all site sessions for this user. */
+export async function revokeAuthorization() {
+  const encryptedHealthToken = getEncryptedHealthTokenFromStorage();
+  const encryptedDriveToken = getEncryptedDriveTokenFromStorage();
+
+  disableGoogleAutoSelect();
+
+  try {
+    await postSessionLogout({
+      encryptedHealthToken,
+      encryptedDriveToken,
+      unlink: true,
+    });
+  } finally {
+    clearAllAuthTokens(true);
+  }
+}
+
+/**
+ * Revoke the Google Drive refresh token at Google and drop local Drive auth.
+ * Used when disabling Drive settings; does not end the Health session.
+ */
+export async function logoutDrive() {
+  const encryptedDriveToken = getEncryptedDriveTokenFromStorage();
+
+  try {
+    if (isSessionUnexpired() && encryptedDriveToken) {
+      await fetch(DRIVE_LOGOUT_PATH, {
+        method: "POST",
+        mode: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ encryptedDriveToken }),
+      });
+    }
+  } catch (e) {
+    logError("error disconnecting google drive", e);
+  } finally {
+    clearEncryptedDriveAuth();
+  }
+}
+
+async function postSessionLogout({
+  encryptedHealthToken,
+  encryptedDriveToken,
+  unlink = false,
+}: {
+  encryptedHealthToken: string | null;
+  encryptedDriveToken: string | null;
+  unlink?: boolean;
+}) {
+  const body: Record<string, string | boolean> = {};
+
+  if (encryptedHealthToken) {
+    body.encryptedHealthToken = encryptedHealthToken;
+  }
+
+  if (encryptedDriveToken) {
+    body.encryptedDriveToken = encryptedDriveToken;
+  }
+
+  if (unlink) {
+    body.unlink = true;
+  }
+
+  try {
+    await fetch(SESSION_LOGOUT_PATH, {
+      method: "POST",
+      mode: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    logError("error logging out", e);
+  }
+}
+
+export function isLoggedIn() {
+  return isSessionUnexpired() && !!getEncryptedHealthTokenFromStorage();
+}
+
+function clearAllAuthTokens(clearStayLoggedInPreference = false) {
+  currentHealthAccessToken = null;
+  currentDriveAccessToken = null;
+  sessionClaims = null;
+  encryptedHealthRefreshToken = null;
+  encryptedDriveRefreshToken = null;
+  setGrantedHealthScope(undefined);
+  setGrantedDriveScope(undefined);
+  getDefaultStore().set(pendingRememberMeChoiceAtom, false);
+
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem(ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY);
+    if (clearStayLoggedInPreference) {
+      localStorage.removeItem(STAY_LOGGED_IN_MINUTES_STORAGE_KEY);
+    }
+  }
+
+  notifyAuthChanged();
+}
+
+/**
+ * Drop the local encrypted Drive refresh token (memory and localStorage) and
+ * the in-memory Drive access token. Does not call Google's revoke endpoint or
+ * clear Health/session auth. Prefer {@link logoutDrive} when disconnecting
+ * Drive from settings.
+ */
+export function clearEncryptedDriveAuth() {
+  // Invalidate in-flight refreshes first, then drop the token before clearing
+  // scopes. Clearing scopes while the token still exists makes settingsStorageAtom
+  // treat scopes as "unknown" and call getFreshDriveAccessToken().
+  driveAuthGeneration += 1;
+  currentDriveAccessToken = null;
+  encryptedDriveRefreshToken = null;
+
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem(ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY);
+  }
+
+  setGrantedDriveScope(undefined);
+  notifyAuthChanged();
+}
+
+export const getFreshAccessToken = singleAsync(async () => {
+  requireActiveSession();
+
+  if (
+    isCachedAccessTokenFresh(currentHealthAccessToken) &&
+    currentHealthAccessToken
+  ) {
+    return currentHealthAccessToken.accessToken;
+  }
+
+  if (!getEncryptedHealthTokenFromStorage()) {
+    throw new Error("no encrypted token available");
+  }
+
+  try {
+    return await requestAccessToken();
+  } catch (e) {
+    logError("error while refreshing token", e);
+    currentHealthAccessToken = null;
+    throw e;
+  }
+});
+
+/** Exchange or reuse the in-memory Google Drive access token. */
+export const getFreshDriveAccessToken = singleAsync(async () => {
+  requireActiveSession();
+
+  if (
+    isCachedAccessTokenFresh(currentDriveAccessToken) &&
+    currentDriveAccessToken
+  ) {
+    return currentDriveAccessToken.accessToken;
+  }
+
+  if (!getEncryptedDriveTokenFromStorage()) {
+    throw new Error("no encrypted drive token available");
+  }
+
+  try {
+    return await requestDriveAccessToken();
+  } catch (e) {
+    logError("error while refreshing drive token", e);
+    currentDriveAccessToken = null;
+    throw e;
+  }
+});
+
+/**
+ * On page load, exchange a still-valid session for a Google Health access
+ * token. Access tokens are memory-only, so a reload has to fetch a new one.
+ */
+export async function restoreAccessToken() {
+  if (!isLoggedIn()) {
+    return;
+  }
+
+  try {
+    await getFreshAccessToken();
+  } catch (error) {
+    logError("error restoring access token", error);
+  }
+}
+
+/**
+ * On page load, exchange a still-valid session for a Google Drive access
+ * token when an encrypted drive refresh token is present.
+ */
+export async function restoreDriveAccessToken() {
+  if (!isSessionUnexpired() || !getEncryptedDriveTokenFromStorage()) {
+    return;
+  }
+
+  try {
+    await getFreshDriveAccessToken();
+  } catch (error) {
+    logError("error restoring drive access token", error);
+  }
+}
+
+/** Always exchange the stored encrypted refresh token for a new access token. */
+export async function forceTokenRefresh() {
+  currentHealthAccessToken = null;
+  return requestAccessToken();
+}
+
+/** Always exchange the stored encrypted drive refresh token for a new access token. */
+export async function forceDriveTokenRefresh() {
+  currentDriveAccessToken = null;
+  return requestDriveAccessToken();
+}
+
+export const authSessionAtom = atom<AuthSession>(getAuthSession());
+
+async function restoreSessionFromCookie() {
+  try {
+    const response = await fetch(SESSION_PATH, {
+      method: "GET",
+      mode: "same-origin",
+    });
+
+    if (!response.ok) {
+      saveSessionClaims(null);
+      return;
+    }
+
+    const payload: TokenEndpointResponse = await response.json();
+
+    if (!payload.sub || typeof payload.exp !== "number") {
+      saveSessionClaims(null);
+      return;
+    }
+
+    saveSessionClaims({ sub: payload.sub, exp: payload.exp });
+  } catch {
+    saveSessionClaims(null);
+  }
+}
+
+/** Watch for localStorage and in-memory auth changes. */
+export const syncAuthTokenEffect = atomEffect((get, set) => {
+  void (async () => {
+    set(authTokenRestorationPendingAtom, hasPersistedEncryptedHealthToken());
+    await restoreSessionFromCookie();
+    await restoreAccessToken();
+    set(authTokenRestorationPendingAtom, false);
+    await restoreDriveAccessToken();
+  })();
+
+  const storageListener = (event: StorageEvent) => {
+    if (
+      event.key === ENCRYPTED_HEALTH_TOKEN_STORAGE_KEY ||
+      event.key === ENCRYPTED_DRIVE_TOKEN_STORAGE_KEY
+    ) {
+      // Another tab changed persisted tokens; refresh memory from storage.
+      encryptedHealthRefreshToken = null;
+      encryptedDriveRefreshToken = null;
+      set(authSessionAtom, getAuthSession());
+    }
+  };
+
+  const updateListener = () => {
+    set(authSessionAtom, getAuthSession());
+  };
+
+  window.addEventListener("storage", storageListener);
+  window.addEventListener(AUTH_TOKEN_UPDATE_EVENT_TYPE, updateListener);
+
+  return () => {
+    window.removeEventListener("storage", storageListener);
+    window.removeEventListener(AUTH_TOKEN_UPDATE_EVENT_TYPE, updateListener);
+  };
+});
+
+function parseScopeSet(scope: string | undefined) {
+  return new Set((scope?.split(" ") ?? []).filter((entry) => entry.length > 0));
+}
+
+/** Get the full Google Health scope URLs granted for the current access token. */
+export function getAccessTokenScopes() {
+  return parseScopeSet(getCachedGrantedScope());
+}
+
+/** Get the Google Drive scope URLs granted for the current drive access token. */
+export function getDriveAccessTokenScopes() {
+  return parseScopeSet(getCachedGrantedDriveScope());
+}
+
+export function getMissingScopes(requiredScopes: Array<string>) {
+  const currentScopes = getAccessTokenScopes();
+  return requiredScopes.filter((scope) => !currentScopes.has(scope));
+}
+
+export function getMissingDriveScopes(requiredScopes: Array<string>) {
+  const currentScopes = getDriveAccessTokenScopes();
+  return requiredScopes.filter((scope) => !currentScopes.has(scope));
+}
+
+/** Reactive scopes from the latest access token; updates after token exchange. */
+export function useAccessTokenScopes() {
+  return parseScopeSet(useAtomValue(grantedScopesAtom));
+}
+
+/** Reactive Drive scopes from the latest drive access token. */
+export function useDriveAccessTokenScopes() {
+  return parseScopeSet(useAtomValue(grantedDriveScopesAtom));
+}
+
+/** Reactive missing-scope check; updates after the user grants additional permissions. */
+export function useMissingScopes(requiredScopes: Array<string> = []) {
+  const currentScopes = useAccessTokenScopes();
+  return requiredScopes.filter((scope) => !currentScopes.has(scope));
+}
+
+/** Reactive missing Drive-scope check. */
+export function useMissingDriveScopes(requiredScopes: Array<string> = []) {
+  const currentScopes = useDriveAccessTokenScopes();
+  return requiredScopes.filter((scope) => !currentScopes.has(scope));
+}
+
+export function hasTokenScope(scope: string) {
+  return getAccessTokenScopes().has(scope);
+}
+
+export function hasDriveTokenScope(scope: string) {
+  return getDriveAccessTokenScopes().has(scope);
+}
+
+export function useAuthSession() {
+  return useAtomValue(authSessionAtom);
+}
+
+/** True when a Drive encrypted refresh token is present (live check). */
+export function useDriveAuthEnabled() {
+  // Re-render when auth session or drive scopes change; read live storage/memory.
+  useAtomValue(authSessionAtom);
+  useAtomValue(grantedDriveScopesAtom);
+  return hasEncryptedDriveToken();
+}
+
+export function useLoggedIn() {
+  const session = useAtomValue(authSessionAtom);
+  return (
+    isSessionUnexpired(
+      session.sub && typeof session.exp === "number"
+        ? { sub: session.sub, exp: session.exp }
+        : null,
+    ) && !!session.encryptedHealthToken
+  );
+}
+
+export function useOpenIdSignedIn() {
+  const session = useAtomValue(authSessionAtom);
+  return isSessionUnexpired(
+    session.sub && typeof session.exp === "number"
+      ? { sub: session.sub, exp: session.exp }
+      : null,
+  );
+}

@@ -1,0 +1,86 @@
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import Immutable from "immutable";
+import { useAtom } from "jotai";
+import { FormContainer } from "react-hook-form-mui";
+
+import { MealTypeElement } from "@/components/nutrition/food/meal-type-element";
+import {
+  NutritionLogMealType,
+  buildUpdateFoodLogsMutation,
+  nutritionLogDay,
+} from "@/api/nutrition";
+import { showSuccessToast, withErrorToaster } from "@/components/toast";
+import { MissingScopesAlert } from "@/components/require-scopes";
+import { NUTRITION_WRITEONLY } from "@/config/google-health-scopes";
+import { useMissingScopes } from "@/api/auth";
+
+import { selectedFoodLogsAtom } from "../atoms";
+
+import { moveDialogOpenAtom } from "./atoms";
+
+interface MoveFoodLogsFormData {
+  mealType: NutritionLogMealType;
+}
+
+export function MoveFoodLogsDialog() {
+  const [open, setOpen] = useAtom(moveDialogOpenAtom);
+  const queryClient = useQueryClient();
+  const [selectedFoodLogs, setSelectedFoodLogs] = useAtom(selectedFoodLogsAtom);
+
+  const { mutateAsync: updateFoodLogs } = useMutation(
+    buildUpdateFoodLogsMutation(queryClient),
+  );
+
+  const cannotWrite = useMissingScopes([NUTRITION_WRITEONLY]).length > 0;
+
+  const onSubmit = withErrorToaster(async (values: MoveFoodLogsFormData) => {
+    await updateFoodLogs(
+      [...selectedFoodLogs.values()].map((foodLog) => ({
+        name: foodLog.name!,
+        nutritionLog: {
+          ...foodLog.nutritionLog,
+          mealType: values.mealType,
+        },
+        day: nutritionLogDay(foodLog.nutritionLog),
+      })),
+    );
+    showSuccessToast("Moved food logs");
+    setSelectedFoodLogs(Immutable.Set());
+    setOpen(false);
+  }, "Error moving food logs");
+
+  return (
+    <Dialog open={open} onClose={() => setOpen(false)}>
+      <FormContainer
+        onSuccess={onSubmit}
+        defaultValues={{ mealType: NutritionLogMealType.ANYTIME }}
+      >
+        <DialogTitle>Move to a different time?</DialogTitle>
+        <DialogContent>
+          <MissingScopesAlert scopes={[NUTRITION_WRITEONLY]}>
+            <div className="py-4 w-full">
+              <MealTypeElement
+                name="mealType"
+                fullWidth
+                disabled={cannotWrite}
+              />
+            </div>
+          </MissingScopesAlert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button type="submit" disabled={cannotWrite}>
+            Move
+          </Button>
+        </DialogActions>
+      </FormContainer>
+    </Dialog>
+  );
+}

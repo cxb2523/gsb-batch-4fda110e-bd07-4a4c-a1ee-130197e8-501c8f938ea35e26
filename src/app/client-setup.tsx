@@ -1,0 +1,96 @@
+"use client";
+
+import React, { useMemo } from "react";
+import { ThemeProvider, useMediaQuery } from "@mui/material";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { ConfirmProvider } from "material-ui-confirm";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useHydrateAtoms } from "jotai/utils";
+import { Toaster } from "mui-sonner";
+import { getDefaultStore, useAtom, Provider as JotaiProvider } from "jotai";
+import { queryClientAtom } from "jotai-tanstack-query";
+
+import { syncAuthTokenEffect } from "@/api/auth";
+import { GoogleOpenIdAutomaticSignIn } from "@/api/google-openid-automatic-sign-in";
+import {
+  redirectOnAccountNotLinkedEffect,
+  warnOnRateLimitExceededEffect,
+} from "@/api/request";
+import { FitbitMigrationLoginRedirect } from "@/components/login/fitbit-migration-login-redirect";
+import { GoogleIdentityProvider } from "@/components/login/google-identity";
+import { GOOGLE_OAUTH_CLIENT_ID } from "@/config";
+import "@/config/zod";
+import { analyticsPingEffect } from "@/storage/analytics";
+import {
+  dateFormatAtomEffect,
+  numberFormatAtomEffect,
+} from "@/storage/settings";
+
+import { buildTheme } from "./theme";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      gcTime: 24 * 60 * 60 * 1000,
+    },
+  },
+});
+
+function Setup({ children }: { children: React.ReactNode }) {
+  useHydrateAtoms([[queryClientAtom, queryClient]]);
+  useAtom(syncAuthTokenEffect);
+  useAtom(analyticsPingEffect);
+  useAtom(warnOnRateLimitExceededEffect);
+  useAtom(redirectOnAccountNotLinkedEffect);
+  useAtom(numberFormatAtomEffect);
+  useAtom(dateFormatAtomEffect);
+
+  return (
+    <React.Fragment key={`key-{pageRefreshKey}`}>
+      <GoogleOpenIdAutomaticSignIn />
+      <FitbitMigrationLoginRedirect />
+      {children}
+    </React.Fragment>
+  );
+}
+
+export default function ClientSideSetup({
+  children,
+  nonce,
+}: {
+  children: React.ReactNode;
+  nonce?: string;
+}) {
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const theme = useMemo(
+    () => buildTheme(prefersDarkMode ? "dark" : "light"),
+    [prefersDarkMode],
+  );
+  // Keep the document nonce from the first paint. Client navigations can
+  // receive a new x-nonce on RSC requests, but the document CSP does not change.
+  const documentNonce = React.useRef(nonce).current;
+
+  return (
+    <GoogleIdentityProvider
+      clientId={GOOGLE_OAUTH_CLIENT_ID}
+      nonce={documentNonce}
+    >
+      <ThemeProvider theme={theme}>
+        <JotaiProvider store={getDefaultStore()}>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <QueryClientProvider client={queryClient}>
+              <ConfirmProvider>
+                <Setup>{children}</Setup>
+                <Toaster />
+              </ConfirmProvider>
+            </QueryClientProvider>
+          </LocalizationProvider>
+        </JotaiProvider>
+      </ThemeProvider>
+    </GoogleIdentityProvider>
+  );
+}

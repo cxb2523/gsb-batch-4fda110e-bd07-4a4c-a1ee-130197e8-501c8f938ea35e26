@@ -1,0 +1,156 @@
+import { BarRounded } from "@visx/shape";
+import { useParentSize } from "@visx/responsive";
+import { scaleLinear, scaleBand } from "@visx/scale";
+import { AxisLeft } from "@visx/axis";
+import { Group } from "@visx/group";
+import { Text } from "@visx/text";
+import { Typography } from "@mui/material";
+
+import type { Sleep } from "@generated/orval/fetch/google-health-api/models";
+
+import { formatMinutes } from "@/utils/duration-formats";
+import { NumberFormats } from "@/utils/number-formats";
+import { usePortalTooltip } from "@/components/charts/visx/tooltip";
+
+import { getLevelSummary, SleepSummaryDatum, LEVEL_NAMES } from "./levels";
+
+export function SleepLevelSummaryChart({ sleep }: { sleep: Sleep }) {
+  const { parentRef, width, height } = useParentSize();
+  const {
+    containerRef,
+    TooltipInPortal,
+    tooltipLeft,
+    tooltipTop,
+    handleMouseMove,
+    hideTooltip,
+    tooltipOpen,
+    tooltipData,
+  } = usePortalTooltip<SleepSummaryDatum>();
+
+  const data: Array<SleepSummaryDatum> = getLevelSummary(sleep);
+  const maxMins = Math.max(...data.map((datum) => datum.value));
+  const levelIds = data.map((datum) => datum.level);
+
+  const margin = {
+    left: 70,
+    right: 100,
+    bottom: 30,
+  };
+
+  const chartHeight = Math.max(0, height - margin.bottom);
+  const chartWidth = Math.max(0, width - margin.left - margin.right);
+
+  const xScale = scaleLinear({
+    domain: [0, maxMins],
+    range: [margin.left, margin.left + chartWidth],
+  });
+
+  const yScale = scaleBand({
+    domain: levelIds,
+    range: [0, chartHeight],
+  });
+
+  const rectHeight = chartHeight / 4;
+  const barHeight = chartHeight / 5;
+
+  return (
+    <div ref={parentRef} className="relative h-full">
+      {width > 0 && height > margin.bottom && (
+        <svg ref={containerRef} width={width} height={height}>
+          <AxisLeft
+            left={margin.left}
+            scale={yScale}
+            hideTicks
+            hideAxisLine
+            tickFormat={(value) => LEVEL_NAMES[value]}
+            tickLabelProps={{ fill: "currentColor", fontSize: 14 }}
+          />
+          {data.map((datum) => {
+            const barWidth = Math.max(0, xScale(datum.value) - margin.left);
+            const canFitPercent = barWidth > 24;
+
+            return (
+              <Group
+                key={datum.level}
+                left={margin.left}
+                top={yScale(datum.level)!}
+              >
+                <BarRounded
+                  orientation="horizontal"
+                  x={0}
+                  y={4}
+                  width={barWidth}
+                  height={barHeight}
+                  fill={datum.color}
+                  right
+                  radius={8}
+                />
+                {canFitPercent && (
+                  <Text
+                    textAnchor="start"
+                    verticalAnchor="middle"
+                    x={10}
+                    y={barHeight / 2 + 4}
+                    fontSize={14}
+                    fontWeight={500}
+                  >
+                    {NumberFormats.PERCENT_FRACTION_DIGITS_0.format(
+                      datum.ratio,
+                    )}
+                  </Text>
+                )}
+                <Text
+                  textAnchor="start"
+                  verticalAnchor="middle"
+                  x={barWidth + 18}
+                  y={barHeight / 2 + 4}
+                  fontSize={14}
+                  fontWeight={500}
+                  fill="currentColor"
+                >
+                  {canFitPercent
+                    ? formatMinutes(datum.value)
+                    : `${formatMinutes(
+                        datum.value,
+                      )} (${NumberFormats.PERCENT_FRACTION_DIGITS_0.format(
+                        datum.ratio,
+                      )})`}
+                </Text>
+                <rect
+                  width={Math.max(0, width - margin.left)}
+                  height={rectHeight}
+                  fill="transparent"
+                  onMouseMove={(event) => handleMouseMove(event, datum)}
+                  onMouseOut={hideTooltip}
+                />
+              </Group>
+            );
+          })}
+        </svg>
+      )}
+      {tooltipOpen && tooltipData && (
+        <TooltipInPortal
+          top={tooltipTop}
+          left={tooltipLeft}
+          className="min-w-max z-[1500]"
+        >
+          <div>
+            <Typography className="m-2">
+              <span>
+                {tooltipData.count > 0 ? (
+                  <>
+                    {LEVEL_NAMES[tooltipData.level]} ({tooltipData.count}
+                    x):{" "}
+                  </>
+                ) : (
+                  <>{LEVEL_NAMES[tooltipData.level]}: </>
+                )}
+              </span>
+              <b>{formatMinutes(tooltipData.value)}</b>
+            </Typography>
+          </div>
+        </TooltipInPortal>
+      )}
+    </div>
+  );
+}

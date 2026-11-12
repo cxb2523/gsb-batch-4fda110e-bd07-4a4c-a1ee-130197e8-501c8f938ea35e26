@@ -1,0 +1,207 @@
+import {
+  Checkbox,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  Stack,
+  Tab,
+  Typography,
+} from "@mui/material";
+import { BarChart } from "@mui/x-charts";
+import { TabContext, TabList, TabPanel } from "@mui/lab";
+import { Suspense, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
+import { dropWhile, sumBy } from "es-toolkit";
+
+import { buildActivityIntradayQuery } from "@/api/intraday";
+import { physicalRangeForLocalDay } from "@/api/datetime";
+import { DateFormats } from "@/utils/date-formats";
+import { NumberFormats } from "@/utils/number-formats";
+import { aggregateByHour } from "@/components/charts/timeseries/aggregation";
+import { HeaderBar } from "@/components/layout/rows";
+import { FormRows } from "@/components/forms/form-row";
+import { getGoalsAtom } from "@/storage/goals";
+
+import { RenderDialogContentProps } from "../tile-with-dialog";
+import { useSelectedDay } from "../../state";
+import { useTileSetting } from "../tile";
+
+import {
+  DailyGoalSummary,
+  GoalSettings,
+  useDayAndWeekSummary,
+  WeeklyGoalSummary,
+} from "./goals";
+import { IntradayIntervalSelect } from "./aggregation";
+
+interface StepsTileSettings {
+  defaultTab: string;
+  interval: "15min" | "hour";
+  trim: boolean;
+}
+
+export default function StepsDialogContent(props: RenderDialogContentProps) {
+  const [currentTab, setCurrentTab] = useTileSetting<
+    StepsTileSettings,
+    "defaultTab"
+  >("defaultTab", "overview");
+
+  return (
+    <>
+      <DialogTitle align="center">Steps</DialogTitle>
+      <DialogContent>
+        <TabContext value={currentTab}>
+          <TabList onChange={(event, value) => setCurrentTab(value)}>
+            <Tab label="Overview" value="overview" />
+            <Tab label="Detailed" value="intraday" />
+            <Tab label="Settings" value="settings" />
+          </TabList>
+          <TabPanel value="overview">
+            <Suspense>
+              <Overview />
+            </Suspense>
+          </TabPanel>
+          <TabPanel value="intraday">
+            <Suspense>
+              <StepsIntraday />
+            </Suspense>
+          </TabPanel>
+          <TabPanel value="settings">
+            <Suspense>
+              <Settings />
+            </Suspense>
+          </TabPanel>
+        </TabContext>
+      </DialogContent>
+      <DialogActions>{props.closeButton}</DialogActions>
+    </>
+  );
+}
+
+function Overview() {
+  const { dayValue: currentTotal, weekData } = useDayAndWeekSummary("steps");
+  const dailyGoal = useAtomValue(getGoalsAtom("steps", "daily"));
+  const weeklyGoal = useAtomValue(getGoalsAtom("steps", "weekly"));
+
+  const weeklySteps = sumBy(weekData, (entry) => Number(entry.value));
+
+  return (
+    <Stack direction="row" justifyContent="center">
+      <DailyGoalSummary
+        currentTotal={currentTotal}
+        dailyGoal={dailyGoal?.value}
+        unit="steps"
+      />
+      <WeeklyGoalSummary
+        currentTotal={weeklySteps}
+        weeklyGoal={weeklyGoal?.value}
+        unit="steps"
+      />
+    </Stack>
+  );
+}
+
+function StepsIntraday() {
+  const day = useSelectedDay();
+  const { start: startTime, end: endTime } = physicalRangeForLocalDay(day);
+  const [interval, setInterval] = useTileSetting<StepsTileSettings, "interval">(
+    "interval",
+    "hour",
+  );
+  const [trim, setTrim] = useTileSetting<StepsTileSettings, "trim">(
+    "trim",
+    false,
+  );
+
+  const { data } = useQuery(
+    buildActivityIntradayQuery("steps", "15min", startTime, endTime),
+  );
+
+  const processedData = useMemo(() => {
+    let processed = data;
+
+    if (!data) {
+      return data;
+    }
+
+    if (interval === "hour") {
+      processed = aggregateByHour(data);
+    }
+
+    if (trim) {
+      processed = processed && dropWhile(processed, (data) => !data.value);
+    }
+
+    return processed;
+  }, [data, interval, trim]);
+
+  return (
+    <>
+      <HeaderBar justifyContent="end">
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={trim}
+              onChange={(event, checked) => setTrim(checked)}
+            />
+          }
+          label="Skip start of day"
+        />
+        <IntradayIntervalSelect value={interval} onChange={setInterval} />
+      </HeaderBar>
+      <BarChart
+        grid={{ horizontal: true }}
+        height={300}
+        loading={!data}
+        dataset={processedData ?? []}
+        xAxis={[
+          {
+            dataKey: "dateTime",
+            scaleType: "band",
+            valueFormatter: DateFormats.formatTime,
+          },
+        ]}
+        yAxis={[{ label: "Steps" }]}
+        series={[
+          {
+            dataKey: "value",
+            label: "Steps",
+            valueFormatter: (value) =>
+              value || value === 0
+                ? NumberFormats.FRACTION_DIGITS_0.format(value)
+                : "",
+          },
+        ]}
+      />
+    </>
+  );
+}
+
+function Settings() {
+  return (
+    <>
+      <Typography variant="h6">Goals</Typography>
+      <Typography variant="body1">
+        Set daily and weekly goals. Weekly goals are only shown in the Overview
+        tab here.
+      </Typography>
+
+      <FormRows mt={4}>
+        <GoalSettings
+          metric="steps"
+          period="daily"
+          label="Daily step goal"
+          unit="steps"
+        />
+        <GoalSettings
+          metric="steps"
+          period="weekly"
+          label="Weekly step goal"
+          unit="steps"
+        />
+      </FormRows>
+    </>
+  );
+}

@@ -1,0 +1,61 @@
+import { useQuery } from "@tanstack/react-query";
+import { useContext } from "react";
+import dayjs from "dayjs";
+
+import { buildTimeSeriesQuery, TimeSeriesResource } from "@/api/times-series";
+import { physicalRangeForLocalDay } from "@/api/datetime";
+
+import { TimeSeriesChartContext } from "./context";
+
+export interface TimeSeriesDatum {
+  dateTime: string | Date;
+}
+
+export interface StringValueDatum {
+  dateTime: string | Date;
+  value: string;
+}
+
+export function useTimeSeriesQuery<TEntry = StringValueDatum>(
+  resource: TimeSeriesResource,
+) {
+  const {
+    range: { startDay, endDay },
+  } = useContext(TimeSeriesChartContext);
+  return buildTimeSeriesQuery<TEntry>(resource, startDay, endDay);
+}
+
+export function useTimeSeriesData<TEntry = StringValueDatum>(
+  resource: TimeSeriesResource,
+) {
+  const query = useTimeSeriesQuery<TEntry>(resource);
+  const { data } = useQuery(query);
+
+  return data;
+}
+
+export function useRangeInfo() {
+  const {
+    range: { startDay, endDay },
+  } = useContext(TimeSeriesChartContext);
+
+  const numDays = endDay.diff(startDay, "days");
+  const isIntraday = numDays === 0;
+  const physicalDay = isIntraday
+    ? physicalRangeForLocalDay(startDay)
+    : undefined;
+
+  return {
+    numDays,
+    isIntraday,
+    startDay: physicalDay?.start ?? startDay,
+    endDay: physicalDay?.end ?? startDay,
+  };
+}
+
+export function removeFutureDates<TDatum extends TimeSeriesDatum>(
+  data?: Array<TDatum>,
+) {
+  const today = dayjs().endOf("day");
+  return data?.filter((data) => !dayjs(data.dateTime).isAfter(today));
+}

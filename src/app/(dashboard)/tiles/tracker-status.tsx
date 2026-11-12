@@ -1,0 +1,210 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+import {
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  ListItemText,
+  MenuItem,
+  Select,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { sortBy } from "es-toolkit";
+import {
+  Battery0Bar,
+  Battery1Bar,
+  Battery3Bar,
+  Battery4Bar,
+  Battery5Bar,
+  Battery6Bar,
+  BatteryFull,
+  Sync,
+} from "@mui/icons-material";
+import dayjs from "dayjs";
+import { useId } from "react";
+
+import { NumberFormats } from "@/utils/number-formats";
+import {
+  buildGetDevicesQuery,
+  getPairedDeviceId,
+  PairedDevice,
+  PairedDeviceDeviceType,
+} from "@/api/devices";
+import { DateFormats } from "@/utils/date-formats";
+import { FormRow } from "@/components/forms/form-row";
+
+import { RenderDialogContentProps, TileWithDialog } from "./tile-with-dialog";
+import { useTileSetting, useTileSettings } from "./tile";
+
+interface TrackerStatusTileSettings {
+  deviceId?: string;
+}
+
+interface ResolveDeviceOptions {
+  deviceId?: string;
+}
+
+export function resolveDevice(
+  devices: PairedDevice[],
+  { deviceId }: ResolveDeviceOptions = {},
+) {
+  const sortedDevices = sortBy(devices, ["lastSyncTime"]).toReversed();
+
+  let tracker =
+    deviceId &&
+    sortedDevices.find((device) => getPairedDeviceId(device) === deviceId);
+
+  if (tracker) {
+    return tracker;
+  }
+
+  tracker = sortedDevices.find(
+    (device) =>
+      device.deviceType === PairedDeviceDeviceType.TRACKER &&
+      device.deviceVersion !== "MobileTrack",
+  );
+
+  if (!tracker || !tracker.lastSyncTime) {
+    tracker = sortedDevices.find(
+      (device) => device.deviceVersion === "MobileTrack",
+    );
+  }
+
+  return tracker;
+}
+
+export function TrackerStatusTileContent() {
+  const [settings] = useTileSettings<TrackerStatusTileSettings>({});
+  const { data: devices } = useSuspenseQuery(buildGetDevicesQuery());
+
+  const tracker = resolveDevice(devices, { deviceId: settings.deviceId });
+
+  const today = dayjs();
+  const lastSync = tracker?.lastSyncTime && dayjs(tracker.lastSyncTime);
+  const batteryLevel = tracker?.batteryLevel;
+  const showBattery =
+    tracker?.deviceVersion !== "MobileTrack" && batteryLevel != null;
+
+  return (
+    <TileWithDialog dialogComponent={TrackerStatusTileDialogContent}>
+      <Stack
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        className="h-full"
+        rowGap={1}
+      >
+        {lastSync && (
+          <>
+            {showBattery && (
+              <Stack direction="row" alignItems="center" columnGap={1}>
+                <BatteryIcon level={batteryLevel} />
+                <Typography>
+                  {NumberFormats.FRACTION_DIGITS_0.format(batteryLevel)}%
+                </Typography>
+              </Stack>
+            )}
+            <Stack direction="row" alignItems="center" columnGap={1}>
+              <Sync titleAccess="Last sync" />
+              <Typography variant="subtitle2">
+                {lastSync.isSame(today, "day")
+                  ? DateFormats.TIME.format(lastSync.toDate())
+                  : DateFormats.formatShortDate(lastSync)}
+              </Typography>
+            </Stack>
+          </>
+        )}
+        {!lastSync && <Typography>No devices</Typography>}
+      </Stack>
+    </TileWithDialog>
+  );
+}
+
+function BatteryIcon({ level }: { level: number }) {
+  if (level > 95) {
+    return <BatteryFull />;
+  } else if (level > 80) {
+    return <Battery6Bar />;
+  } else if (level > 65) {
+    return <Battery5Bar />;
+  } else if (level > 50) {
+    return <Battery4Bar />;
+  } else if (level > 35) {
+    return <Battery3Bar />;
+  } else if (level > 15) {
+    return <Battery1Bar />;
+  } else {
+    return <Battery0Bar />;
+  }
+}
+
+function formatOptionDetails(device: PairedDevice) {
+  const parts: string[] = [];
+
+  if (device.lastSyncTime) {
+    parts.push(
+      `Last sync: ${DateFormats.formatShortDate(dayjs(device.lastSyncTime))}`,
+    );
+  }
+
+  if (device.deviceVersion !== "MobileTrack" && device.batteryLevel != null) {
+    parts.push(`${device.batteryLevel}%`);
+  }
+
+  return parts.join(" \u2022 ");
+}
+
+function TrackerStatusTileDialogContent({
+  closeButton,
+}: RenderDialogContentProps) {
+  const [deviceId, setDeviceId] = useTileSetting<
+    TrackerStatusTileSettings,
+    "deviceId"
+  >("deviceId", undefined);
+  const { data: devices } = useSuspenseQuery(buildGetDevicesQuery());
+  const labelId = useId();
+
+  return (
+    <>
+      <DialogTitle>Device status</DialogTitle>
+      <DialogContent>
+        <Typography>Select a device to display.</Typography>
+        <FormRow mt={4}>
+          <FormControl fullWidth className="min-w-[200px]" hiddenLabel>
+            <InputLabel id={labelId} shrink>
+              Device
+            </InputLabel>
+            <Select
+              displayEmpty
+              value={deviceId ?? ""}
+              labelId={labelId}
+              label="Device"
+              onChange={(event) => setDeviceId(event.target.value || undefined)}
+            >
+              <MenuItem value="">Most recent</MenuItem>
+              {devices
+                .filter(
+                  (device) =>
+                    device.deviceType === PairedDeviceDeviceType.TRACKER,
+                )
+                .map((device) => (
+                  <MenuItem
+                    key={device.name ?? getPairedDeviceId(device)}
+                    value={getPairedDeviceId(device)}
+                  >
+                    <ListItemText
+                      primary={device.deviceVersion}
+                      secondary={formatOptionDetails(device)}
+                    />
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </FormRow>
+      </DialogContent>
+      <DialogActions>{closeButton}</DialogActions>
+    </>
+  );
+}

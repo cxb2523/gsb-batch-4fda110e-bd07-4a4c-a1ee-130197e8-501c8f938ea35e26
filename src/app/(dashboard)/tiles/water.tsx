@@ -1,0 +1,97 @@
+import Image from "next/image";
+import {
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from "@mui/material";
+import { useSuspenseQueries } from "@tanstack/react-query";
+import React, { Suspense } from "react";
+import { useAtomValue } from "jotai";
+
+import { buildHydrationLogQuery } from "@/api/nutrition";
+import { useUnits } from "@/config/units";
+import { millilitersFromWaterGoal } from "@/config/units";
+import NumericStat from "@/components/numeric-stat";
+import { getGoalsAtom } from "@/storage/goals";
+
+import { useSelectedDay } from "../state";
+
+import Wave from "./assets/wave.svg";
+import { RenderDialogContentProps, TileWithDialog } from "./tile-with-dialog";
+import { sumBy } from "es-toolkit";
+
+const WaterEntryPanel = React.lazy(
+  () => import("@/components/nutrition/water-entry-panel"),
+);
+
+export default function WaterTileContent() {
+  const day = useSelectedDay();
+  const units = useUnits();
+  const waterGoal = useAtomValue(getGoalsAtom("waterVolume", "daily"));
+
+  const [{ data: hydrationLog }] = useSuspenseQueries({
+    queries: [buildHydrationLogQuery(day)],
+  });
+
+  const waterGoalMl = waterGoal
+    ? millilitersFromWaterGoal(waterGoal.value, waterGoal.unit)
+    : undefined;
+  const waterConsumedMl = sumBy(
+    hydrationLog.dataPoints ?? [],
+    (dataPoint) => dataPoint.hydrationLog?.amountConsumed?.milliliters ?? 0,
+  );
+
+  const { localizedWaterVolumeName, localizedWaterVolume } = units;
+
+  const displayedVolume = localizedWaterVolume(
+    waterGoalMl != null ? waterGoalMl - waterConsumedMl : waterConsumedMl,
+  );
+
+  const ratio =
+    waterGoalMl != null ? Math.min(waterConsumedMl / waterGoalMl, 1.0) : 0;
+
+  return (
+    <TileWithDialog dialogComponent={WaterTileDialogContent}>
+      <div className="size-full max-h-full relative overflow-hidden">
+        <Image
+          src={Wave}
+          alt=""
+          className="absolute size-full opacity-20 bottom-0 object-cover"
+          style={{
+            transform: `translateY(${100 - ratio * 100}%)`,
+          }}
+        />
+        <div className="absolute p-2 inset-0">
+          <div className="size-full flex flex-col justify-center">
+            <div className="flex flex-col items-center">
+              <NumericStat
+                value={displayedVolume}
+                unit={localizedWaterVolumeName}
+              />
+              {waterGoalMl != null && (
+                <Typography variant="body2" component="span">
+                  to drink
+                </Typography>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </TileWithDialog>
+  );
+}
+
+function WaterTileDialogContent(props: RenderDialogContentProps) {
+  return (
+    <>
+      <DialogTitle align="center">Water</DialogTitle>
+      <DialogContent>
+        <Suspense>
+          <WaterEntryPanel />
+        </Suspense>
+      </DialogContent>
+      <DialogActions>{props.closeButton}</DialogActions>
+    </>
+  );
+}
