@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Avarma heat pump",
+        "description": "RS485-to-Ethernet gateway on COMM3 of the heat pump (9600 8N1). Transparent mode → 'RTU over TCP', Modbus TCP gateway mode → 'Modbus TCP'.",
+        "data": {
+          "host": "Gateway IP address",
+          "port": "Port",
+          "slave": "Slave ID (default 1)",
+          "protocol": "Protocol"
+        }
+      },
+      "reconfigure": {
+        "title": "Change connection",
+        "description": "New gateway IP address, port, slave ID or protocol. Options, counters and history are kept.",
+        "data": {
+          "host": "Gateway IP address",
+          "port": "Port",
+          "slave": "Slave ID (default 1)",
+          "protocol": "Protocol"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No answer from the heat pump. Check protocol, IP/port, A/B wiring and 9600 8N1 on the gateway."
+    },
+    "abort": {
+      "already_configured": "This heat pump is already configured.",
+      "reconfigure_successful": "Connection changed, the integration has been reloaded."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "The technician code is only stored locally in Home Assistant. ⚠️ Technician parameters are dangerous – only change them if you know exactly what they do.",
+        "data": {
+          "tech_code": "Technician code (empty = technician parameters locked)",
+          "tech_switch": "Allow technician unlock by switch (stored code, no typing)",
+          "notify_service": "Push notification to (e.g. notify.mobile_app_my_phone, empty = none)",
+          "clock_sync": "Set heat pump clock daily at 03:17",
+          "scan_interval": "Polling interval (seconds)",
+          "dashboard": "Provide the dashboard “Wärmepumpe” (updated automatically with the integration)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "protocol": {
+      "options": {
+        "rtuovertcp": "Modbus RTU over TCP (transparent gateway)",
+        "tcp": "Modbus TCP (gateway converts)"
+      }
+    }
+  }
+}

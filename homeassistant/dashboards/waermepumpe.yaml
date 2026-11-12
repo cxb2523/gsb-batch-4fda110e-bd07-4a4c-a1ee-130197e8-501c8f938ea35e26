@@ -1,0 +1,2222 @@
+# Dashboard „Wärmepumpe“ – in HA: Einstellungen → Dashboards → Neu → (leer) → ⋮ → Raw-Konfigurationseditor → Inhalt ersetzen
+views:
+- title: Arbeitsstatus
+  path: arbeitsstatus
+  icon: mdi:heat-pump
+  type: sections
+  max_columns: 3
+  dense_section_placement: true
+  sections:
+  - type: grid
+    column_span: 2
+    cards:
+    - type: custom:avarma-schema-card
+      image: /avarma_static/schema.svg?v=11
+      elements:
+      - type: state-label
+        entity: sensor.wp_aussentemperatur
+        style:
+          left: 20.33%
+          top: 11.94%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_lufter_drehzahl
+        style:
+          left: 5.85%
+          top: 22.39%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_niederdruck_ps
+        style:
+          left: 45.93%
+          top: 14.93%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(-100%,-50%)
+      - type: state-label
+        entity: sensor.wp_sauggas_ts
+        style:
+          left: 45.93%
+          top: 24.63%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(-100%,-50%)
+      - type: state-label
+        entity: sensor.wp_hochdruck_pd
+        style:
+          left: 67.48%
+          top: 14.93%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(-100%,-50%)
+      - type: state-label
+        entity: sensor.wp_heissgas_td
+        style:
+          left: 67.48%
+          top: 24.63%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(-100%,-50%)
+      - type: state-label
+        entity: sensor.wp_verdampfer_tc
+        style:
+          left: 22.28%
+          top: 50.00%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_kompressor_strom
+        style:
+          left: 52.85%
+          top: 43.58%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_kompressor_frequenz
+        style:
+          left: 52.85%
+          top: 51.04%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_eev_schritte
+        style:
+          left: 62.36%
+          top: 43.28%
+          color: '#ffffff'
+          font-size: 1.79cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_vorlauf_tout
+        style:
+          left: 92.68%
+          top: 21.64%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_durchfluss_q
+        style:
+          left: 92.68%
+          top: 38.51%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_rucklauf_tin
+        style:
+          left: 92.68%
+          top: 52.99%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_ty_kaltemittel_flussig
+        style:
+          left: 72.03%
+          top: 67.46%
+          color: '#ffffff'
+          font-size: 2.11cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_kondensationstemperatur
+        style:
+          left: 94.47%
+          top: 69.85%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_verdampfungstemperatur
+        style:
+          left: 94.47%
+          top: 74.78%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_vorlauf_soll_p2
+        style:
+          left: 94.47%
+          top: 79.70%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_pumpe_c1_leistung
+        style:
+          left: 94.47%
+          top: 84.63%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_warmwasser_tdhw
+        style:
+          left: 94.47%
+          top: 89.55%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_ipm_temperatur
+        style:
+          left: 94.47%
+          top: 94.48%
+          color: '#ffffff'
+          font-size: 1.63cqw
+          font-weight: '700'
+          white-space: nowrap
+          line-height: '1'
+      - type: state-label
+        entity: sensor.wp_modus
+        style:
+          left: 2.44%
+          top: 81.34%
+          color: '#cfe3ff'
+          font-size: 1.63cqw
+          font-weight: '600'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(0,-50%)
+        prefix: 'Modus: '
+      - type: state-label
+        entity: sensor.wp_aktive_fehler
+        style:
+          left: 2.44%
+          top: 85.82%
+          color: '#cfe3ff'
+          font-size: 1.63cqw
+          font-weight: '600'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(0,-50%)
+        prefix: 'Fehler: '
+      - type: state-label
+        entity: sensor.wp_thermische_leistung
+        style:
+          left: 2.44%
+          top: 90.30%
+          color: '#cfe3ff'
+          font-size: 1.63cqw
+          font-weight: '600'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(0,-50%)
+        prefix: 'Wärmeleistung: '
+      - type: state-label
+        entity: sensor.wp_spreizung_vl_rl
+        style:
+          left: 2.44%
+          top: 94.78%
+          color: '#cfe3ff'
+          font-size: 1.63cqw
+          font-weight: '600'
+          white-space: nowrap
+          line-height: '1'
+          transform: translate(0,-50%)
+        prefix: 'Spreizung: '
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c1
+          style:
+            left: 37.80%
+            top: 81.34%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c1
+          style:
+            left: 37.80%
+            top: 81.34%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c2
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c2
+          style:
+            left: 37.80%
+            top: 85.82%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c2
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c2
+          style:
+            left: 37.80%
+            top: 85.82%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c3
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c3
+          style:
+            left: 37.80%
+            top: 90.30%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c3
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_pumpe_c3
+          style:
+            left: 37.80%
+            top: 90.30%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ventil_g1
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ventil_g1
+          style:
+            left: 52.03%
+            top: 81.34%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ventil_g1
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ventil_g1
+          style:
+            left: 52.03%
+            top: 81.34%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ventil_g2
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ventil_g2
+          style:
+            left: 52.03%
+            top: 85.82%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ventil_g2
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ventil_g2
+          style:
+            left: 52.03%
+            top: 85.82%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_4_wege_ventil
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_4_wege_ventil
+          style:
+            left: 52.03%
+            top: 90.30%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_4_wege_ventil
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_4_wege_ventil
+          style:
+            left: 52.03%
+            top: 90.30%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_e_heizung_e1
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_e_heizung_e1
+          style:
+            left: 66.26%
+            top: 81.34%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_e_heizung_e1
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_e_heizung_e1
+          style:
+            left: 66.26%
+            top: 81.34%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_e_heizung_e2
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_e_heizung_e2
+          style:
+            left: 66.26%
+            top: 85.82%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_e_heizung_e2
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_e_heizung_e2
+          style:
+            left: 66.26%
+            top: 85.82%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ol_heizung
+          state: 'on'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ol_heizung
+          style:
+            left: 66.26%
+            top: 90.30%
+            color: '#4cd964'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_ol_heizung
+          state: 'off'
+        elements:
+        - type: state-label
+          entity: binary_sensor.wp_ausgang_ol_heizung
+          style:
+            left: 66.26%
+            top: 90.30%
+            color: '#ff5a4f'
+            font-size: 1.22cqw
+            font-weight: '700'
+            white-space: nowrap
+            line-height: '1'
+            transform: translate(-100%,-50%)
+      - type: conditional
+        conditions:
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: '0'
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: unavailable
+        - entity: sensor.wp_lufter_drehzahl
+          state_not: unknown
+        elements:
+        - type: icon
+          icon: mdi:fan
+          style:
+            left: calc(5.69% - 3.25cqw)
+            top: calc(42.54% - 3.25cqw)
+            transform: none
+            --mdc-icon-size: 6.50cqw
+            width: 6.50cqw
+            height: 6.50cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 1.2s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: sensor.wp_lufter_drehzahl
+          state: '0'
+        elements:
+        - type: icon
+          icon: mdi:fan
+          style:
+            left: calc(5.69% - 3.25cqw)
+            top: calc(42.54% - 3.25cqw)
+            transform: none
+            --mdc-icon-size: 6.50cqw
+            width: 6.50cqw
+            height: 6.50cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_kompressor_lauft
+          state: 'on'
+        elements:
+        - type: icon
+          icon: mdi:cog
+          style:
+            left: calc(52.85% - 1.22cqw)
+            top: calc(56.87% - 1.22cqw)
+            transform: none
+            --mdc-icon-size: 2.44cqw
+            width: 2.44cqw
+            height: 2.44cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 1.5s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_kompressor_lauft
+          state: 'off'
+        elements:
+        - type: icon
+          icon: mdi:cog
+          style:
+            left: calc(52.85% - 1.22cqw)
+            top: calc(56.87% - 1.22cqw)
+            transform: none
+            --mdc-icon-size: 2.44cqw
+            width: 2.44cqw
+            height: 2.44cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'on'
+        elements:
+        - type: icon
+          icon: mdi:pump
+          style:
+            left: calc(93.50% - 1.54cqw)
+            top: calc(44.78% - 1.54cqw)
+            transform: none
+            --mdc-icon-size: 3.09cqw
+            width: 3.09cqw
+            height: 3.09cqw
+            color: '#7cf03c'
+            line-height: '0'
+            animation: wpspin 2.0s linear infinite
+          tap_action:
+            action: none
+      - type: conditional
+        conditions:
+        - entity: binary_sensor.wp_ausgang_pumpe_c1
+          state: 'off'
+        elements:
+        - type: icon
+          icon: mdi:pump
+          style:
+            left: calc(93.50% - 1.54cqw)
+            top: calc(44.78% - 1.54cqw)
+            transform: none
+            --mdc-icon-size: 3.09cqw
+            width: 3.09cqw
+            height: 3.09cqw
+            color: '#e8eef5'
+            line-height: '0'
+          tap_action:
+            action: none
+      grid_options:
+        columns: full
+    - type: statistics-graph
+      title: Energie pro Tag
+      entities:
+      - sensor.wp_warme_heute
+      - sensor.wp_strom_heute
+      stat_types:
+      - change
+      period: day
+      days_to_show: 30
+      chart_type: bar
+      grid_options:
+        columns: full
+    - type: heading
+      heading: Takte (Kompressor-Starts)
+    - type: tile
+      entity: sensor.wp_kompressor_starts_heute
+      name: Starts heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_o_laufzeit_pro_start_heute
+      name: Ø pro Start
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_laufzeit_heute
+      name: Laufzeit heute
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_starts_woche
+      name: Woche
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_monat
+      name: Monat
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_jahr
+      name: Jahr
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_24_h
+      name: letzte 24 h
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_gesamt
+      name: Gesamt
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:counter
+    - type: history-graph
+      title: Kompressor 24 h
+      hours_to_show: 24
+      entities:
+      - binary_sensor.wp_kompressor_lauft
+      - sensor.wp_kompressor_frequenz
+      - sensor.wp_kompressor_strom
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: Drücke 24 h
+      hours_to_show: 24
+      entities:
+      - sensor.wp_hochdruck_pd
+      - sensor.wp_niederdruck_ps
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: Temperaturen 24 h
+      hours_to_show: 24
+      entities:
+      - sensor.wp_vorlauf_tout
+      - sensor.wp_rucklauf_tin
+      - sensor.wp_aussentemperatur
+      - sensor.wp_verdampfer_tc
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Hauptbild
+    - type: gauge
+      entity: sensor.wp_vorlauf_tout
+      name: TOut
+      min: 10
+      max: 60
+      needle: true
+      grid_options:
+        columns: 6
+      segments:
+      - from: 10
+        color: '#3fa9f5'
+      - from: 35
+        color: '#43a047'
+      - from: 50
+        color: '#ff9800'
+    - type: gauge
+      entity: sensor.wp_heizkurven_soll_otc
+      name: OTC (Heizkurve)
+      min: 10
+      max: 60
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: sensor.wp_aussentemperatur
+      name: Außen
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_starts_heute
+      name: Starts heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_spreizung_vl_rl
+      name: Spreizung VL–RL
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:arrow-expand-vertical
+    - type: tile
+      entity: sensor.wp_cop_heute
+      name: COP heute
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_modus
+      name: Modus
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: binary_sensor.wp_kompressor_lauft
+      name: Kompressor
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_warme_heute
+      name: Wärme heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_heute
+      name: Strom heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_heute
+      name: Erneuerbar heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:leaf
+    - type: tile
+      entity: binary_sensor.wp_kaltemittel_alarm
+      name: Kältemittel-Leck (R290)
+      vertical: true
+      icon: mdi:gas-cylinder
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: sensor.wp_kaltemittel_konzentration
+      name: R290-Konzentration
+      vertical: true
+      icon: mdi:molecule
+      grid_options:
+        columns: 6
+    - type: button
+      entity: switch.wp_ein_aus
+      name: Wärmepumpe EIN / AUS
+      show_state: true
+      icon_height: 56px
+      tap_action:
+        action: toggle
+        confirmation:
+          text: Wärmepumpe wirklich ein- bzw. ausschalten?
+      hold_action:
+        action: more-info
+      grid_options:
+        columns: full
+    - type: entities
+      title: Bedienung
+      show_header_toggle: false
+      entities:
+      - entity: switch.wp_ein_aus
+        name: Wärmepumpe Ein/Aus
+      - entity: select.wp_betriebsart
+        name: Betriebsart
+      - entity: switch.wp_nachtmodus
+        name: Nachtmodus
+      - entity: number.wp_set_p02_vorlauf_soll_heizen
+        name: Vorlauf-Soll (P02)
+      - entity: number.wp_set_p04_warmwasser_soll
+        name: Warmwasser-Soll (P04)
+      - type: section
+        label: 'Zum Ändern: Benutzer-Freigabe einschalten bzw. Techniker-Code eingeben'
+      - entity: text.wp_code_eingeben
+        name: Code
+      - entity: switch.wp_benutzer_freigabe
+        name: Benutzer-Freigabe (15 min)
+      - entity: switch.wp_techniker_freigabe
+        name: Techniker-Freigabe (15 min)
+      - type: section
+        label: Uhr der Wärmepumpe (wird täglich 03:17 gestellt)
+      - entity: sensor.wp_uhr
+        name: Uhr WP
+      - entity: button.wp_uhr_stellen
+        name: Uhr jetzt stellen
+      grid_options:
+        columns: full
+    - type: entities
+      title: Status
+      entities:
+      - binary_sensor.wp_ein
+      - sensor.wp_modus
+      - sensor.wp_betrieb_aktuell
+      - binary_sensor.wp_kompressor_lauft
+      - sensor.wp_kompressor_frequenz_soll
+      - binary_sensor.wp_storung
+      - sensor.wp_aktive_fehler
+      - binary_sensor.wp_abtauung_aktiv
+      - binary_sensor.wp_legionellenschaltung_aktiv
+      - binary_sensor.wp_frostschutz_aktiv
+      - binary_sensor.wp_olruckfuhrung
+      - binary_sensor.wp_modbus_online
+      - sensor.wp_heizkurven_soll_otc
+      - sensor.wp_uberhitzung
+      - sensor.wp_unterkuhlung
+      - sensor.wp_temperaturhub
+      - sensor.wp_raum_soll
+      - sensor.wp_netzspannung
+      - sensor.wp_dc_zwischenkreis_spannung
+      - sensor.wp_kompressor_betriebsstunden
+      - sensor.wp_kompressor_starts_gesamt
+      - sensor.wp_abtauvorgange
+      - sensor.wp_kaltemittel_konzentration
+      - binary_sensor.wp_kaltemittel_alarm
+      - sensor.wp_raumtemperatur_t2
+      grid_options:
+        columns: full
+    - type: entities
+      title: Frequenzbegrenzung aktiv
+      entities:
+      - binary_sensor.wp_frequenzbegrenzung_t3_lamelle
+      - binary_sensor.wp_frequenzbegrenzung_hochdruck
+      - binary_sensor.wp_frequenzbegrenzung_ac_spannung
+      - binary_sensor.wp_frequenzbegrenzung_heissgas
+      - binary_sensor.wp_frequenzbegrenzung_ac_strom
+      grid_options:
+        columns: full
+- title: Takte & Energie
+  path: takte
+  icon: mdi:counter
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Kompressor-Starts
+    - type: tile
+      entity: sensor.wp_kompressor_starts_heute
+      name: Starts heute
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_o_laufzeit_pro_start_heute
+      name: Ø pro Start
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_laufzeit_heute
+      name: Laufzeit heute
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_kompressor_starts_woche
+      name: Woche
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_monat
+      name: Monat
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_jahr
+      name: Jahr
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_24_h
+      name: letzte 24 h
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:counter
+    - type: tile
+      entity: sensor.wp_kompressor_starts_gesamt
+      name: Gesamt
+      vertical: true
+      grid_options:
+        columns: 6
+      icon: mdi:counter
+    - type: statistics-graph
+      title: Kompressor-Starts pro Tag (30 Tage)
+      entities:
+      - sensor.wp_kompressor_starts_gesamt
+      stat_types:
+      - change
+      period: day
+      days_to_show: 30
+      chart_type: bar
+      grid_options:
+        columns: full
+    - type: statistics-graph
+      title: Kompressor-Starts pro Woche
+      entities:
+      - sensor.wp_kompressor_starts_gesamt
+      stat_types:
+      - change
+      period: week
+      days_to_show: 180
+      chart_type: bar
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Energie (Zähler der Wärmepumpe)
+    - type: heading
+      heading: Heute
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_heute
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_heute
+      name: Strom
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_heute
+      name: Erneuerbar
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_cop_heute
+      name: COP
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
+      heading: Woche
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_woche
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_woche
+      name: Strom
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_woche
+      name: Erneuerbar
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_cop_woche
+      name: COP
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
+      heading: Monat
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_monat_display
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_monat_display
+      name: Strom
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_monat_display
+      name: Erneuerbar
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_cop_monat
+      name: COP
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: heading
+      heading: Jahr
+      heading_style: subtitle
+    - type: tile
+      entity: sensor.wp_warme_jahr_wp_zahler
+      name: Wärme
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:fire
+    - type: tile
+      entity: sensor.wp_strom_jahr_wp_zahler
+      name: Strom
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:flash
+    - type: tile
+      entity: sensor.wp_erneuerbar_jahr_wp_zahler
+      name: Erneuerbar
+      vertical: true
+      grid_options:
+        columns: 3
+      icon: mdi:leaf
+    - type: tile
+      entity: sensor.wp_jaz_jahr
+      name: JAZ
+      vertical: true
+      grid_options:
+        columns: 3
+    - type: statistics-graph
+      title: Energie pro Tag (Display-Zähler)
+      entities:
+      - sensor.wp_warme_heute
+      - sensor.wp_strom_heute
+      stat_types:
+      - change
+      period: day
+      days_to_show: 30
+      chart_type: bar
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: heading
+      heading: Verlauf heute
+    - type: logbook
+      title: Aufzeichnung Start/Stopp (48 h)
+      hours_to_show: 48
+      target:
+        entity_id:
+        - binary_sensor.wp_kompressor_lauft
+        - switch.wp_ein_aus
+      grid_options:
+        columns: full
+    - type: markdown
+      title: Heute je Stunde (wie Display)
+      content: |-
+        {% set p = states('sensor.wp_energie_erzeugt_stunden_roh').split(',') %}{% set v = states('sensor.wp_energie_verbraucht_stunden_roh').split(',') %}| Std | erzeugt | verbraucht |
+        |---|---:|---:|
+        {% for i in range(24) %}{% set a = (p[i]|float(0))/10 %}{% set b = (v[i]|float(0))/10 %}{% if a > 0 or b > 0 %}| {{ '%02d' % i }} | {{ a }} kWh | {{ b }} kWh |
+        {% endif %}{% endfor %}
+      grid_options:
+        columns: full
+- title: Kältekreis
+  path: kaeltekreis
+  icon: mdi:snowflake-thermometer
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: heading
+      heading: Live-Werte
+    - type: tile
+      entity: sensor.wp_kondensationstemperatur
+      name: TH Kondensation
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:thermometer-high
+    - type: tile
+      entity: sensor.wp_verdampfungstemperatur
+      name: TL Verdampfung
+      vertical: true
+      grid_options:
+        columns: 4
+      icon: mdi:thermometer-low
+    - type: tile
+      entity: sensor.wp_uberhitzung
+      name: Überhitzung
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_unterkuhlung
+      name: Unterkühlung
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: sensor.wp_temperaturhub
+      name: Temperaturhub
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: tile
+      entity: binary_sensor.wp_kompressor_lauft
+      name: Kompressor
+      vertical: true
+      grid_options:
+        columns: 4
+    - type: markdown
+      content: |-
+        {% set run = is_state('binary_sensor.wp_kompressor_lauft','on') %}{% set ts = states('sensor.wp_sauggas_ts')|float(0) %}{% set ty = states('sensor.wp_ty_kaltemittel_flussig')|float(0) %}{% set tl = states('sensor.wp_verdampfungstemperatur')|float(0) %}{% set th = states('sensor.wp_kondensationstemperatur')|float(0) %}{% set ta = states('sensor.wp_aussentemperatur')|float(0) %}{% set vl = states('sensor.wp_vorlauf_tout')|float(0) %}{% set rl = states('sensor.wp_rucklauf_tin')|float(0) %}{% macro amp(v, g1, y1, y2, r2) %}{% if v < g1 %}🔴{% elif v < y1 %}🟡{% elif v <= y2 %}🟢{% elif v <= r2 %}🟡{% else %}🔴{% endif %}{% endmacro %}## Kältekreis-Ampel
+        {% if not run %}> ℹ️ **Der Kompressor steht.** Die Kennwerte sind nur im Betrieb aussagekräftig – im Stillstand gleichen sich die Drücke an. Die Tabelle zeigt deshalb nur Werte, wenn der Kompressor läuft.
+
+        {% endif %}| Kennwert | Formel | aktuell | Richtwert | |
+        |---|---|---:|---|:-:|
+        {% if run %}| **Überhitzung** | Ts − TL | {{ (ts-tl)|round(1) }} K | 2 … 8 K | {{ amp(ts-tl, 1, 2, 8, 12) }} |
+        | **Unterkühlung** | TH − Ty | {{ (th-ty)|round(1) }} K | 1 … 8 K | {{ amp(th-ty, 0, 1, 8, 12) }} |
+        | **Temperaturhub** | TH − TL | {{ (th-tl)|round(1) }} K | ≤ 40 K | {{ amp(th-tl, -99, -99, 40, 50) }} |
+        | **Abstand Luft → Verdampfung** | Außen − TL | {{ (ta-tl)|round(1) }} K | 3 … 10 K | {{ amp(ta-tl, 1, 3, 10, 14) }} |
+        | **Abstand Kondensation → Vorlauf** | TH − TOut | {{ (th-vl)|round(1) }} K | 1 … 6 K | {{ amp(th-vl, -1, 1, 6, 10) }} |
+        | **Spreizung Heizwasser** | TOut − TIn | {{ (vl-rl)|round(1) }} K | 3 … 7 K | {{ amp(vl-rl, 1, 3, 7, 10) }} |
+        {% else %}| alle Kennwerte | – | – | – | ⚪ |
+        {% endif %}
+        🟢 im Richtwert · 🟡 auffällig, beobachten · 🔴 deutlich daneben
+
+        _Richtwerte sind allgemeine Erfahrungswerte für Luft/Wasser-Wärmepumpen mit R290, keine Herstellerangaben. Kurz nach dem Start, beim Abtauen und während der Ölrückführung sind Ausreißer normal – entscheidend ist der stabile Betrieb über einige Minuten._
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: Kennwerte 24 h (nur bei laufendem Kompressor)
+      hours_to_show: 24
+      entities:
+      - sensor.wp_uberhitzung
+      - sensor.wp_unterkuhlung
+      - sensor.wp_temperaturhub
+      grid_options:
+        columns: full
+    - type: history-graph
+      title: TH / TL / Außen / Vorlauf 24 h
+      hours_to_show: 24
+      entities:
+      - sensor.wp_kondensationstemperatur
+      - sensor.wp_verdampfungstemperatur
+      - sensor.wp_aussentemperatur
+      - sensor.wp_vorlauf_tout
+      grid_options:
+        columns: full
+  - type: grid
+    column_span: 2
+    cards:
+    - type: markdown
+      content: |
+        ## So hängt alles zusammen
+
+        Der Kältekreis „pumpt“ Wärme von der Außenluft ins Heizwasser – auf zwei Temperaturniveaus:
+
+        ```
+        Außenluft  ──(Verdampfer, Lüfter)──▶  TL  Verdampfungstemperatur  (niedriger Druck Ps)
+                                                │  Verdichter hebt die Temperatur an
+        Heizwasser ◀──(Plattenwärmetauscher)──  TH  Kondensationstemperatur (hoher Druck Pd)
+        ```
+
+        **TL – Verdampfungstemperatur.** Bei dieser Temperatur verdampft das Kältemittel im Außenregister. Sie liegt **einige Grad unter der Außenluft** – nur so kann die Luft Wärme abgeben. Berechnet aus dem Niederdruck **Ps**.
+
+        **TH – Kondensationstemperatur.** Bei dieser Temperatur wird das Kältemittel im Plattenwärmetauscher wieder flüssig und gibt dabei die Wärme ans Heizwasser ab. Sie liegt **etwas über dem Vorlauf (TOut)**. Berechnet aus dem Hochdruck **Pd**.
+
+        **Überhitzung (Ts − TL).** Um so viel ist das Sauggas wärmer als der Siedepunkt, bevor es in den Verdichter geht. Das Expansionsventil (EEV) regelt darauf.
+        - **zu niedrig (< 2 K):** Gefahr, dass flüssiges Kältemittel in den Verdichter gelangt („Nasslaufen“) – schädlich für den Verdichter.
+        - **zu hoch (> 10 K):** Verdampfer wird schlecht genutzt, Heißgas wird sehr heiß. Hinweise auf zu wenig Kältemittel (Leck!) oder ein zu weit geschlossenes EEV.
+
+        **Unterkühlung (TH − Ty).** Um so viel ist das flüssige Kältemittel nach dem Wärmetauscher kälter als der Kondensationspunkt.
+        - **sehr klein (< 1 K):** eher zu wenig Kältemittel – zusammen mit hoher Überhitzung ein typisches Zeichen für einen Kältemittelverlust.
+        - **sehr groß (> 10 K):** eher zu viel Kältemittel oder Probleme im Wärmetauscher.
+
+        **Temperaturhub (TH − TL).** So viel „Höhe“ muss der Verdichter überwinden. **Je kleiner, desto effizienter** (höherer COP). Ein niedriger Vorlauf (Fußbodenheizung, flache Heizkurve) hält den Hub klein.
+
+        **Abstand Außen → TL.** Wird der Abstand immer größer (> 12 K), ist der Verdampfer vereist oder der Lüfter fördert zu wenig Luft → Abtauung fällig.
+
+        **Abstand TH → Vorlauf.** Wird er groß (> 8 K), kommt die Wärme schlecht ins Wasser: zu wenig Durchfluss (Filter, Ventile, Luft im System) oder verschmutzter Plattenwärmetauscher.
+
+        **Spreizung TOut − TIn.** Die Pumpe regelt laut P58 auf etwa 5 K. Viel größere Spreizung = zu wenig Durchfluss.
+
+        ### Typische Muster
+        | Beobachtung | mögliche Ursache |
+        |---|---|
+        | Überhitzung hoch **und** Unterkühlung niedrig | Kältemittelmangel / Leck → Fachbetrieb |
+        | Überhitzung sehr niedrig, Td niedrig | EEV zu weit offen, Gefahr Nasslaufen |
+        | Außen − TL wächst stetig | Verdampfer vereist, Lüfter |
+        | TH − TOut groß, Spreizung groß | zu wenig Wasserdurchfluss |
+        | Hub sehr groß | Vorlauf zu hoch → Heizkurve senken spart Strom |
+
+        > ⚠️ Diese Ampel ist eine Orientierungshilfe, keine Diagnose. Arbeiten am Kältekreis (R290!) nur durch einen zertifizierten Fachbetrieb.
+      grid_options:
+        columns: full
+- title: Fehler
+  path: fehler
+  icon: mdi:alert
+  type: sections
+  max_columns: 2
+  sections:
+  - type: grid
+    cards:
+    - type: markdown
+      content: |-
+        ## Aktive Fehler
+        {% set l = state_attr('sensor.wp_aktive_fehler','details') or [] %}{% if l %}{% for f in l %}- **{{ f }}**
+        {% endfor %}{% else %}✅ Keine aktive Störung.{% endif %}
+
+        ## Fehlerspeicher der Wärmepumpe
+        {% set h = state_attr('sensor.wp_fehlerspeicher','liste') or [] %}{% if h %}{% for f in h %}{{ loop.index }}. {{ f }}
+        {% endfor %}{% else %}leer{% endif %}
+      grid_options:
+        columns: full
+    - type: button
+      entity: button.wp_fehler_quittieren
+      name: Fehler quittieren
+      icon: mdi:alert-remove
+      icon_height: 48px
+      show_state: false
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.wp_fehler_quittieren
+        confirmation:
+          text: Fehler an der Wärmepumpe quittieren?
+      grid_options:
+        columns: full
+    - type: entities
+      entities:
+      - binary_sensor.wp_storung
+      - sensor.wp_aktive_fehler
+      - binary_sensor.wp_alarm_aktiv
+      - binary_sensor.wp_kaltemittel_alarm
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: logbook
+      title: Fehlerprotokoll Home Assistant (30 Tage)
+      hours_to_show: 720
+      target:
+        entity_id:
+        - sensor.wp_aktive_fehler
+        - binary_sensor.wp_storung
+      grid_options:
+        columns: full
+- title: Parameter
+  path: parameter
+  icon: mdi:tune
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: button
+      name: Benutzer-Parameter
+      icon: mdi:account
+      icon_height: 64px
+      tap_action:
+        action: navigate
+        navigation_path: /waermepumpe/benutzer
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: button
+      name: Techniker-Parameter
+      icon: mdi:account-hard-hat
+      icon_height: 64px
+      tap_action:
+        action: navigate
+        navigation_path: /waermepumpe/techniker
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Nachtmodus
+      entities:
+      - entity: select.wp_betriebsart
+        name: Betriebsart
+      - entity: switch.wp_nachtmodus
+        name: Nachtmodus
+      - entity: number.wp_set_p15_nachtmodus_start
+        name: Start (Uhr)
+      - entity: number.wp_set_p16_nachtmodus_ende
+        name: Ende (Uhr)
+      grid_options:
+        columns: full
+    - type: entities
+      title: Freigabe
+      show_header_toggle: false
+      entities:
+      - entity: text.wp_code_eingeben
+        name: Code eingeben
+      - entity: switch.wp_benutzer_freigabe
+        name: Benutzer-Freigabe (Schalter oder Code 99)
+      - entity: switch.wp_techniker_freigabe
+        name: Techniker-Freigabe
+      grid_options:
+        columns: full
+- title: Benutzer-Parameter
+  path: benutzer
+  subview: true
+  back_path: /waermepumpe/parameter
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: markdown
+      content: |-
+        ### Benutzer-Parameter (Code 99)
+        Entspricht den **blauen** Feldern am Display. Zum Ändern zuerst die Benutzer-Freigabe einschalten (oder Code 99 eingeben) – sie gilt 15 Minuten. Jede Änderung wird direkt in die Wärmepumpe geschrieben und im Logbuch vermerkt.
+      grid_options:
+        columns: full
+    - type: entities
+      title: Freigabe
+      show_header_toggle: false
+      entities:
+      - entity: text.wp_code_eingeben
+        name: Code eingeben
+      - entity: switch.wp_benutzer_freigabe
+        name: Benutzer-Freigabe (Schalter oder Code 99)
+      - entity: switch.wp_techniker_freigabe
+        name: Techniker-Freigabe
+      grid_options:
+        columns: full
+    - type: button
+      name: ← zurück
+      icon: mdi:arrow-left
+      tap_action:
+        action: navigate
+        navigation_path: /waermepumpe/parameter
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Heizen & Heizkurve
+      entities:
+      - entity: number.wp_set_p02_vorlauf_soll_heizen
+        name: P02 · Vorlauf-Soll Heizen
+      - entity: number.wp_set_p03_soll_kuhlen
+        name: P03 · Soll Kühlen
+      - entity: number.wp_set_p05_raum_soll
+        name: P05 · Raum-Soll
+      - entity: number.wp_set_p06_hysterese_heizen_kuhlen
+        name: P06 · Hysterese Heizen/Kühlen
+      - entity: number.wp_set_p08_heizkurve_max_vorlauf
+        name: 'P08 · Heizkurve: max. Vorlauf'
+      - entity: number.wp_set_p09_heizkurve_verschiebung
+        name: 'P09 · Heizkurve: Verschiebung'
+      - entity: number.wp_set_p19_heizkurve_au_aktiv
+        name: P19 · Heizkurve (AU) aktiv
+      - entity: number.wp_set_p135_heizgrenze_heizkurve
+        name: P135 · Heizgrenze (Heizkurve)
+      - entity: number.wp_set_p136_heizkurve_wiedereinschalten_unter
+        name: 'P136 · Heizkurve: Wiedereinschalten unter'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P02 Vorlauf-Soll Heizen** – Ziel-Vorlauftemperatur im Heizbetrieb (ohne Heizkurve). Nach einem Neustart der WP evtl. wieder 45 °C.
+        **P03 Soll Kühlen** – Ziel-Vorlauftemperatur im Kühlbetrieb.
+        **P05 Raum-Soll** – Raum-Solltemperatur, in der Smart-Life-App „R1_setting“ (steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Nur mit Raumfühler/Thermostat (P67) wirksam.
+        **P06 Hysterese Heizen/Kühlen** – Um so viel muss der Vorlauf unter den Sollwert fallen, bis die WP wieder startet. Größer = weniger Takte, aber größere Schwankung.
+        **P08 Heizkurve: max. Vorlauf** – Höchster Vorlauf, den die Heizkurve (AU) bei tiefster Außentemperatur vorgibt.
+        **P09 Heizkurve: Verschiebung** – Parallelverschiebung der Heizkurve (+ = wärmer, − = kühler).
+        **P19 Heizkurve (AU) aktiv** – 1 = Vorlauf wird nach Außentemperatur geführt (Heizkurve), 0 = fester Vorlauf-Soll P02.
+        **P135 Heizgrenze (Heizkurve)** – Über dieser Außentemperatur heizt die WP nicht (Sommerabschaltung).
+        **P136 Heizkurve: Wiedereinschalten unter** – Unter dieser Außentemperatur wird wieder geheizt.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Warmwasser & Legionellen
+      entities:
+      - entity: number.wp_set_p04_warmwasser_soll
+        name: P04 · Warmwasser-Soll
+      - entity: number.wp_set_p07_hysterese_warmwasser
+        name: P07 · Hysterese Warmwasser
+      - entity: number.wp_set_p10_legionellen_intervall
+        name: 'P10 · Legionellen: Intervall'
+      - entity: number.wp_set_p11_legionellen_startzeit
+        name: 'P11 · Legionellen: Startzeit'
+      - entity: number.wp_set_p12_legionellen_dauer
+        name: 'P12 · Legionellen: Dauer'
+      - entity: number.wp_set_p13_legionellen_temperatur
+        name: 'P13 · Legionellen: Temperatur'
+      - entity: number.wp_set_p14_legionellen_modus
+        name: 'P14 · Legionellen: Modus'
+      - entity: number.wp_set_p18_warmwasser_nach_heizkurve
+        name: P18 · Warmwasser nach Heizkurve
+      - entity: number.wp_set_p63_warmwasserfunktion
+        name: P63 · Warmwasserfunktion
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P04 Warmwasser-Soll** – Zieltemperatur des Warmwasserspeichers (10–70 °C, muss ≥ P35 sein).
+        **P07 Hysterese Warmwasser** – Einschalt-Differenz für die Warmwasserbereitung.
+        **P10 Legionellen: Intervall** – Alle wie viele Tage die Legionellenschaltung läuft.
+        **P11 Legionellen: Startzeit** – Uhrzeit (Stunde) des Legionellenprogramms.
+        **P12 Legionellen: Dauer** – Haltezeit auf Legionellentemperatur.
+        **P13 Legionellen: Temperatur** – Zieltemperatur der Legionellenschaltung.
+        **P14 Legionellen: Modus** – 0 = automatisch, 1 = manuell, 2 = aus.
+        **P18 Warmwasser nach Heizkurve** – Warmwasser-Soll automatisch nach Außentemperatur (AU).
+        **P63 Warmwasserfunktion** – 0 = kein Warmwasserspeicher, 1 = WW-Bereitung aktiv.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Nachtmodus
+      entities:
+      - entity: number.wp_set_p15_nachtmodus_start
+        name: P15 · Nachtmodus Start
+      - entity: number.wp_set_p16_nachtmodus_ende
+        name: P16 · Nachtmodus Ende
+      - entity: number.wp_set_p17_nachtmodus_aktiv
+        name: P17 · Nachtmodus aktiv
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P15 Nachtmodus Start** – Stunde, ab der der leise Nachtmodus gilt.
+        **P16 Nachtmodus Ende** – Stunde, bis zu der der Nachtmodus gilt.
+        **P17 Nachtmodus aktiv** – 0 = aus, 1 = ein. Im Nachtmodus reduziert die WP Kompressor- und Lüfterleistung (leiser).
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Pumpen & Durchfluss
+      entities:
+      - entity: number.wp_set_p20_umwalzpumpe_betriebsart
+        name: P20 · Umwälzpumpe Betriebsart
+      - entity: number.wp_set_p21_pumpe_frostschutz_intervall
+        name: P21 · Pumpe Frostschutz-Intervall
+      - entity: number.wp_set_p65_pumpe_c2_funktion
+        name: P65 · Pumpe C2 Funktion
+      - entity: number.wp_set_p88_pumpe_c3_funktion
+        name: P88 · Pumpe C3 Funktion
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P20 Umwälzpumpe Betriebsart** – 0 = Pumpe läuft durch, 1 = Pumpe stoppt bei erreichter Temperatur.
+        **P21 Pumpe Frostschutz-Intervall** – Intervall, in dem die Pumpe bei Stillstand zum Frostschutz läuft.
+        **P65 Pumpe C2 Funktion** – 0 = Zusatzpumpe, 1 = Heizkreis-Umwälzpumpe.
+        **P88 Pumpe C3 Funktion** – 0 = WW-Zusatzpumpe, 1 = WW-Zirkulationspumpe.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: E-Heizung & 2. Wärmeerzeuger
+      entities:
+      - entity: number.wp_set_p22_e_heizung_heizen_start_unter
+        name: 'P22 · E-Heizung Heizen: Start unter'
+      - entity: number.wp_set_p23_e_heizung_ww_start_unter
+        name: 'P23 · E-Heizung WW: Start unter'
+      - entity: number.wp_set_p24_e_heizung_e1_e2_stopp_hysterese
+        name: 'P24 · E-Heizung E1/E2: Stopp-Hysterese'
+      - entity: number.wp_set_p116_e_heizung_leistungsberechnung
+        name: P116 · E-Heizung Leistungsberechnung
+      - entity: number.wp_set_p117_e0_leistung
+        name: P117 · E0 Leistung
+      - entity: number.wp_set_p118_e1_leistung
+        name: P118 · E1 Leistung
+      - entity: number.wp_set_p119_e2_leistung
+        name: P119 · E2 Leistung
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P22 E-Heizung Heizen: Start unter** – Unter dieser Außentemperatur darf der Heizstab beim Heizen zuschalten.
+        **P23 E-Heizung WW: Start unter** – Unter dieser Außentemperatur darf der Heizstab beim Warmwasser zuschalten.
+        **P24 E-Heizung E1/E2: Stopp-Hysterese** – Hysterese der Außentemperatur, bei der E1/E2 wieder abschalten.
+        **P116 E-Heizung Leistungsberechnung** – Heizstab-Leistung in die Energiebilanz einrechnen (0/1).
+        **P117 E0 Leistung** – Leistung Heizstab E0 (für die Energiebilanz).
+        **P118 E1 Leistung** – Leistung Heizstab E1.
+        **P119 E2 Leistung** – Leistung Heizstab E2.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Estrichtrocknung
+      entities:
+      - entity: number.wp_set_p122_estrichtrocknung_aktiv
+        name: P122 · Estrichtrocknung aktiv
+      - entity: number.wp_set_p123_periode_1_dauer
+        name: P123 · Periode 1 Dauer
+      - entity: number.wp_set_p124_periode_1_start
+        name: P124 · Periode 1 Start
+      - entity: number.wp_set_p125_periode_1_ende
+        name: P125 · Periode 1 Ende
+      - entity: number.wp_set_p126_periode_2_dauer
+        name: P126 · Periode 2 Dauer
+      - entity: number.wp_set_p127_periode_2_start
+        name: P127 · Periode 2 Start
+      - entity: number.wp_set_p128_periode_2_ende
+        name: P128 · Periode 2 Ende
+      - entity: number.wp_set_p129_periode_3_dauer
+        name: P129 · Periode 3 Dauer
+      - entity: number.wp_set_p130_periode_3_start
+        name: P130 · Periode 3 Start
+      - entity: number.wp_set_p131_periode_3_ende
+        name: P131 · Periode 3 Ende
+      - entity: number.wp_set_p132_periode_4_dauer
+        name: P132 · Periode 4 Dauer
+      - entity: number.wp_set_p133_periode_4_start
+        name: P133 · Periode 4 Start
+      - entity: number.wp_set_p134_periode_4_ende
+        name: P134 · Periode 4 Ende
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P122 Estrichtrocknung aktiv** – Startet das Estrich-Aufheizprogramm (Perioden P123–P134).
+        **P123 Periode 1 Dauer** – Dauer Periode 1.
+        **P124 Periode 1 Start** – Vorlauf zu Beginn von Periode 1.
+        **P125 Periode 1 Ende** – Vorlauf am Ende von Periode 1.
+        **P126 Periode 2 Dauer** – Dauer Periode 2.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: System & Funktionen
+      entities:
+      - entity: number.wp_set_p62_heizen_kuhlen_auswahl
+        name: P62 · Heizen/Kühlen-Auswahl
+      - entity: number.wp_set_p67_raumthermostat
+        name: P67 · Raumthermostat
+      - entity: number.wp_set_p98_ventil_g1_invertieren
+        name: P98 · Ventil G1 invertieren
+      - entity: number.wp_set_p99_ventil_g2_invertieren
+        name: P99 · Ventil G2 invertieren
+      - entity: number.wp_set_p100_ventil_g3_invertieren
+        name: P100 · Ventil G3 invertieren
+      - entity: number.wp_set_p121_pv_aktivierung
+        name: P121 · PV-Aktivierung
+      - entity: number.wp_set_p201_sg_ready_psg1
+        name: P201 · SG-Ready PSG1
+      - entity: number.wp_set_p202_sg_ready_psg2
+        name: P202 · SG-Ready PSG2
+      - entity: number.wp_set_p203_sg_ready_psg3
+        name: P203 · SG-Ready PSG3
+      - entity: number.wp_set_p204_sg_ready_psg4
+        name: P204 · SG-Ready PSG4
+      - entity: number.wp_set_p205_sg_ready_psg5
+        name: P205 · SG-Ready PSG5
+      - entity: number.wp_set_p206_sg_ready_psg6
+        name: P206 · SG-Ready PSG6
+      - entity: number.wp_set_p207_sg_ready_psg7
+        name: P207 · SG-Ready PSG7
+      - entity: number.wp_set_p208_sg_ready_psg8
+        name: P208 · SG-Ready PSG8
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P62 Heizen/Kühlen-Auswahl** – 0 = Heizen und Kühlen, 1 = nur Kühlen, 2 = nur Heizen.
+        **P67 Raumthermostat** – 0 = kein Raumthermostat, 1 = Thermostat-Eingang aktiv.
+        **P98 Ventil G1 invertieren** – Schaltsignal des Ventils G1 umkehren.
+        **P99 Ventil G2 invertieren** – Schaltsignal des Ventils G2 umkehren.
+        **P100 Ventil G3 invertieren** – Schaltsignal des Ventils G3 umkehren.
+        **P121 PV-Aktivierung** – PV-Überschuss-/Smart-Grid-Eingang aktivieren.
+        **P201 SG-Ready PSG1** – Smart-Grid-Ready Definition (0 = aus).
+        **P202 SG-Ready PSG2** – Smart-Grid-Ready Definition (0 = aus).
+        **P203 SG-Ready PSG3** – Smart-Grid-Ready Definition (0 = aus).
+        **P204 SG-Ready PSG4** – Smart-Grid-Ready Definition (0 = aus).
+        **P205 SG-Ready PSG5** – Smart-Grid-Ready Definition (0 = aus).
+        **P206 SG-Ready PSG6** – Smart-Grid-Ready Definition (0 = aus).
+        **P207 SG-Ready PSG7** – Smart-Grid-Ready Definition (0 = aus).
+        **P208 SG-Ready PSG8** – Smart-Grid-Ready Definition (0 = aus).
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Sonstige
+      entities:
+      - entity: number.wp_set_p146_parameter_146
+        name: P146 · Parameter 146
+      - entity: number.wp_set_p147_parameter_147
+        name: P147 · Parameter 147
+      - entity: number.wp_set_p148_parameter_148
+        name: P148 · Parameter 148
+      - entity: number.wp_set_p149_parameter_149
+        name: P149 · Parameter 149
+      - entity: number.wp_set_p150_parameter_150
+        name: P150 · Parameter 150
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P146 Parameter 146** – Bedeutung lt. Hofman-Liste offen (Wert 25,0).
+        **P147 Parameter 147** – Bedeutung lt. Hofman-Liste offen.
+        **P148 Parameter 148** – In der Smart-Life-App „R2_setting“ (18–35 °C, Werk 25,0; steht dort bei Nachtmodus Ein/Aus, hat aber nichts mit dem Nachtmodus zu tun). Bedeutung offen, vermutlich Raum-Soll Kühlen; wie P05 nur mit Raumfühler (P67) wirksam.
+        **P149 Parameter 149** – Bedeutung lt. Hofman-Liste offen (Wert 15).
+        **P150 Parameter 150** – Bedeutung lt. Hofman-Liste offen.
+      grid_options:
+        columns: full
+- title: Techniker-Parameter
+  path: techniker
+  subview: true
+  back_path: /waermepumpe/parameter
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    cards:
+    - type: markdown
+      content: |-
+        ### Techniker-Parameter
+        Entspricht den **weißen** Feldern am Display.
+
+        ⚠️ **ACHTUNG – GEFÄHRLICH:** Diese Parameter steuern Kältekreis, Verdichter, Schutz- und Abtaufunktionen. Falsche Werte können die Wärmepumpe in Dauerstörung bringen, den Verdichter beschädigen oder Schutzfunktionen aushebeln. **Nur ändern, wenn du genau weißt, was der Parameter bewirkt** – im Zweifel Hersteller oder Fachbetrieb fragen. Werksreset (P87), RS485-Adresse (P108) und Kompressormodell (P39) sind bewusst gesperrt.
+      grid_options:
+        columns: full
+    - type: entities
+      title: Freigabe
+      show_header_toggle: false
+      entities:
+      - entity: text.wp_code_eingeben
+        name: Code eingeben
+      - entity: switch.wp_benutzer_freigabe
+        name: Benutzer-Freigabe (Schalter oder Code 99)
+      - entity: switch.wp_techniker_freigabe
+        name: Techniker-Freigabe
+      grid_options:
+        columns: full
+    - type: button
+      name: ← zurück
+      icon: mdi:arrow-left
+      tap_action:
+        action: navigate
+        navigation_path: /waermepumpe/parameter
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Warmwasser & Legionellen
+      entities:
+      - entity: number.wp_set_p35_ww_kompressor_obergrenze
+        name: 'P35 · WW: Kompressor-Obergrenze'
+      - entity: number.wp_set_p83_ww_zirkulationspumpe_betrieb
+        name: P83 · WW-Zirkulationspumpe Betrieb
+      - entity: number.wp_set_p84_ww_zirkulation_differenz
+        name: P84 · WW-Zirkulation Differenz
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P35 WW: Kompressor-Obergrenze** – Bis zu dieser WW-Temperatur heizt der Kompressor, darüber nur E-Heizung.
+        **P83 WW-Zirkulationspumpe Betrieb** – 0 = nein, 1 = Zeit, 2 = Temperaturdifferenz, 3 = Zeit + Temperaturdifferenz (nur bei P88 = 1).
+        **P84 WW-Zirkulation Differenz** – Einschaltdifferenz der Zirkulationspumpe.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Pumpen & Durchfluss
+      entities:
+      - entity: number.wp_set_p58_pumpe_regel_spreizung
+        name: P58 · Pumpe Regel-Spreizung
+      - entity: number.wp_set_p59_pumpe_mindestdrehzahl
+        name: P59 · Pumpe Mindestdrehzahl
+      - entity: number.wp_set_p61_mindestdurchfluss
+        name: P61 · Mindestdurchfluss
+      - entity: number.wp_set_p68_durchflusssensor_typ
+        name: P68 · Durchflusssensor-Typ
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P58 Pumpe Regel-Spreizung** – Auf diese Spreizung VL–RL regelt die drehzahlgeregelte Pumpe.
+        **P59 Pumpe Mindestdrehzahl** – Untere Pumpendrehzahl, entspricht 20–80 % (8 = 80 %).
+        **P61 Mindestdurchfluss** – Unter diesem Durchfluss → Fehler E15. Nicht ohne Grund absenken.
+        **P68 Durchflusssensor-Typ** – 0 = Strömungsschalter, 1 = Durchflussmesser (nur mit Hersteller-Freigabe ändern).
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: E-Heizung & 2. Wärmeerzeuger
+      entities:
+      - entity: number.wp_set_p36_verzogerung_kompressor_e1
+        name: P36 · Verzögerung Kompressor → E1
+      - entity: number.wp_set_p81_e1_e2_funktion
+        name: P81 · E1/E2 Funktion
+      - entity: number.wp_set_p82_2_warmeerzeuger_start_unter
+        name: 'P82 · 2. Wärmeerzeuger: Start unter'
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P36 Verzögerung Kompressor → E1** – Wartezeit, bevor nach Kompressorstart der Heizstab dazuschalten darf.
+        **P81 E1/E2 Funktion** – 0 = E-Zusatzheizung, 1 = zweiter Wärmeerzeuger, 2 = mit E-Heizer, 3 = mit Kessel.
+        **P82 2. Wärmeerzeuger: Start unter** – Unter dieser Außentemperatur wird ein 2. Wärmeerzeuger freigegeben.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: System & Funktionen
+      entities:
+      - entity: number.wp_set_p66_wasser_luftkuhlung_option
+        name: P66 · Wasser-/Luftkühlung Option
+      - entity: number.wp_set_p70_wiederanlauf_nach_stromausfall
+        name: P70 · Wiederanlauf nach Stromausfall
+      - entity: number.wp_set_p79_wlan_upload_intervall
+        name: P79 · WLAN Upload-Intervall
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P66 Wasser-/Luftkühlung Option** – Hersteller-Option.
+        **P70 Wiederanlauf nach Stromausfall** – 0 = aus, 1 = WP läuft nach Stromausfall im letzten Zustand weiter.
+        **P79 WLAN Upload-Intervall** – Sendeintervall des WLAN-Moduls.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Kompressor
+      entities:
+      - entity: number.wp_set_p40_festfrequenz_funktion
+        name: P40 · Festfrequenz-Funktion
+      - entity: number.wp_set_p41_olruckfuhrung_frequenz
+        name: P41 · Ölrückführung Frequenz
+      - entity: number.wp_set_p45_kompressor_max_frequenz
+        name: P45 · Kompressor max. Frequenz
+      - entity: number.wp_set_p46_kompressor_min_frequenz
+        name: P46 · Kompressor min. Frequenz
+      - entity: number.wp_set_p48_warmwasser_max_frequenz
+        name: P48 · Warmwasser max. Frequenz
+      - entity: number.wp_set_p80_mindestfrequenz_berechnung
+        name: P80 · Mindestfrequenz-Berechnung
+      - entity: number.wp_set_p104_kompressor_startfrequenz
+        name: P104 · Kompressor Startfrequenz
+      - entity: number.wp_set_p105_startplateau_frequenz
+        name: P105 · Startplateau Frequenz
+      - entity: number.wp_set_p106_startplateau_dauer
+        name: P106 · Startplateau Dauer
+      - entity: number.wp_set_p114_frequenzreduktion_bei_vl_soll
+        name: P114 · Frequenzreduktion bei VL-Soll
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P40 Festfrequenz-Funktion** – 0 = manuell, 1 = automatisch.
+        **P41 Ölrückführung Frequenz** – Frequenz für die periodische Ölrückführung.
+        **P45 Kompressor max. Frequenz** – Höchste Kompressorfrequenz (Leistungsgrenze, auch beim Abtauen wirksam).
+        **P46 Kompressor min. Frequenz** – Niedrigste Frequenz. Kleiner = weiter herunter modulieren = weniger Takten.
+        **P48 Warmwasser max. Frequenz** – Höchstfrequenz im WW-Betrieb als Faktor der höchsten eingestellten Frequenz.
+        **P80 Mindestfrequenz-Berechnung** – Faktor für die Mindestfrequenz-Ermittlung.
+        **P104 Kompressor Startfrequenz** – Startfrequenz für die Leistungsberechnung Heizen/Kühlen.
+        **P105 Startplateau Frequenz** – Frequenz des Anlaufplateaus (Plattform A).
+        **P106 Startplateau Dauer** – Haltezeit auf dem Anlaufplateau.
+        **P114 Frequenzreduktion bei VL-Soll** – Wie weit der Kompressor bei erreichtem Soll herunter modulieren darf. Größer = weniger Takten (Community: 3 % statt 2 %).
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Abtauung
+      entities:
+      - entity: number.wp_set_p26_abtau_intervall_faktor
+        name: 'P26 · Abtau: Intervall-Faktor'
+      - entity: number.wp_set_p27_abtau_zyklus
+        name: 'P27 · Abtau: Zyklus'
+      - entity: number.wp_set_p28_abtaumodus
+        name: P28 · Abtaumodus
+      - entity: number.wp_set_p29_abtau_start_lamellentemp
+        name: P29 · Abtau-Start Lamellentemp.
+      - entity: number.wp_set_p30_abtau_ende_lamellentemp
+        name: P30 · Abtau-Ende Lamellentemp.
+      - entity: number.wp_set_p31_abtau_max_dauer
+        name: 'P31 · Abtau: max. Dauer'
+      - entity: number.wp_set_p47_abtau_frequenz
+        name: P47 · Abtau-Frequenz
+      - entity: number.wp_set_p85_abtau_max_aussentemperatur
+        name: 'P85 · Abtau: max. Außentemperatur'
+      - entity: number.wp_set_p86_abtau_dt_aussen_lamelle_7_degc
+        name: P86 · Abtau ΔT Außen–Lamelle (≥ −7 °C)
+      - entity: number.wp_set_p91_abtau_dt_aussen_lamelle_7_degc
+        name: P91 · Abtau ΔT Außen–Lamelle (< −7 °C)
+      - entity: number.wp_set_p101_eev_schritte_beim_abtauen
+        name: P101 · EEV-Schritte beim Abtauen
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P26 Abtau: Intervall-Faktor** – 0 = keine Abtauung, 1–4 = Intervall-Faktor (×4).
+        **P27 Abtau: Zyklus** – Mindest-Laufzeit zwischen zwei Abtauungen.
+        **P28 Abtaumodus** – 0 = automatisch. 1 = Abtauung manuell auslösen (springt danach auf 0).
+        **P29 Abtau-Start Lamellentemp.** – Lamelle (Tc) muss unter diesen Wert fallen, damit abgetaut wird.
+        **P30 Abtau-Ende Lamellentemp.** – Abtauung endet, wenn die Lamelle diese Temperatur erreicht.
+        **P31 Abtau: max. Dauer** – Abtauung wird spätestens nach dieser Zeit beendet.
+        **P47 Abtau-Frequenz** – Kompressorfrequenz während der Abtauung.
+        **P85 Abtau: max. Außentemperatur** – Über dieser Außentemperatur taut die WP nicht selbst ab (Community-Tipp: 15 °C).
+        **P86 Abtau ΔT Außen–Lamelle (≥ −7 °C)** – Geforderte Differenz Außenluft–Lamelle für den Abtaustart.
+        **P91 Abtau ΔT Außen–Lamelle (< −7 °C)** – Wie P86, für Außentemperaturen unter −7 °C.
+        **P101 EEV-Schritte beim Abtauen** – Ventilöffnung während der Abtauung.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Lüfter
+      entities:
+      - entity: number.wp_set_p37_lufter_kennlinie_heizen
+        name: P37 · Lüfter-Kennlinie Heizen
+      - entity: number.wp_set_p38_lufter_kennlinie_kuhlen
+        name: P38 · Lüfter-Kennlinie Kühlen
+      - entity: number.wp_set_p60_lufter_max_drehzahl
+        name: P60 · Lüfter max. Drehzahl
+      - entity: number.wp_set_p69_luftertyp
+        name: P69 · Lüftertyp
+      - entity: number.wp_set_p71_luftersteuerung
+        name: P71 · Lüftersteuerung
+      - entity: number.wp_set_p72_lufter_manuelle_drehzahl
+        name: P72 · Lüfter manuelle Drehzahl
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P37 Lüfter-Kennlinie Heizen** – Faktor für die Lüfterdrehzahl im Heizbetrieb.
+        **P38 Lüfter-Kennlinie Kühlen** – Faktor für die Lüfterdrehzahl im Kühlbetrieb.
+        **P60 Lüfter max. Drehzahl** – Höchste Lüfterdrehzahl in 10 U/min (63 = 630 U/min, Bereich 500–1500).
+        **P69 Lüftertyp** – 0 = AC, 1 = erster DC, 2 = zweiter DC, 3 = zwei DC-Lüfter.
+        **P71 Lüftersteuerung** – 1 = automatisch, 0 = manuell mit P72 (Vereisungsgefahr!).
+        **P72 Lüfter manuelle Drehzahl** – Nur bei P71 = 0. 40 = 400 U/min.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Expansionsventil / EVI / Überhitzung
+      entities:
+      - entity: number.wp_set_p32_eev_regelart
+        name: P32 · EEV Regelart
+      - entity: number.wp_set_p33_eev_manuell_heizen
+        name: P33 · EEV manuell Heizen
+      - entity: number.wp_set_p34_eev_manuell_kuhlen
+        name: P34 · EEV manuell Kühlen
+      - entity: number.wp_set_p49_heissgas_uberhitzung_p
+        name: P49 · Heißgas-Überhitzung P
+      - entity: number.wp_set_p50_heissgas_uberhitzung_d
+        name: P50 · Heißgas-Überhitzung D
+      - entity: number.wp_set_p64_eev_mindestoffnung
+        name: P64 · EEV Mindestöffnung
+      - entity: number.wp_set_p74_evi_ventil_regelart
+        name: P74 · EVI-Ventil Regelart
+      - entity: number.wp_set_p75_evi_anfangsoffnung
+        name: P75 · EVI Anfangsöffnung
+      - entity: number.wp_set_p76_evi_parameter_76
+        name: P76 · EVI Parameter 76
+      - entity: number.wp_set_p77_evi_uberhitzung_heizen
+        name: P77 · EVI Überhitzung Heizen
+      - entity: number.wp_set_p78_evi_uberhitzung_kuhlen
+        name: P78 · EVI Überhitzung Kühlen
+      - entity: number.wp_set_p89_sauggas_uberhitzung_p
+        name: P89 · Sauggas-Überhitzung P
+      - entity: number.wp_set_p90_sauggas_uberhitzung_d
+        name: P90 · Sauggas-Überhitzung D
+      - entity: number.wp_set_p92_soll_uberhitzung_heizen_aussen_5_degc
+        name: P92 · Soll-Überhitzung Heizen (Außen ≤ −5 °C)
+      - entity: number.wp_set_p93_soll_uberhitzung_heizen_5_5_degc
+        name: P93 · Soll-Überhitzung Heizen (−5…5 °C)
+      - entity: number.wp_set_p94_soll_uberhitzung_heizen_5_25_degc
+        name: P94 · Soll-Überhitzung Heizen (5…25 °C)
+      - entity: number.wp_set_p95_soll_uberhitzung_kuhlen
+        name: P95 · Soll-Überhitzung Kühlen
+      - entity: number.wp_set_p96_soll_uberhitzung_heizen_25_45_degc
+        name: P96 · Soll-Überhitzung Heizen (25…45 °C)
+      - entity: number.wp_set_p103_eev_anfangsoffnung_haltezeit
+        name: P103 · EEV Anfangsöffnung Haltezeit
+      - entity: number.wp_set_p112_eev_korrektur_ab_heissgas
+        name: P112 · EEV-Korrektur ab Heißgas
+      - entity: number.wp_set_p113_eev_korrektur_intervall
+        name: P113 · EEV-Korrektur Intervall
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P32 EEV Regelart** – 0 keine, 1 Tabelle, 2 manuell, 3 Sauggas-Überhitzung, 4 Heißgas-Überhitzung.
+        **P33 EEV manuell Heizen** – Feste Ventilöffnung im manuellen Modus (Heizen).
+        **P34 EEV manuell Kühlen** – Feste Ventilöffnung im manuellen Modus (Kühlen). Achtung: Display zeigt 0, Register liest 400.
+        **P49 Heißgas-Überhitzung P** – Regelparameter (Proportional).
+        **P50 Heißgas-Überhitzung D** – Regelparameter (Differential).
+        **P64 EEV Mindestöffnung** – Kleinste Öffnung des Expansionsventils.
+        **P74 EVI-Ventil Regelart** – Regelung des EVI-(Einspritz-)Ventils.
+        **P75 EVI Anfangsöffnung** – Startöffnung EVI-Ventil.
+        **P76 EVI Parameter 76** – EVI-Regelparameter.
+        **P77 EVI Überhitzung Heizen** – EVI-Regelparameter Heizen.
+        **P78 EVI Überhitzung Kühlen** – EVI-Regelparameter Kühlen.
+        **P89 Sauggas-Überhitzung P** – Regelparameter (Proportional).
+        **P90 Sauggas-Überhitzung D** – Regelparameter (Differential).
+        **P92 Soll-Überhitzung Heizen (Außen ≤ −5 °C)** – Ziel-Überhitzung Sauggas (Außentemperatur-Bereich 1).
+        **P93 Soll-Überhitzung Heizen (−5…5 °C)** – Ziel-Überhitzung Sauggas (Bereich 2).
+        **P94 Soll-Überhitzung Heizen (5…25 °C)** – Ziel-Überhitzung Sauggas (Bereich 3).
+        **P95 Soll-Überhitzung Kühlen** – Ziel-Überhitzung im Kühlbetrieb.
+        **P96 Soll-Überhitzung Heizen (25…45 °C)** – Ziel-Überhitzung bei hohem Vorlauf.
+        **P103 EEV Anfangsöffnung Haltezeit** – So lange bleibt das EEV nach dem Start auf Anfangsöffnung.
+        **P112 EEV-Korrektur ab Heißgas** – Ab dieser Druckgastemperatur öffnet das EEV zusätzlich.
+        **P113 EEV-Korrektur Intervall** – Zeitintervall der Korrektur.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Schutzfunktionen
+      entities:
+      - entity: number.wp_set_p25_frostschutz_temperatur
+        name: P25 · Frostschutz-Temperatur
+      - entity: number.wp_set_p42_strom_keine_frequenzerhohung_ab
+        name: 'P42 · Strom: keine Frequenzerhöhung ab'
+      - entity: number.wp_set_p43_strom_frequenzabsenkung_ab
+        name: 'P43 · Strom: Frequenzabsenkung ab'
+      - entity: number.wp_set_p44_strom_abschaltung_ab
+        name: 'P44 · Strom: Abschaltung ab'
+      - entity: number.wp_set_p51_hochdruck_keine_frequenzerhohung_ab
+        name: 'P51 · Hochdruck: keine Frequenzerhöhung ab'
+      - entity: number.wp_set_p52_hochdruck_sperre_aufheben_ab
+        name: 'P52 · Hochdruck: Sperre aufheben ab'
+      - entity: number.wp_set_p53_hochdruck_abschaltung
+        name: P53 · Hochdruck-Abschaltung
+      - entity: number.wp_set_p54_niederdruck_abschaltung
+        name: P54 · Niederdruck-Abschaltung
+      - entity: number.wp_set_p55_hochdruck_schutz_hysterese
+        name: P55 · Hochdruck-Schutz Hysterese
+      - entity: number.wp_set_p56_niederdruck_schutz_hysterese
+        name: P56 · Niederdruck-Schutz Hysterese
+      - entity: number.wp_set_p57_heissgas_schutztemperatur
+        name: P57 · Heißgas-Schutztemperatur
+      - entity: number.wp_set_p73_drucksensor_druckschalter
+        name: P73 · Drucksensor/Druckschalter
+      - entity: number.wp_set_p102_schutzgrenze_spreizung_vl_rl
+        name: P102 · Schutzgrenze Spreizung VL/RL
+      - entity: number.wp_set_p109_heissgas_grenze_1
+        name: P109 · Heißgas-Grenze 1
+      - entity: number.wp_set_p110_heissgas_grenze_2
+        name: P110 · Heißgas-Grenze 2
+      - entity: number.wp_set_p111_heissgas_grenze_3
+        name: P111 · Heißgas-Grenze 3
+      - entity: number.wp_set_p115_vorlauf_ubertemperaturschutz
+        name: P115 · Vorlauf-Übertemperaturschutz
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P25 Frostschutz-Temperatur** – Unter dieser Wassertemperatur startet der Frostschutz.
+        **P42 Strom: keine Frequenzerhöhung ab** – Ab diesem Kompressorstrom wird die Frequenz nicht mehr erhöht.
+        **P43 Strom: Frequenzabsenkung ab** – Ab diesem Strom wird die Frequenz reduziert.
+        **P44 Strom: Abschaltung ab** – Ab diesem Strom schaltet der Kompressor ab.
+        **P51 Hochdruck: keine Frequenzerhöhung ab** – Ab diesem Hochdruck keine Frequenzerhöhung mehr.
+        **P52 Hochdruck: Sperre aufheben ab** – Unter diesem Hochdruck darf die Frequenz wieder steigen.
+        **P53 Hochdruck-Abschaltung** – Schutzabschaltung bei zu hohem Druck.
+        **P54 Niederdruck-Abschaltung** – Schutzabschaltung bei zu niedrigem Druck.
+        **P55 Hochdruck-Schutz Hysterese** – Rückschaltdifferenz Hochdruckschutz.
+        **P56 Niederdruck-Schutz Hysterese** – Rückschaltdifferenz Niederdruckschutz.
+        **P57 Heißgas-Schutztemperatur** – Abschaltung bei zu hoher Druckgastemperatur (Td).
+        **P73 Drucksensor/Druckschalter** – 0 = Drucksensor, 1 = Druckschalter.
+        **P102 Schutzgrenze Spreizung VL/RL** – Maximal zulässige Spreizung, sonst Schutz.
+        **P109 Heißgas-Grenze 1** – Frequenzbegrenzung ab dieser Druckgastemperatur (Stufe 1).
+        **P110 Heißgas-Grenze 2** – Stufe 2.
+        **P111 Heißgas-Grenze 3** – Stufe 3.
+        **P115 Vorlauf-Übertemperaturschutz** – Schutzabschaltung bei zu hohem Vorlauf.
+      grid_options:
+        columns: full
+  - type: grid
+    cards:
+    - type: entities
+      title: Sonstige
+      entities:
+      - entity: number.wp_set_p97_parameter_97_frequenz
+        name: P97 · Parameter 97 (Frequenz)
+      - entity: number.wp_set_p107_prt_berechnung
+        name: P107 · PRt Berechnung
+      - entity: number.wp_set_p137_parameter_137
+        name: P137 · Parameter 137
+      - entity: number.wp_set_p138_parameter_138
+        name: P138 · Parameter 138
+      - entity: number.wp_set_p139_parameter_139
+        name: P139 · Parameter 139
+      - entity: number.wp_set_p140_parameter_140
+        name: P140 · Parameter 140
+      - entity: number.wp_set_p141_parameter_141
+        name: P141 · Parameter 141
+      - entity: number.wp_set_p142_parameter_142
+        name: P142 · Parameter 142
+      - entity: number.wp_set_p143_parameter_143
+        name: P143 · Parameter 143
+      - entity: number.wp_set_p144_parameter_144
+        name: P144 · Parameter 144
+      - entity: number.wp_set_p145_parameter_145
+        name: P145 · Parameter 145
+      grid_options:
+        columns: full
+    - type: markdown
+      content: |-
+        **P97 Parameter 97 (Frequenz)** – Hersteller-Parameter.
+        **P107 PRt Berechnung** – Hersteller-Parameter.
+        **P137 Parameter 137** – Bedeutung lt. Hofman-Liste offen.
+        **P138 Parameter 138** – Bedeutung lt. Hofman-Liste offen.
+        **P139 Parameter 139** – Bedeutung lt. Hofman-Liste offen.
+        **P140 Parameter 140** – Bedeutung lt. Hofman-Liste offen.
+        **P141 Parameter 141** – Bedeutung lt. Hofman-Liste offen.
+        **P142 Parameter 142** – Bedeutung lt. Hofman-Liste offen.
+        **P143 Parameter 143** – Bedeutung lt. Hofman-Liste offen.
+        **P144 Parameter 144** – Bedeutung lt. Hofman-Liste offen.
+        **P145 Parameter 145** – Bedeutung lt. Hofman-Liste offen.
+      grid_options:
+        columns: full
+- title: Diagnose
+  path: diagnose
+  icon: mdi:stethoscope
+  type: masonry
+  cards:
+  - type: entities
+    title: Rohwerte / noch nicht zugeordnet
+    entities:
+    - sensor.wp_betriebsstatus_roh
+    - sensor.wp_ausgange_bits
+    - sensor.wp_schalteingange_bits
+    - sensor.wp_betriebsmodus_roh
+    - sensor.wp_ein_aus_roh
+    - sensor.wp_modus_wahl_roh
+    - sensor.wp_fehlerregister_0
+    - sensor.wp_fehlerregister_1
+    - sensor.wp_fehlerregister_2
+    - sensor.wp_fehlerregister_3
+    - sensor.wp_treiber_fehler_0
+    - sensor.wp_treiber_fehler_1
+    - sensor.wp_treiber_fehler_2
+    - sensor.wp_frequenzbegrenzung_bits
+    - sensor.wp_abtauung_gesperrt_roh
+    - sensor.wp_abtauung_erzwungen_roh
+    - sensor.wp_evi_eintritt
+    - sensor.wp_evi_austritt
+    - sensor.wp_evi_temperaturdifferenz
+    - sensor.wp_evi_eev_schritte
+    - sensor.wp_temperaturdifferenz_hauptkreis
+    - sensor.wp_lufter_2_drehzahl
+    - sensor.wp_t6_fuhler
+    - sensor.wp_verdampfungstemperatur
+    - sensor.wp_kondensationstemperatur
+    - sensor.wp_berechnete_soll_temp_1
+    - sensor.wp_heizkurven_soll_otc
+    - sensor.wp_pumpe_c1_pwm_ausgang
+    - sensor.wp_pumpe_c2_leistung
+    - sensor.wp_kompressor_phasenstrom
+    - sensor.wp_software_platine
+    - sensor.wp_software_display
+    - sensor.wp_kaltemittel_alarmgrenze
+    - sensor.wp_uhr_monat_tag_roh
+    - sensor.wp_uhr_stunde_minute_roh
+    - sensor.wp_fehlerspeicher_1
+    - sensor.wp_fehlerspeicher_2
+    - sensor.wp_fehlerspeicher_3
+    - sensor.wp_fehlerspeicher_4
+    - sensor.wp_fehlerspeicher_5
+    - sensor.wp_fehlerspeicher_6
+    - sensor.wp_fehlerspeicher_7
+    - sensor.wp_fehlerspeicher_8
+    - binary_sensor.wp_ausgang_4_wege_ventil
+    - binary_sensor.wp_ausgang_ol_heizung
+    - binary_sensor.wp_ausgang_pumpe_c1
+    - binary_sensor.wp_ausgang_pumpe_c2
+    - binary_sensor.wp_ausgang_pumpe_c3
+    - binary_sensor.wp_ausgang_e_heizung_e1
+    - binary_sensor.wp_ausgang_e_heizung_e2
+    - binary_sensor.wp_ausgang_ventil_g1
+    - binary_sensor.wp_ausgang_ventil_g2
+    - binary_sensor.wp_alarm_aktiv
+    - binary_sensor.wp_abtauung_aktiv
+    - binary_sensor.wp_legionellenschaltung_aktiv
+    - binary_sensor.wp_frostschutz_aktiv
+    - binary_sensor.wp_estrichtrocknung_aktiv
+    - binary_sensor.wp_pv_modus_aktiv

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7fd0"/><stop offset="1" stop-color="#1b4f8a"/></linearGradient></defs>
+<path d="M150,150 c-28,-22 28,-46 0,-68 c-28,-22 28,-46 0,-68" fill="none" stroke="#f28c28" stroke-width="22" stroke-linecap="round"/><path d="M256,150 c-28,-22 28,-46 0,-68 c-28,-22 28,-46 0,-68" fill="none" stroke="#f28c28" stroke-width="22" stroke-linecap="round"/><path d="M362,150 c-28,-22 28,-46 0,-68 c-28,-22 28,-46 0,-68" fill="none" stroke="#f28c28" stroke-width="22" stroke-linecap="round"/>
+<rect x="20" y="186" width="472" height="290" rx="36" fill="url(#g)"/>
+<rect x="60" y="478" width="70" height="26" rx="8" fill="#1b4f8a"/><rect x="382" y="478" width="70" height="26" rx="8" fill="#1b4f8a"/>
+<circle cx="176" cy="330" r="108" fill="none" stroke="#ffffff" stroke-width="12" opacity="0.9"/>
+<path d="M176.0,310.0 Q215.5,272.2 205.0,250.5 A84.6,84.6 0 0 0 155.1,248.0 Z" fill="#ffffff" opacity="0.92"/><path d="M195.0,323.8 Q243.2,349.7 260.6,333.0 A84.6,84.6 0 0 0 247.5,284.7 Z" fill="#ffffff" opacity="0.92"/><path d="M187.8,346.2 Q178.0,400.0 199.3,411.4 A84.6,84.6 0 0 0 241.1,384.0 Z" fill="#ffffff" opacity="0.92"/><path d="M164.2,346.2 Q110.1,353.5 105.8,377.3 A84.6,84.6 0 0 0 144.7,408.7 Z" fill="#ffffff" opacity="0.92"/><path d="M157.0,323.8 Q133.3,274.6 109.4,277.8 A84.6,84.6 0 0 0 91.5,324.6 Z" fill="#ffffff" opacity="0.92"/><circle cx="176" cy="330" r="18" fill="#1b4f8a" stroke="#ffffff" stroke-width="6"/>
+<rect x="312" y="262" width="140" height="14" rx="7" fill="#ffffff" opacity="0.85"/><rect x="312" y="300" width="140" height="14" rx="7" fill="#ffffff" opacity="0.85"/><rect x="312" y="338" width="140" height="14" rx="7" fill="#ffffff" opacity="0.85"/><rect x="312" y="376" width="140" height="14" rx="7" fill="#ffffff" opacity="0.85"/>
+</svg>

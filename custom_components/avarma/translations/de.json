@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Avarma Wärmepumpe verbinden",
+        "description": "RS485-Ethernet-Gateway an COMM3 der Wärmepumpe (9600 8N1). Transparent-Modus → „RTU over TCP“, Modbus-TCP-Gateway-Modus → „Modbus TCP“.",
+        "data": {
+          "host": "IP-Adresse des Gateways",
+          "port": "Port",
+          "slave": "Slave-ID (Werk: 1)",
+          "protocol": "Protokoll"
+        }
+      },
+      "reconfigure": {
+        "title": "Verbindung ändern",
+        "description": "Neue IP-Adresse, Port, Slave-ID oder Protokoll des Gateways. Optionen, Zähler und Verläufe bleiben erhalten.",
+        "data": {
+          "host": "IP-Adresse des Gateways",
+          "port": "Port",
+          "slave": "Slave-ID (Werk: 1)",
+          "protocol": "Protokoll"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Keine Antwort der Wärmepumpe. Protokoll, IP/Port, A/B-Verdrahtung und 9600 8N1 am Gateway prüfen."
+    },
+    "abort": {
+      "already_configured": "Diese Wärmepumpe ist bereits eingerichtet.",
+      "reconfigure_successful": "Verbindung geändert, die Integration wurde neu geladen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "description": "Der Techniker-Code wird nur lokal in Home Assistant gespeichert. ⚠️ Techniker-Parameter sind gefährlich – nur ändern, wenn du genau weißt, was sie bewirken.",
+        "data": {
+          "tech_code": "Techniker-Code (leer = Techniker-Parameter gesperrt)",
+          "tech_switch": "Techniker-Freigabe per Schalter erlauben (gespeicherter Code, ohne Eintippen)",
+          "notify_service": "Push-Benachrichtigung an (z. B. notify.mobile_app_mein_handy, leer = keine)",
+          "clock_sync": "Uhr der Wärmepumpe täglich um 03:17 stellen",
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "dashboard": "Dashboard „Wärmepumpe“ bereitstellen (wird mit der Integration automatisch aktualisiert)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "protocol": {
+      "options": {
+        "rtuovertcp": "Modbus RTU over TCP (Gateway transparent)",
+        "tcp": "Modbus TCP (Gateway setzt um)"
+      }
+    }
+  }
+}
