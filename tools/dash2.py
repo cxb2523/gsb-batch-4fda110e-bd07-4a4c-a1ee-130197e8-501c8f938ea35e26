@@ -254,7 +254,20 @@ v_kk = {"title": "Kältekreis", "path": "kaeltekreis", "icon": "mdi:snowflake-th
     {"type": "grid", "column_span": 2, "cards": [full({"type": "markdown", "content": KK_TXT})]}]}
 diag = {"type": "entities", "title": "Rohwerte / noch nicht zugeordnet", "entities": [E(k) for k in
         ["status_roh","ausgaenge","eingaenge","modus_roh","ein_aus","modus_wahl","fehler0","fehler1","fehler2","fehler3","fehler_drv0","fehler_drv1","fehler_drv2","freqlimit","abtau_gesperrt","abtau_erzw","evi_ein","evi_aus","evi_diff","evi_eev","diff_hk","luefter2","t6","verdampfer_temp","kondensator_temp","soll_ww_calc","otc","pumpe_pwm","pumpe_c2","phasenstrom","sw_pcb","sw_hmi","r290_grenze","uhr_datum","uhr_zeit"] + [f"hist{i}" for i in range(8)] + ["out_%d" % b for b in (0,1,3,4,5,6,7,8,9)] + ["stat_%d" % b for b in (3,4,8,9,10,11)]]}
-v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [diag]}
+# Zustand der langsam abgefragten Registerblöcke: normal / fehler / veraltet / nicht bereit
+blocks = {"type": "entities", "title": "Registerblöcke (Abfragezustand)", "state_color": True, "entities": [
+    {"entity": E("block_params"), "name": "Parameterblock (P06–P150, P201–P208)"},
+    {"entity": E("block_energy"), "name": "Energieblock (Zähler)"},
+    {"entity": E("block_defrost"), "name": "Abtau-Block"}]}
+blocks_md = {"type": "markdown", "content": (
+    "**Zustand der langsamen Registerblöcke**\n\n"
+    "- 🟢 **normal** – letzte Abfrage war erfolgreich.\n"
+    "- 🟡 **fehler** – die letzte Abfrage ist fehlgeschlagen, der Block wird nach 30 s erneut versucht.\n"
+    "- 🔴 **veraltet** – seit mehr als zwei Abfrageperioden kein Erfolg; die angezeigten Werte sind alt.\n"
+    "- ⚪ **nicht bereit** – seit dem Start noch nie erfolgreich gelesen.\n\n"
+    "In den Attributen stehen Blockstart-Adresse, letzter Erfolg, letzter Fehlergrund und die Zahl der Fehlversuche in Folge. "
+    "Der Parameterblock wird alle 15 Minuten, der Energieblock alle 5 Minuten gelesen – so bleibt der RS485-Bus frei für die Live-Werte.")}
+v_diag = {"title": "Diagnose", "path": "diagnose", "icon": "mdi:stethoscope", "type": "masonry", "cards": [blocks, blocks_md, diag]}
 
 cfg = {"views": [v_status, v_takte, v_kk, v_fehler, v_param, v_user, v_tech, v_diag]}
 if C:

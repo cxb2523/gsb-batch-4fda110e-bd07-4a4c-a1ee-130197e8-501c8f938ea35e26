@@ -2160,6 +2160,26 @@ views:
   type: masonry
   cards:
   - type: entities
+    title: Registerblöcke (Abfragezustand)
+    state_color: true
+    entities:
+    - entity: sensor.wp_parameterblock_status
+      name: Parameterblock (P06–P150, P201–P208)
+    - entity: sensor.wp_energieblock_status
+      name: Energieblock (Zähler)
+    - entity: sensor.wp_abtau_block_status
+      name: Abtau-Block
+  - type: markdown
+    content: |-
+      **Zustand der langsamen Registerblöcke**
+
+      - 🟢 **normal** – letzte Abfrage war erfolgreich.
+      - 🟡 **fehler** – die letzte Abfrage ist fehlgeschlagen, der Block wird nach 30 s erneut versucht.
+      - 🔴 **veraltet** – seit mehr als zwei Abfrageperioden kein Erfolg; die angezeigten Werte sind alt.
+      - ⚪ **nicht bereit** – seit dem Start noch nie erfolgreich gelesen.
+
+      In den Attributen stehen Blockstart-Adresse, letzter Erfolg, letzter Fehlergrund und die Zahl der Fehlversuche in Folge. Der Parameterblock wird alle 15 Minuten, der Energieblock alle 5 Minuten gelesen – so bleibt der RS485-Bus frei für die Live-Werte.
+  - type: entities
     title: Rohwerte / noch nicht zugeordnet
     entities:
     - sensor.wp_betriebsstatus_roh

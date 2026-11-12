@@ -209,9 +209,29 @@ Wer die ältere Version mit `packages/avarma.yaml` nutzt (Stand: Branch [`yaml-p
 | **Takte & Energie** | Starts Tag/Woche/Monat/Jahr/gesamt, Ø Laufzeit, Start/Stopp-Aufzeichnung, Energie, COP, JAZ |
 | **Fehler** | aktive Fehler im Klartext, Fehlerspeicher, **Fehler quittieren**, Protokoll |
 | **Parameter** | → **Benutzer-Parameter** / **Techniker-Parameter**, Nachtmodus, Freigabe |
-| **Diagnose** | alle Rohwerte und Bits |
+| **Diagnose** | Abfragezustand der Registerblöcke, alle Rohwerte und Bits |
 
 <img src="docs/images/display-parameter.jpg" width="420" align="right">
+
+### Zustand der langsamen Registerblöcke
+Die Parameterliste und die Energiezähler werden nicht in jedem 10-Sekunden-Takt gelesen, sondern als **langsame Blöcke** nur alle 15 bzw. 5 Minuten (Abtau-Sperre alle 10 Minuten). Fällt der Bus genau bei einem dieser Blöcke aus, sieht man den bisherigen Werten nicht an, ob sie alt sind. Deshalb gibt es unter **Diagnose** drei Sensoren (jeweils Kategorie *Diagnose*):
+
+| Entität | Block | Abfrage |
+|---|---|---|
+| `sensor.wp_parameterblock_status` | P06–P150, P201–P208 (ab Register 8192) | alle 15 min |
+| `sensor.wp_energieblock_status` | Energiezähler (ab Register 5120) | alle 5 min |
+| `sensor.wp_abtau_block_status` | Abtauung gesperrt (Register 6666) | alle 10 min |
+
+Der Zustand ist einer von vier:
+
+- **`normal`** – letzte Abfrage erfolgreich, Werte aktuell.
+- **`fehler`** – letzte Abfrage fehlgeschlagen, Wiederholung nach 30 s; die Werte sind noch nicht alt.
+- **`veraltet`** – seit mehr als zwei Abfrageperioden kein Erfolg (Parameterblock also > 30 min). Die angezeigten Werte sind alt.
+- **`nicht bereit`** – seit dem Start noch nie erfolgreich gelesen. **Nicht** dasselbe wie „veraltet“; beide werden nie als `normal` angezeigt.
+
+Die Attribute jedes Sensors: `start_adresse` (erste Registeradresse des Blocks), `registerbloecke` (die gelesenen Bereiche), `letzter_erfolg` (Zeitpunkt der letzten erfolgreichen Lesung), `letzter_fehler` (Grund des letzten Fehlschlags), `letzter_fehler_zeit`, `fehlversuche` (Fehlschläge in Folge) und `status`.
+
+Wichtig: **Ein Fehler im schnellen Block (Live-Werte) lässt den Blockzustand unangetastet.** Meldet der Koordinator `UpdateFailed`, bleiben `letzter_erfolg` und `fehlversuche` stehen – der Zustand wird nicht auf `normal` zurückgesetzt. Nach einem Busfehler schließt der Client die Verbindung, die nächste Transaktion verbindet neu; gelingt sie, springen `fehlversuche` auf 0, der Zustand auf `normal` und `letzter_erfolg` auf die aktuelle Zeit.
 
 ### Parameter ändern
 1. **Benutzer-Freigabe** einschalten (oder im Feld **Code** `99` eingeben und Enter drücken). Techniker-Parameter: Techniker-Code eingeben bzw. – falls in den Optionen erlaubt – den Schalter **Techniker-Freigabe** umlegen. Die Freigabe gilt **15 Minuten**.
@@ -259,6 +279,16 @@ Der Alarm wird ausgelöst bei Alarm-Flag, Konzentration > 0 **oder** Fehler **E5
 | `custom_components/avarma/` | die Integration (eigener schlanker Modbus-Client, keine Zusatzpakete) |
 | `tools/dash2.py` | erzeugt das Dashboard (`homeassistant/dashboards/waermepumpe.yaml`) |
 | `tools/entity_map.json` | Zuordnung Schlüssel → Entity-ID für den Dashboard-Generator |
+| `tests/` | Tests der Blockzustände (pytest, siehe unten) |
+
+Tests der Abfragezustände (ohne echte Anlage, mit lokalem Ersatz-Client bzw. Ersatz-From):
+
+```bash
+pip install "homeassistant==2025.1.4" pytest-homeassistant-custom-component home-assistant-frontend
+python -m pytest tests
+```
+
+Abgedeckt sind: erster Lesefehler → `nicht bereit` mit sichtbarem Grund; Erholung → `normal` mit Fehlerzähler 0; mehr als zwei Perioden ohne Erfolg → `veraltet` bei unverändertem `letzter_erfolg`; `UpdateFailed` im schnellen Block → langsamer Blockstatus bleibt erhalten; sowie der echte Weg über einen lokalen Modbus-Ersatz-From inklusive Schließen und Neuverbinden des Clients.
 
 Ereignis für eigene Automationen: `avarma_stoerung` (Daten: `fehler` = neue Fehler, `alle` = alle aktiven).
 

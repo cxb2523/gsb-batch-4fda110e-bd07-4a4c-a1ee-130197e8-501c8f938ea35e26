@@ -17,6 +17,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .blocks import SlowBlock
 from .const import (
     CONF_NOTIFY, CONF_TECH_CODE, CONF_TECH_SWITCH, DOMAIN, DRV, ERR, FAULT_BITS, REG_DRV, REG_FAULTS, REG_FREQ,
     REG_HIST, REG_R290_ALARM, REG_R290_KONZ, REG_STARTS, UNLOCK_MINUTES, USER_CODE,
@@ -26,11 +27,12 @@ from .modbus import AvarmaModbus, ModbusError
 _LOGGER = logging.getLogger(__name__)
 
 FAST_BLOCKS = [(4096, 12), (4352, 50), (4608, 28)]
-SLOW_BLOCKS = [  # (Intervall s, Blöcke)
-    (900, [(8192, 60), (8252, 60), (8312, 29), (4864, 8)]),   # Parameter P00..P150, SG-Ready
-    (300, [(5120, 60), (5180, 60), (5240, 60), (5300, 22)]),  # Energiezähler
-    (600, [(6666, 1)]),                                       # Abtauung gesperrt
+SLOW_BLOCKS = [  # (Schlüssel, Name, Intervall s, Blöcke)
+    ("params", "Parameterblock", 900, [(8192, 60), (8252, 60), (8312, 29), (4864, 8)]),   # Parameter P00..P150, SG-Ready
+    ("energy", "Energieblock", 300, [(5120, 60), (5180, 60), (5240, 60), (5300, 22)]),    # Energiezähler
+    ("defrost", "Abtau-Block", 600, [(6666, 1)]),                                          # Abtauung gesperrt
 ]
+SLOW_RETRY = 30  # s, Wartezeit nach einem fehlgeschlagenen Leseversuch
 STORE_VERSION = 1
 KOMP_DELAY_OFF = 45  # s, wie früher delay_off der Template-Binärsensors
 
@@ -64,7 +66,9 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
         self.entry = entry
         self.client = client
         self.regs: dict[int, int] = {}
-        self._slow_due = [0.0] * len(SLOW_BLOCKS)
+        self.slow: list[SlowBlock] = [
+            SlowBlock(key, name, interval, list(blocks)) for key, name, interval, blocks in SLOW_BLOCKS
+        ]
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self.acc: dict[str, Any] = {}
         self._last_ts: float | None = None
@@ -95,18 +99,44 @@ class AvarmaCoordinator(DataUpdateCoordinator[dict[int, int]]):
             except ModbusError:
                 await self._read_blocks(FAST_BLOCKS)  # ein zweiter Versuch
         except ModbusError as err:
+            # Der langsame Blockzustand bleibt erhalten: Ein Fehler im schnellen Block
+            # darf weder den letzten Erfolg löschen noch einen Erfolg vortäuschen.
+            # Das Schreiben der Entitäten übernimmt _async_refresh_finished – erst dort
+            # steht last_update_success auf False, sodass Live-Werte als nicht verfügbar
+            # gelten, der Blockzustand aber sichtbar bleibt.
             raise UpdateFailed(str(err)) from err
         mono = time.monotonic()
-        for i, (interval, blocks) in enumerate(SLOW_BLOCKS):
-            if mono >= self._slow_due[i]:
-                try:
-                    await self._read_blocks(blocks)
-                    self._slow_due[i] = mono + interval
-                except ModbusError as err:
-                    _LOGGER.debug("Langsamer Block %s: %s", blocks[0], err)
-                    self._slow_due[i] = mono + 30
+        now = dt_util.now()
+        for blk in self.slow:
+            if mono < blk.due:
+                continue
+            try:
+                await self._read_blocks(blk.blocks)
+            except ModbusError as err:
+                reason = str(err)
+                _LOGGER.debug("Langsamer Block %s (%s): %s", blk.name, blk.start, reason)
+                blk.mark_failure(now, reason)
+                blk.due = mono + SLOW_RETRY
+            else:
+                if blk.consecutive_failures:
+                    _LOGGER.info("Langsamer Block %s wieder erreichbar", blk.name)
+                blk.mark_success(now)
+                blk.due = mono + blk.interval
         self._update_derived()
         return self.regs
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Bei fehlgeschlagener Abfrage die Entitäten trotzdem neu schreiben.
+
+        Die Basisklasse schreibt nur beim Wechsel Erfolg -> Fehler neu. Damit der
+        Abfragezustand der langsamen Blöcke auch bei andauernden Fehlern weiter
+        aktualisiert wird (und „veraltet“ sichtbar bleibt), schreiben wir hier erneut –
+        zu diesem Zeitpunkt steht ``last_update_success`` bereits auf ``False``,
+        Live-Werte erscheinen also als nicht verfügbar, der Blockzustand bleibt aber lesbar.
+        """
+        if not self.last_update_success:
+            self.async_update_listeners()
 
     async def async_write(self, addr: int, value: int, reread: tuple[int, int] | None = None) -> None:
         try:

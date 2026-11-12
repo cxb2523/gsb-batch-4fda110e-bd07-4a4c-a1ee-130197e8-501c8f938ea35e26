@@ -10,7 +10,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
+from .blocks import SlowBlock
 from .const import BETRIEB, DOMAIN, MODES_SHORT
 from .coordinator import AvarmaCoordinator
 from .entity import AvarmaEntity
@@ -137,6 +139,39 @@ class CalcSensor(AvarmaEntity, SensorEntity):
         return self.attrs_fn(self.coordinator) if self.attrs_fn else None
 
 
+class BlockStatusSensor(AvarmaEntity, SensorEntity):
+    """Diagnose-Entität für einen langsam abgefragten Registerblock.
+
+    Zustand: normal / fehler / veraltet / nicht bereit. Die Attribute zeigen,
+    welcher Block gemeint ist, wann er zuletzt erfolgreich gelesen wurde,
+    warum der letzte Versuch scheiterte und wie oft er in Folge scheiterte.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, c, block: SlowBlock) -> None:
+        super().__init__(c, f"block_{block.key}", f"{block.name} Status")
+        self.block = block
+        self._attr_icon = "mdi:database-check-outline"
+
+    def _now(self):
+        return dt_util.now()
+
+    @property
+    def available(self) -> bool:
+        # Auch bei fehlgeschlagenem Gesamt-Update sichtbar: Der Blockzustand ist
+        # gerade dann interessant und darf nicht als „nicht verfügbar“ verschwinden.
+        return True
+
+    @property
+    def native_value(self):
+        return self.block.status(self._now())
+
+    @property
+    def extra_state_attributes(self):
+        return self.block.attributes(self._now())
+
+
 def _t(c, reg):
     v = c.s(reg)
     return None if v is None or v == -32768 else v / 10
@@ -239,4 +274,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     ents.append(CalcSensor(
         c, "fehlerspeicher", "Fehlerspeicher", lambda c: len(c.fault_history()),
         icon="mdi:history", attrs=lambda c: {"liste": c.fault_history()}))
+    ents.extend(BlockStatusSensor(c, block) for block in c.slow)
     add(ents)
