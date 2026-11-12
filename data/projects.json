@@ -1,0 +1,95 @@
+{
+  "_readme": "BK // MISSION CONTROL. 'repo' must be exact 'owner/name' for live stars/pushed_at. 'status' is one of OPERATIONAL / BUILDING / RESEARCH / EXPERIMENTAL / MAINTENANCE / ARCHIVED. 'progress' is a manual completion estimate — stars/activity stay live from the API.",
+  "missions": [
+    {
+      "id": "001",
+      "name": "DEVNEXUS",
+      "repo": "vincenzo-afk/DEVNEXUS",
+      "type": "AI / DEVELOPER TOOLS",
+      "stack": "TypeScript · Next.js · FastAPI · Supabase",
+      "objective": "AI-powered developer command center: GitHub context, progress narratives, smart TODOs, hackathon planning.",
+      "status": "OPERATIONAL",
+      "progress": 92
+    },
+    {
+      "id": "002",
+      "name": "NEXUS-ENGINE",
+      "repo": "vincenzo-afk/NEXUS-ENGINE",
+      "type": "SYSTEMS / SEARCH",
+      "stack": "Rust · BM25 · PageRank",
+      "objective": "Full-featured search engine in Rust — local filesystem + web crawl with BM25+PageRank ranking.",
+      "status": "OPERATIONAL",
+      "progress": 88
+    },
+    {
+      "id": "003",
+      "name": "Zen-2",
+      "repo": "vincenzo-afk/Zen-2",
+      "type": "AI / RESEARCH",
+      "stack": "Python · PyTorch · Transformers",
+      "objective": "124M-parameter decoder-only LLM from scratch — RoPE, RMSNorm, SwiGLU, GQA, KV Cache, BPE.",
+      "status": "RESEARCH",
+      "progress": 85
+    },
+    {
+      "id": "004",
+      "name": "NOVA-exe",
+      "repo": "vincenzo-afk/NOVA-exe",
+      "type": "AI / DESKTOP AGENTS",
+      "stack": "TypeScript · Electron · React · SQLite",
+      "objective": "Local-first desktop AI agent platform. Most recently pushed repo — under active construction.",
+      "status": "BUILDING",
+      "progress": 64
+    },
+    {
+      "id": "005",
+      "name": "Kernel-One",
+      "repo": "vincenzo-afk/Kernel-One",
+      "type": "AI / SYSTEMS",
+      "stack": "Python · Agents · Permissions",
+      "objective": "Industrial AI operating environment — every AI action controlled, auditable, permission-aware.",
+      "status": "BUILDING",
+      "progress": 58
+    },
+    {
+      "id": "006",
+      "name": "CypherID",
+      "repo": "vincenzo-afk/CypherID",
+      "type": "WEB3 / IDENTITY",
+      "stack": "Java · Blockchain · IAM",
+      "objective": "Blockchain-based secure platform for identity, access control, and digital asset management.",
+      "status": "BUILDING",
+      "progress": 52
+    },
+    {
+      "id": "007",
+      "name": "WIFI-SENSE",
+      "repo": "vincenzo-afk/WIFI-based-human-presence-detection-system",
+      "type": "AI / SIGNAL PROCESSING",
+      "stack": "Python · WiFi CSI · Flask",
+      "objective": "WiFi CSI-based human presence, occupancy, zone and activity detection dashboard. No cameras.",
+      "status": "OPERATIONAL",
+      "progress": 90
+    },
+    {
+      "id": "008",
+      "name": "PrivatePulse-AI",
+      "repo": "vincenzo-afk/PrivatePulse-AI",
+      "type": "AI / RAG",
+      "stack": "TypeScript · RAG · Privacy",
+      "objective": "RAG-powered confidential document intelligence with grounded, cited answers. Hackathon-built.",
+      "status": "OPERATIONAL",
+      "progress": 86
+    },
+    {
+      "id": "009",
+      "name": "browserbrain",
+      "repo": "vincenzo-afk/browserbrain",
+      "type": "AI / RESEARCH",
+      "stack": "TypeScript · WebGPU · WASM",
+      "objective": "Browser-first local AI research workspace — on-device inference with free web grounding.",
+      "status": "EXPERIMENTAL",
+      "progress": 61
+    }
+  ]
+}
