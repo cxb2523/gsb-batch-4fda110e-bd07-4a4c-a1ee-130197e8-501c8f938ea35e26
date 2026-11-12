@@ -22,6 +22,8 @@ export type McpErrorCode =
   | "access_denied"
   /** Not an MCP endpoint (404, 405, not JSON-RPC, no tools). */
   | "not_mcp"
+  /** A later page of the tool list failed: the tools returned so far are only part of the server's. */
+  | "list_incomplete"
   /** The arguments didn't fit the tool, or there's no such tool. */
   | "bad_arguments"
   /** The tool ran and reported a failure. */

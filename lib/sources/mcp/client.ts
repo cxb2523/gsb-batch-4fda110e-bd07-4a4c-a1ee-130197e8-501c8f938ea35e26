@@ -72,29 +72,89 @@ export async function withMcpClient<T>(
 
 export type McpToolInfo = { name: string; title: string | null; description: string | null; inputSchema: unknown };
 
-async function listTools(client: Client, signal: AbortSignal): Promise<McpToolInfo[]> {
+/** Tool descriptions longer than this are cut; the cut is reported in the collection meta. */
+export const MAX_TOOL_DESCRIPTION_CHARS = 2_000;
+
+/**
+ * Self-describing completeness of a tool collection, so a partial or trimmed
+ * collection can never be presented as a complete one.
+ */
+export type McpListMeta = {
+  /** Collection stopped early because the configured tool limit (mcp.maxTools) was reached. */
+  limitReached: boolean;
+  /** The server still had tools (the rest of a page, or the cursor's next page) that were never fetched. */
+  hasNextPage: boolean;
+  /** At least one tool description was cut at MAX_TOOL_DESCRIPTION_CHARS. */
+  descriptionTruncated: boolean;
+};
+
+export type McpListToolsResult = { tools: McpToolInfo[]; meta: McpListMeta };
+
+async function listTools(
+  client: Client,
+  signal: AbortSignal,
+  errorContext: { hasKey: boolean },
+): Promise<McpListToolsResult> {
   const settings = appConfig().mcp;
   const tools: McpToolInfo[] = [];
+  const meta: McpListMeta = { limitReached: false, hasNextPage: false, descriptionTruncated: false };
   let cursor: string | undefined;
   do {
-    const page = await client.listTools(cursor ? { cursor } : undefined, { signal, timeout: settings.requestTimeoutMs });
+    let page: Awaited<ReturnType<Client["listTools"]>>;
+    try {
+      page = await client.listTools(cursor ? { cursor } : undefined, { signal, timeout: settings.requestTimeoutMs });
+    } catch (error) {
+      // A failed first page is just a failed request: let withMcpClient classify it.
+      // A failed later page means the collection is provably incomplete — never
+      // hand back the partial list as if the server had nothing more.
+      if (tools.length === 0) throw error;
+      const cause = toMcpError(error, errorContext);
+      throw new McpError(
+        "list_incomplete",
+        `Only ${tools.length} tool${tools.length === 1 ? "" : "s"} collected before the next page failed (${cause.code}${
+          cause.detail ? `: ${cause.detail}` : ""
+        }).`,
+      );
+    }
+
+    let stoppedInPage = false;
     for (const tool of page.tools) {
-      if (tools.length >= settings.maxTools) return tools;
+      if (tools.length >= settings.maxTools) {
+        stoppedInPage = true;
+        break;
+      }
+      const fullDescription = tool.description ?? null;
+      if (fullDescription !== null && fullDescription.length > MAX_TOOL_DESCRIPTION_CHARS) meta.descriptionTruncated = true;
       tools.push({
         name: tool.name,
         title: tool.title ?? tool.annotations?.title ?? null,
-        description: tool.description?.slice(0, 2_000) ?? null,
+        description: fullDescription?.slice(0, MAX_TOOL_DESCRIPTION_CHARS) ?? null,
         inputSchema: tool.inputSchema,
       });
     }
+
+    if (stoppedInPage || tools.length >= settings.maxTools) {
+      meta.limitReached = true;
+      // An in-page stop leaves the rest of this page unread; a stop exactly on a
+      // page boundary leaves whatever the server's cursor points at.
+      meta.hasNextPage = stoppedInPage || Boolean(page.nextCursor);
+      return { tools, meta };
+    }
     cursor = page.nextCursor;
   } while (cursor);
-  return tools;
+  return { tools, meta };
 }
 
-/** The server's tools, with their descriptions and input schemas. */
+/**
+ * The server's tools, with their descriptions and input schemas, plus meta that
+ * proves how complete the collection is (limit hit, pages left, descriptions cut).
+ */
 export function listMcpTools(target: McpTarget, options: { signal?: AbortSignal; testHooks?: McpTestHooks } = {}) {
-  return withMcpClient(target, (client, signal) => listTools(client, signal), options);
+  return withMcpClient(
+    target,
+    (client, signal) => listTools(client, signal, { hasKey: Boolean(target.credential) }),
+    options,
+  );
 }
 
 /** What a tool call returns: structured data when the server gives it, its text otherwise. */
@@ -123,6 +183,9 @@ export function toCallResult(server: string, result: { content?: unknown; struct
   }
   const fullText = parts.join("\n\n");
   const text = fullText.slice(0, maxChars);
+  // One rule, whether or not structuredContent is present: truncated says the
+  // text alone was cut. Structured data is never trimmed, so it never flips it.
+  const textTruncated = fullText.length > maxChars;
 
   if (result.isError === true) throw new McpError("tool_error", text.slice(0, 1_000) || "The tool reported an error.");
 
@@ -135,7 +198,7 @@ export function toCallResult(server: string, result: { content?: unknown; struct
     structuredContent: structured,
     text: text || null,
     omitted,
-    truncated: fullText.length > maxChars,
+    truncated: textTruncated,
   };
 }
 
@@ -165,7 +228,7 @@ export function callMcpTool(
 
 /** Checks the server answers as MCP with this key, and offers tools. */
 export async function testMcpServer(target: McpTarget, options: { testHooks?: McpTestHooks } = {}): Promise<{ tools: number }> {
-  const tools = await listMcpTools(target, options);
+  const { tools } = await listMcpTools(target, options);
   if (!tools.length) throw new McpError("not_mcp", "The server lists no tools.");
   return { tools: tools.length };
 }
