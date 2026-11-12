@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import fnmatch
+import inspect
 import logging
 import math
 import os
 import re
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any
 
 import psutil
@@ -60,6 +63,7 @@ from .const import (
     CPU_RAM_SOURCE_SENSORS,
     DATA_BOOT_TIME,
     DATA_UPDATE_FIRST_SEEN,
+    DATA_UPDATE_FIRST_SEEN_DIAG,
     DATA_UPDATE_FIRST_SEEN_LOADED,
     DATA_UPDATE_FIRST_SEEN_STORE,
     DATA_UPDATE_SEEN_VERSION,
@@ -100,6 +104,62 @@ _GB = 1024**3
 # Timeout for each scoring sub-calculation (seconds).
 PILLAR_TIMEOUT: float = 10.0
 FIRST_SEEN_SAVE_DELAY = 10  # seconds; one write for a burst of changes
+
+# Refresh stages named in the per-cycle diagnostics, in execution order.
+STAGE_UPDATE_FIRST_SEEN = "update_first_seen"
+STAGE_RECORDER_INFO = "recorder_info"
+STAGE_HARDWARE = "hardware"
+STAGE_APPLICATION = "application"
+STAGE_TRANSLATIONS = "translations"
+STAGE_RESULT = "result"
+
+
+class DiagnosticStatus(StrEnum):
+    """Outcome of one refresh stage."""
+
+    SUCCESS = "success"
+    TIMEOUT = "timeout"
+    ERROR = "error"
+    SKIPPED = "skipped"
+
+
+@dataclass
+class _StageResult:
+    """The result of one refresh stage; only the current cycle is ever kept."""
+
+    stage: str
+    status: DiagnosticStatus
+    reason: str | None = None
+
+    def as_dict(self) -> dict[str, str]:
+        """The compact state-attribute form; reason only when the stage was not successful."""
+        data = {"stage": self.stage, "status": str(self.status)}
+        if self.reason is not None:
+            data["reason"] = self.reason
+        return data
+
+
+@dataclass
+class _RefreshDiagnosis:
+    """All diagnostic data of one refresh attempt; rebuilt at every cycle."""
+
+    stages: list[_StageResult] = field(default_factory=list)
+    first_seen_loaded: int = 0
+    first_seen_invalid: int = 0
+    first_seen_status: DiagnosticStatus | None = None
+    first_seen_reason: str | None = None
+    update_added: int = 0
+    update_pruned: int = 0
+    update_pending_skipped: int = 0
+
+    def record(self, stage: str, status: DiagnosticStatus, reason: str | None = None) -> None:
+        """Append one stage outcome in execution order."""
+        self.stages.append(_StageResult(stage, status, reason))
+
+    def stage_dicts(self) -> list[dict[str, str]]:
+        """The stage outcomes as JSON-safe dictionaries."""
+        return [stage.as_dict() for stage in self.stages]
+
 
 # Default HA SQLite database filename
 HA_DB_NAME = "home-assistant_v2.db"
@@ -200,6 +260,15 @@ class _StaleResult:
 
 
 @dataclass
+class _UpdateWindowCounters:
+    """First-seen window changes of one application cycle, for the diagnostics."""
+
+    added: int = 0
+    pruned: int = 0
+    pending_skipped: int = 0
+
+
+@dataclass
 class _ApplicationResult:
     """Result of the application pillar calculation."""
 
@@ -234,6 +303,10 @@ class _ApplicationResult:
     empty_device_count: int = 0
     empty_device_list: list[str] = field(default_factory=list)
     empty_device_ids: list[str] = field(default_factory=list)
+    # First-seen window bookkeeping of the current application cycle (#diag).
+    update_first_seen_added: int = 0
+    update_first_seen_pruned: int = 0
+    update_pending_skipped: int = 0
 
 
 class _DeviceList(tuple):
@@ -391,6 +464,9 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # apply as the final fallback.
         self._rec_translations: dict[str, str] = {}
         self._pillar_fallbacks: set[str] = set()
+        # Per-cycle diagnostics; replaced with a fresh instance at every update
+        # so a failed or skipped stage can never leak into the next cycle.
+        self._diagnosis: _RefreshDiagnosis = _RefreshDiagnosis()
 
         # Grace windows are user-configurable in the Options Flow. Both
         # values are stored in minutes for friendlier UX, multiplied to
@@ -560,17 +636,30 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         the sensor never loses its value; on the very first update a
         neutral result is returned. Every failure is logged with a full
         traceback so silent stalls become diagnosable.
+
+        The per-cycle diagnostics start empty here, before any stage runs,
+        so the returned attributes describe only this attempt even when an
+        exception aborts it halfway.
         """
         self._pillar_fallbacks.clear()
+        self._diagnosis = _RefreshDiagnosis()
         try:
             self._apply_conditional_labels()
             return await self._async_update_data_inner()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             _LOGGER.exception("HAGHS: update cycle failed — keeping last result")
+            self._diagnosis.record(
+                STAGE_RESULT,
+                DiagnosticStatus.ERROR,
+                self._stage_error_reason(),
+            )
             result = dict(self.data) if self.data else self._neutral_result()
             result.update(self._failure_attributes())
             result["update_cycle_failed"] = True
             result["rec_update_failed"] = True
+            result.update(self._diagnostic_attributes())
             # Do not reuse failed result, flag or advice builders. Text lookup
             # and formatting may themselves be the cause of the outer failure.
             try:
@@ -599,24 +688,73 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         self._pillar_fallbacks: set[str] = set()
         await self._async_load_update_first_seen()
-        # Recorder info — read before app pillar so config audit can use it
-        self.recorder_info = self._read_recorder_info()
+        # Recorder info — read before app pillar so config audit can use it.
+        # Guarded as a stage: an error here becomes part of the diagnostics and
+        # leaves the recorder info neutral instead of aborting the whole cycle.
+        self.recorder_info = await self._guard_stage(
+            STAGE_RECORDER_INFO,
+            self._read_recorder_info,
+            _RecorderInfo(),
+        )
 
         hw = await self._safe_calc(
-            "hardware",
+            STAGE_HARDWARE,
             self._async_calc_hardware(),
             _HardwareResult(),
         )
         self._sync_cpu_ram_issue(hw)
 
         app = await self._safe_calc(
-            "application",
+            STAGE_APPLICATION,
             self._async_calc_application(),
             _ApplicationResult(),
         )
+        # The window counts belong to this cycle even when a later stage aborts
+        # the result assembly; copy them now so the outer failure path keeps them.
+        self._diagnosis.update_added = app.update_first_seen_added
+        self._diagnosis.update_pruned = app.update_first_seen_pruned
+        self._diagnosis.update_pending_skipped = app.update_pending_skipped
 
-        self._rec_translations = await self._async_load_rec_translations()
+        self._rec_translations = await self._guard_stage(
+            STAGE_TRANSLATIONS,
+            self._async_load_rec_translations,
+            {},
+        )
         return self._build_result(hw, app)
+
+    @staticmethod
+    def _stage_error_reason(exc: BaseException | None = None) -> str:
+        """A short machine-readable reason for a failed stage; never user-facing text."""
+        if exc is None:
+            exc = sys.exc_info()[1]
+        return exc.__class__.__name__ if isinstance(exc, BaseException) else "unexpected_error"
+
+    async def _guard_stage(
+        self,
+        stage: str,
+        factory: Callable[[], Any],
+        fallback: Any,
+    ) -> Any:
+        """Run a stage and record its outcome; never propagate its exceptions.
+
+        *factory* returns the stage result directly or a coroutine/awaitable,
+        so both sync stages (recorder info) and async stages (translations)
+        share one guarded path. On failure the neutral *fallback* is returned
+        and the stage is recorded with the exception class as its reason.
+        """
+        try:
+            result = factory()
+            if inspect.isawaitable(result):
+                result = await result
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            reason = self._stage_error_reason(err)
+            self._diagnosis.record(stage, DiagnosticStatus.ERROR, reason)
+            _LOGGER.warning("HAGHS: %s stage failed (%s)", stage, reason, exc_info=True)
+            return fallback
+        self._diagnosis.record(stage, DiagnosticStatus.SUCCESS)
+        return result
 
     def _build_result(
         self,
@@ -667,6 +805,28 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             **self._failure_attributes(),
             **rec_flags,
             **self._stale_attributes(app.stale),
+            **self._diagnostic_attributes(app),
+        }
+
+    def _diagnostic_attributes(self, app: _ApplicationResult | None = None) -> dict[str, Any]:
+        """The per-cycle refresh diagnostics; counts and stages describe only this attempt."""
+        if app is not None:
+            self._diagnosis.update_added = app.update_first_seen_added
+            self._diagnosis.update_pruned = app.update_first_seen_pruned
+            self._diagnosis.update_pending_skipped = app.update_pending_skipped
+        return {
+            "diagnostic_stages": self._diagnosis.stage_dicts(),
+            "diagnostic_first_seen_loaded": self._diagnosis.first_seen_loaded,
+            "diagnostic_first_seen_invalid": self._diagnosis.first_seen_invalid,
+            "diagnostic_first_seen_status": (
+                str(self._diagnosis.first_seen_status)
+                if self._diagnosis.first_seen_status is not None
+                else None
+            ),
+            "diagnostic_first_seen_reason": self._diagnosis.first_seen_reason,
+            "diagnostic_update_added": self._diagnosis.update_added,
+            "diagnostic_update_pruned": self._diagnosis.update_pruned,
+            "diagnostic_update_pending_skipped": self._diagnosis.update_pending_skipped,
         }
 
     def _stale_attributes(self, stale: _StaleResult) -> dict[str, Any]:
@@ -756,6 +916,7 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "update_cycle_failed": False,
             **{key: False for key in REC_FLAG_KEYS},
             **self._stale_attributes(app.stale),
+            **self._diagnostic_attributes(),
         }
 
     async def _safe_calc(
@@ -764,25 +925,39 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         coro: Any,
         fallback: Any,
     ) -> Any:
-        """Run *coro* with a timeout; return *fallback* on any failure."""
+        """Run *coro* with a timeout; return *fallback* on any failure.
+
+        Every outcome is appended to the per-cycle diagnostics: success,
+        timeout (with the configured limit) or exception (with its class
+        name), so a neutral pillar result is distinguishable from a measured
+        one in the sensor attributes.
+        """
         try:
-            return await asyncio.wait_for(coro, timeout=PILLAR_TIMEOUT)
+            result = await asyncio.wait_for(coro, timeout=PILLAR_TIMEOUT)
+        except asyncio.CancelledError:
+            raise
         except TimeoutError:
+            reason = f"timeout_after_{PILLAR_TIMEOUT:g}s"
             self._pillar_fallbacks.add(name)
+            self._diagnosis.record(name, DiagnosticStatus.TIMEOUT, reason)
             _LOGGER.warning(
                 "HAGHS: %s calculation timed out after %ss — using neutral score",
                 name,
                 PILLAR_TIMEOUT,
             )
             return fallback
-        except Exception:
+        except Exception as err:
+            reason = self._stage_error_reason(err)
             self._pillar_fallbacks.add(name)
+            self._diagnosis.record(name, DiagnosticStatus.ERROR, reason)
             _LOGGER.warning(
                 "HAGHS: %s calculation failed — using neutral score",
                 name,
                 exc_info=True,
             )
             return fallback
+        self._diagnosis.record(name, DiagnosticStatus.SUCCESS)
+        return result
 
     # ------------------------------------------------------------------
     # PSI (Pressure Stall Information) reader
@@ -1099,7 +1274,14 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         db_mb, p_db, db_limit_mb = await self._async_calc_maintenance()
 
         # D. UPDATES
-        p_backup, update_count, p_updates, p_core_lag, pending_updates = self._calc_updates()
+        (
+            p_backup,
+            update_count,
+            p_updates,
+            p_core_lag,
+            pending_updates,
+            window_counters,
+        ) = self._calc_updates()
 
         # E. CONFIG AUDIT — bonus for good recorder configuration
         config_bonus = self._calc_config_audit()
@@ -1171,6 +1353,9 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             empty_device_count=empty_device_count,
             empty_device_list=empty_device_list,
             empty_device_ids=_device_ids(empty),
+            update_first_seen_added=window_counters.added,
+            update_first_seen_pruned=window_counters.pruned,
+            update_pending_skipped=window_counters.pending_skipped,
         )
 
     # ------------------------------------------------------------------
@@ -1664,7 +1849,9 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         not an update entity id, unparsable or future times, a version that
         is not a string or null) is skipped entry by entry; those updates
         start their window now. Without a store (first start after updating
-        HAGHS) every pending update starts now.
+        HAGHS) every pending update starts now. The outcome and the valid and
+        invalid entry counts are kept in hass.data so every coordinator of the
+        same run reports the same diagnostics.
         """
         # One shared load per run: every coordinator (several config entries)
         # awaits the same task before its first update calculation.
@@ -1675,21 +1862,74 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._async_merge_update_first_seen(), "haghs update first-seen load"
             )
         await asyncio.shield(task)
+        diag = hass_data.get(DATA_UPDATE_FIRST_SEEN_DIAG)
+        valid_statuses = {status.value for status in DiagnosticStatus}
+        if isinstance(diag, dict):
+            status = diag.get("status")
+            self._diagnosis.first_seen_status = (
+                DiagnosticStatus(status) if status in valid_statuses else None
+            )
+            self._diagnosis.first_seen_reason = diag.get("reason")
+            self._diagnosis.first_seen_loaded = int(diag.get("loaded", 0))
+            self._diagnosis.first_seen_invalid = int(diag.get("invalid", 0))
+        self._diagnosis.record(
+            STAGE_UPDATE_FIRST_SEEN,
+            self._diagnosis.first_seen_status or DiagnosticStatus.SUCCESS,
+            self._diagnosis.first_seen_reason,
+        )
+
+    def _store_first_seen_diag(
+        self,
+        status: DiagnosticStatus,
+        *,
+        reason: str | None,
+        loaded: int,
+        invalid: int,
+    ) -> None:
+        """Publish the store-merge outcome in hass.data for every coordinator of this run."""
+        self.hass.data[DOMAIN][DATA_UPDATE_FIRST_SEEN_DIAG] = {
+            "status": str(status),
+            "reason": reason,
+            "loaded": loaded,
+            "invalid": invalid,
+        }
 
     async def _async_merge_update_first_seen(self) -> None:
-        """Read the store once and merge it into the shared first-seen dicts."""
+        """Read the store once and merge it into the shared first-seen dicts.
+
+        Validation per entry: the key must be an ``update.`` entity id,
+        ``since`` must parse as a timezone-aware timestamp not in the future,
+        and ``version`` must be a string or null. Invalid entries are counted
+        and skipped; entries already present in this run's memory win.
+        """
         try:
             stored = await self._first_seen_store.async_load()
         except Exception:
             _LOGGER.debug(
                 "HAGHS: Stored update first-seen times unreadable; starting now", exc_info=True
             )
+            self._store_first_seen_diag(
+                DiagnosticStatus.ERROR,
+                reason="store_unreadable",
+                loaded=0,
+                invalid=0,
+            )
             return
         if stored is None:
+            self._store_first_seen_diag(
+                DiagnosticStatus.SKIPPED, reason="no_stored_data", loaded=0, invalid=0
+            )
+            return
+        if not isinstance(stored, dict):
+            _LOGGER.debug("HAGHS: Skipped invalid stored update first-seen data (not a mapping)")
+            self._store_first_seen_diag(
+                DiagnosticStatus.ERROR, reason="not_a_mapping", loaded=0, invalid=0
+            )
             return
         now = dt_util.utcnow()
-        skipped = 0
-        for entity_id, value in stored.items() if isinstance(stored, dict) else ():
+        loaded = 0
+        invalid = 0
+        for entity_id, value in stored.items():
             since = value.get("since") if isinstance(value, dict) else None
             version = value.get("version") if isinstance(value, dict) else None
             seen = dt_util.parse_datetime(since) if isinstance(since, str) else None
@@ -1701,15 +1941,21 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 or seen > now
                 or not (version is None or isinstance(version, str))
             ):
-                skipped += 1
+                invalid += 1
                 continue
-            if entity_id not in self._update_first_seen:
-                self._update_first_seen[entity_id] = seen
-                self._update_seen_version[entity_id] = version
-        if skipped or not isinstance(stored, dict):
+            # Entries already known in this run always win over the store.
+            if entity_id in self._update_first_seen:
+                continue
+            self._update_first_seen[entity_id] = seen
+            self._update_seen_version[entity_id] = version
+            loaded += 1
+        if invalid:
             _LOGGER.debug(
-                "HAGHS: Skipped invalid stored update first-seen data (%s entries)", skipped
+                "HAGHS: Skipped invalid stored update first-seen data (%s entries)", invalid
             )
+        self._store_first_seen_diag(
+            DiagnosticStatus.SUCCESS, reason=None, loaded=loaded, invalid=invalid
+        )
 
     def _first_seen_data(self) -> dict[str, dict[str, str | None]]:
         """The first-seen times as stored (ISO 8601, UTC) with their offered version."""
@@ -1721,14 +1967,14 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for entity_id, seen in self._update_first_seen.items()
         }
 
-    def _calc_updates(self) -> tuple[int, int, int, int, list[str]]:
+    def _calc_updates(self) -> tuple[int, int, int, int, list[str], _UpdateWindowCounters]:
         """Calculate backup, update and core-lag penalties.
 
-        Returns (p_backup, update_count, p_updates, p_core_lag, pending_updates).
-        Update entities with the ignore label or matching an ignore pattern
-        are excluded from counting and penalties. Pending updates appear in
-        pending_updates immediately but only contribute to update_count after
-        UPDATE_GRACE_DAYS (#26). Core lag threshold: >= 3 months behind.
+        Returns (p_backup, update_count, p_updates, p_core_lag, pending_updates,
+        window_counters). Update entities with the ignore label or matching an
+        ignore pattern are excluded from counting and penalties. Pending updates
+        appear in pending_updates immediately but only contribute to update_count
+        after UPDATE_GRACE_DAYS (#26). Core lag threshold: >= 3 months behind.
         """
         backup_state = self.hass.states.get("binary_sensor.backups_stale")
         p_backup = 30 if (backup_state and backup_state.state == "on") else 0
@@ -1740,12 +1986,18 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         pending_updates: list[str] = []
         currently_pending: set[str] = set()
         changed = False
+        added = 0
+        pruned = 0
+        # Ignored pending update entities of this cycle: observed but excluded
+        # by a disable, an ignore label or an ignore pattern.
+        pending_skipped = 0
 
         for state in self.hass.states.async_all():
             if state.domain != "update" or state.state != "on":
                 continue
             entity_entry = ent_reg.async_get(state.entity_id)
             if self._is_ignored(state.entity_id, entity_entry):
+                pending_skipped += 1
                 continue
 
             currently_pending.add(state.entity_id)
@@ -1759,6 +2011,7 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._update_first_seen[state.entity_id] = now
                 self._update_seen_version[state.entity_id] = version
                 changed = True
+                added += 1
             first_seen = self._update_first_seen[state.entity_id]
             name = state.attributes.get("friendly_name", state.entity_id)
             pending_updates.append(name)
@@ -1787,6 +2040,7 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             del self._update_first_seen[stale_id]
             self._update_seen_version.pop(stale_id, None)
             changed = True
+            pruned += 1
         if changed:
             self._first_seen_store.async_delay_save(self._first_seen_data, FIRST_SEEN_SAVE_DELAY)
 
@@ -1808,7 +2062,10 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     pass
 
         p_updates = min(35, (update_count * 5) + p_core_lag)
-        return p_backup, update_count, p_updates, p_core_lag, pending_updates
+        counters = _UpdateWindowCounters(
+            added=added, pruned=pruned, pending_skipped=pending_skipped
+        )
+        return p_backup, update_count, p_updates, p_core_lag, pending_updates, counters
 
     # ------------------------------------------------------------------
     # Config Audit — bonus for good recorder configuration
@@ -1870,29 +2127,24 @@ class HaghsDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _read_recorder_info(self) -> _RecorderInfo:
         """Read recorder configuration from hass.data.
 
-        Safe access — returns empty _RecorderInfo if recorder is not loaded
-        or not available (e.g. external database without recorder component).
+        Returns an empty _RecorderInfo if recorder is not loaded or not
+        available (e.g. external database without recorder component). Any
+        other exception propagates to the stage guard, which records it in
+        the per-cycle diagnostics and falls back to neutral recorder info.
         """
-        try:
-            recorder = self.hass.data.get("recorder_instance")
-            if recorder is None:
-                _LOGGER.debug("HAGHS: Recorder instance not found in hass.data")
-                return _RecorderInfo()
-
-            keep_days = getattr(recorder, "keep_days", None)
-            entity_filter = getattr(recorder, "entity_filter", None)
-
-            return _RecorderInfo(
-                keep_days=keep_days,
-                entity_filter_active=entity_filter is not None,
-                available=True,
-            )
-        except Exception:
-            _LOGGER.warning(
-                "HAGHS: Failed to read recorder info — skipping",
-                exc_info=True,
-            )
+        recorder = self.hass.data.get("recorder_instance")
+        if recorder is None:
+            _LOGGER.debug("HAGHS: Recorder instance not found in hass.data")
             return _RecorderInfo()
+
+        keep_days = getattr(recorder, "keep_days", None)
+        entity_filter = getattr(recorder, "entity_filter", None)
+
+        return _RecorderInfo(
+            keep_days=keep_days,
+            entity_filter_active=entity_filter is not None,
+            available=True,
+        )
 
     # ------------------------------------------------------------------
     # Dynamic core update entity detection

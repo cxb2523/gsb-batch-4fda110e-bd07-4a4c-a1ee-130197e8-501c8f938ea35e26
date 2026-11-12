@@ -25,6 +25,21 @@ from custom_components.haghs.coordinator import (
 
 GB = 1024**3
 
+# Sensor attributes introduced by the per-cycle refresh diagnostics. Golden
+# pin tests add this set to the keys their dev captures do not know about.
+DIAGNOSTIC_KEYS = frozenset(
+    {
+        "diagnostic_stages",
+        "diagnostic_first_seen_loaded",
+        "diagnostic_first_seen_invalid",
+        "diagnostic_first_seen_status",
+        "diagnostic_first_seen_reason",
+        "diagnostic_update_added",
+        "diagnostic_update_pruned",
+        "diagnostic_update_pending_skipped",
+    }
+)
+
 DiskUsage = namedtuple("DiskUsage", ["total", "used", "free", "percent"])
 
 

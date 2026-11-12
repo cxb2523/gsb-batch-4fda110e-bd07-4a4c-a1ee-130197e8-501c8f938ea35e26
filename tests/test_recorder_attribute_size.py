@@ -176,6 +176,8 @@ async def test_current_attributes_are_unchanged(hass: HomeAssistant, freezer) ->
     # scenario has no unhealthy entry, every device carries an entity and no conditional labels are
     # configured. The dead device ids follow the captured names, looked up in the registry.
     by_name = {device.name: device.id for device in dr.async_get(hass).devices}
+    # The 100 pending updates open 100 windows in this cycle; nothing is pruned
+    # or skipped, and no full refresh ran, so the stage list stays empty.
     assert sensor.extra_state_attributes == {
         **DEV_ATTRIBUTES,
         "integration_unhealthy_entries": [],
@@ -187,5 +189,13 @@ async def test_current_attributes_are_unchanged(hass: HomeAssistant, freezer) ->
         "empty_device_ids": [],
         "cpu_ram_source": "psi",
         "rec_cpu_ram_unmeasured": False,
+        "diagnostic_stages": [],
+        "diagnostic_first_seen_loaded": 0,
+        "diagnostic_first_seen_invalid": 0,
+        "diagnostic_first_seen_status": None,
+        "diagnostic_first_seen_reason": None,
+        "diagnostic_update_added": 100,
+        "diagnostic_update_pruned": 0,
+        "diagnostic_update_pending_skipped": 0,
     }
     object.__setattr__(entry, "state", ConfigEntryState.NOT_LOADED)

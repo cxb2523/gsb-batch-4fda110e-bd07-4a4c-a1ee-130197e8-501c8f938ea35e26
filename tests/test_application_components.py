@@ -253,7 +253,9 @@ def test_recorder_info_missing_instance(hass) -> None:
     assert info.keep_days is None
 
 
-def test_recorder_info_failure_is_logged(hass, caplog) -> None:
+async def test_recorder_info_failure_propagates_to_the_stage_guard(hass, caplog) -> None:
+    """A broken recorder raises out of the reader; the stage guard records and neutralizes it."""
+
     class _BrokenRecorder:
         @property
         def keep_days(self):
@@ -261,10 +263,17 @@ def test_recorder_info_failure_is_logged(hass, caplog) -> None:
 
     hass.data["recorder_instance"] = _BrokenRecorder()
     coord = make_coordinator(hass)
+    with pytest.raises(RuntimeError, match="boom"):
+        coord._read_recorder_info()
+
     with caplog.at_level(logging.WARNING):
-        info = coord._read_recorder_info()
+        info = await coord._guard_stage("recorder_info", coord._read_recorder_info, _RecorderInfo())
     assert info.available is False
-    assert "Failed to read recorder info" in caplog.text
+    assert "recorder_info stage failed (RuntimeError)" in caplog.text
+    stage = coord._diagnosis.stages[-1]
+    assert stage.stage == "recorder_info"
+    assert str(stage.status) == "error"
+    assert stage.reason == "RuntimeError"
 
 
 # ----------------------------------------------------------------------------
@@ -283,7 +292,7 @@ def _set_core_update(hass, installed: str, latest: str) -> None:
 def test_core_lag_applies_after_three_months(hass) -> None:
     _set_core_update(hass, "2026.1.0", "2026.9.0")
     coord = make_coordinator(hass)
-    p_backup, update_count, p_updates, p_core_lag, _ = coord._calc_updates()
+    p_backup, update_count, p_updates, p_core_lag, _, _counters = coord._calc_updates()
     assert p_backup == 0
     assert update_count == 0
     assert p_core_lag == 20
@@ -293,7 +302,7 @@ def test_core_lag_applies_after_three_months(hass) -> None:
 def test_core_lag_ignores_recent_versions(hass) -> None:
     _set_core_update(hass, "2026.8.0", "2026.9.0")
     coord = make_coordinator(hass)
-    _, _, p_updates, p_core_lag, _ = coord._calc_updates()
+    _, _, p_updates, p_core_lag, _, _counters = coord._calc_updates()
     assert p_core_lag == 0
     assert p_updates == 0
 
@@ -301,14 +310,14 @@ def test_core_lag_ignores_recent_versions(hass) -> None:
 def test_core_lag_survives_malformed_versions(hass) -> None:
     _set_core_update(hass, "2026.x", "2026.9.0")
     coord = make_coordinator(hass)
-    _, _, _, p_core_lag, _ = coord._calc_updates()
+    _, _, _, p_core_lag, _, _counters = coord._calc_updates()
     assert p_core_lag == 0
 
 
 def test_core_lag_ignores_entity_without_versions(hass) -> None:
     hass.states.async_set("update.home_assistant_core_update", "off")
     coord = make_coordinator(hass)
-    _, _, _, p_core_lag, _ = coord._calc_updates()
+    _, _, _, p_core_lag, _, _counters = coord._calc_updates()
     assert p_core_lag == 0
 
 

@@ -19,7 +19,7 @@ from custom_components.haghs.const import (
     ZOMBIE_LIST_CAP,
 )
 from custom_components.haghs.sensor import HaghsSensor
-from tests.factories import make_coordinator, patch_disk, patch_psi
+from tests.factories import DIAGNOSTIC_KEYS, make_coordinator, patch_disk, patch_psi
 
 # Complete results of the same scenarios on dev before this change (22d6d2b), pinned:
 # score, every existing attribute and every rec_* flag must stay exactly as they were.
@@ -38,6 +38,7 @@ ADDED_LATER = {
     "empty_device_ids",
     "cpu_ram_source",
     "rec_cpu_ram_unmeasured",
+    *DIAGNOSTIC_KEYS,
 }
 DEV_RESULTS = {
     0: {

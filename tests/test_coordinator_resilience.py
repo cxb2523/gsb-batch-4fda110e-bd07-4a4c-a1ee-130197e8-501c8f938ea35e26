@@ -174,7 +174,10 @@ async def test_outer_failure_only_reports_observed_pillars(
     coord._pillar_fallbacks = {"application"}
     with monkeypatch.context() as patcher:
         if point == "before":
+            # A pre-pillar stage failure is recorded by its guard; break the
+            # result assembly as well so the outer safety net still triggers.
             patcher.setattr(coord, "_read_recorder_info", _raise)
+            patcher.setattr(coord, "_build_result", _raise)
         else:
             patcher.setattr(
                 coord, "_async_calc_hardware", AsyncMock(side_effect=ValueError("boom"))
@@ -184,6 +187,9 @@ async def test_outer_failure_only_reports_observed_pillars(
                 "_async_load_rec_translations",
                 AsyncMock(side_effect=ValueError("translation failed")),
             )
+            # The translation failure is now absorbed by its own stage guard;
+            # break the result assembly so the outer safety net still triggers.
+            patcher.setattr(coord, "_build_result", _raise)
         if broken_translation:
             patcher.setattr(coord, "_rec", _raise)
         failed = await coord._async_update_data()
@@ -193,10 +199,25 @@ async def test_outer_failure_only_reports_observed_pillars(
     assert "Application" not in failed["recommendations"]
     assert "✅" not in failed["recommendations"]
     assert coord.data == original
+    # The diagnostics describe only this failed attempt, never the previous round.
+    stages = {entry["stage"]: entry for entry in failed["diagnostic_stages"]}
+    assert stages["result"]["status"] == "error"
+    if point == "after":
+        assert stages["hardware"]["status"] == "error"
+        assert stages["hardware"]["reason"] == "ValueError"
+        assert stages["translations"]["status"] == "error"
+        assert stages["translations"]["reason"] == "ValueError"
+    else:
+        # The failure happens before the pillars; both pillars still run cleanly.
+        assert stages["hardware"]["status"] == "success"
+        assert stages["application"]["status"] == "success"
+        assert stages["recorder_info"]["status"] == "error"
+        assert stages["recorder_info"]["reason"] == "RuntimeError"
     for key, value in original.items():
         if (
             key != "recommendations"
             and not key.startswith("rec_")
+            and not key.startswith("diagnostic_")
             and key not in ("pillar_fallbacks", "pillar_fallback_count", "update_cycle_failed")
         ):
             assert failed[key] == value

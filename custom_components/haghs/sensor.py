@@ -45,6 +45,8 @@ class HaghsSensor(CoordinatorEntity[HaghsDataUpdateCoordinator], SensorEntity):
             "integration_unhealthy_entries",
             "empty_devices",
             "empty_device_ids",
+            # Current-cycle stage details; the diagnostic counts stay in the history.
+            "diagnostic_stages",
         }
     )
 
@@ -114,5 +116,13 @@ class HaghsSensor(CoordinatorEntity[HaghsDataUpdateCoordinator], SensorEntity):
             "pillar_fallback_count": data["pillar_fallback_count"],
             "pillar_fallbacks": data["pillar_fallbacks"],
             "update_cycle_failed": data["update_cycle_failed"],
+            "diagnostic_stages": data["diagnostic_stages"],
+            "diagnostic_first_seen_loaded": data["diagnostic_first_seen_loaded"],
+            "diagnostic_first_seen_invalid": data["diagnostic_first_seen_invalid"],
+            "diagnostic_first_seen_status": data["diagnostic_first_seen_status"],
+            "diagnostic_first_seen_reason": data["diagnostic_first_seen_reason"],
+            "diagnostic_update_added": data["diagnostic_update_added"],
+            "diagnostic_update_pruned": data["diagnostic_update_pruned"],
+            "diagnostic_update_pending_skipped": data["diagnostic_update_pending_skipped"],
             **{k: data[k] for k in REC_FLAG_KEYS},
         }

@@ -167,6 +167,38 @@ ATTRIBUTES: dict[str, tuple[str, str]] = {
         "bool",
         "The current update attempt failed outside a guarded pillar calculation; existing numeric results are retained, or neutral values are used on the first update",
     ),
+    "diagnostic_stages": (
+        "list",
+        'Per-stage outcomes of the current refresh attempt only, in execution order; each item is `{"stage", "status"[, "reason"]}` with status `success`, `timeout`, `error` or `skipped`; $unrecorded (the diagnostic counts stay in the history)',
+    ),
+    "diagnostic_first_seen_loaded": (
+        "int",
+        "Valid update first-seen entries merged from the Store into this Home Assistant run's memory during the current refresh",
+    ),
+    "diagnostic_first_seen_invalid": (
+        "int",
+        "Invalid Store entries skipped during the merge (bad entity id, unparsable or naive time, future time, or a non-string version)",
+    ),
+    "diagnostic_first_seen_status": (
+        "str/null",
+        "Outcome of the Store merge stage: `success`, `skipped` (no stored data yet), `error` (unreadable or malformed Store), or null when the stage did not run",
+    ),
+    "diagnostic_first_seen_reason": (
+        "str/null",
+        "Machine-readable reason for a non-successful Store merge stage (e.g. `no_stored_data`, `store_unreadable`, `not_a_mapping`); null on success",
+    ),
+    "diagnostic_update_added": (
+        "int",
+        "Pending-update windows opened in the current refresh (newly seen pending update entities and newer offered versions)",
+    ),
+    "diagnostic_update_pruned": (
+        "int",
+        "First-seen records removed in the current refresh because the update was ignored, completed or no longer exists",
+    ),
+    "diagnostic_update_pending_skipped": (
+        "int",
+        "Pending update entities observed in the current refresh but excluded by a disable, an ignore label or an ignore pattern",
+    ),
     "rec_cpu_load": ("bool", "CPU load (PSI stall or classic utilization) is currently penalised"),
     "rec_ram_pressure": ("bool", "Memory pressure / utilization is currently penalised"),
     "rec_io_pressure": ("bool", "I/O PSI stall time is currently penalised"),

@@ -14,6 +14,11 @@ from custom_components.haghs.sensor import HaghsSensor
 from tests.factories import make_coordinator
 
 
+def _raise(*_args: object, **_kwargs: object) -> None:
+    """Stand-in for a result builder that fails unexpectedly."""
+    raise RuntimeError("simulated outer failure")
+
+
 @pytest.fixture
 def readme_text():
     """Read both card configurations (docs/cards/) outside the asynchronous template evaluation."""
@@ -44,7 +49,9 @@ async def test_existing_dashboard_failure_visibility(
             coord, "_async_calc_application", AsyncMock(side_effect=RuntimeError("boom"))
         )
     if scenario == "outer":
-        monkeypatch.setattr(coord, "_read_recorder_info", lambda: 1 / 0)
+        # Stage failures are now absorbed by their own guard; break the result
+        # assembly so the outer update-cycle safety net triggers as before.
+        monkeypatch.setattr(coord, "_build_result", _raise)
     coord.data = await coord._async_update_data()
     sensor = HaghsSensor(coord, hass.config_entries.async_entries("haghs")[0])
     attrs = sensor.extra_state_attributes

@@ -52,12 +52,13 @@ async def test_freshly_pending_update_does_not_count(hass: HomeAssistant) -> Non
     coordinator = _coordinator(hass)
     hass.states.async_set("update.esphome", "on", {"friendly_name": "ESPHome"})
 
-    _p_backup, update_count, p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, p_updates, _p_core_lag, pending, counters = coordinator._calc_updates()
 
     assert update_count == 0
     assert p_updates == 0
     assert pending == ["ESPHome"]
     assert "update.esphome" in coordinator._update_first_seen
+    assert (counters.added, counters.pruned, counters.pending_skipped) == (1, 0, 0)
 
 
 async def test_update_past_grace_counts(hass: HomeAssistant) -> None:
@@ -66,7 +67,9 @@ async def test_update_past_grace_counts(hass: HomeAssistant) -> None:
     hass.states.async_set("update.esphome", "on", {"friendly_name": "ESPHome"})
     _set_first_seen(hass, "update.esphome", days_ago=UPDATE_GRACE_DAYS + 1)
 
-    _p_backup, update_count, p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, p_updates, _p_core_lag, pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert update_count == 1
     assert p_updates == 5
@@ -81,7 +84,9 @@ async def test_update_within_grace_still_pending_but_uncounted(
     hass.states.async_set("update.esphome", "on", {"friendly_name": "ESPHome"})
     _set_first_seen(hass, "update.esphome", days_ago=UPDATE_GRACE_DAYS - 1)
 
-    _p_backup, update_count, _p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, _p_updates, _p_core_lag, pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert update_count == 0
     assert pending == ["ESPHome"]
@@ -97,7 +102,9 @@ async def test_mixed_ages_only_counts_past_grace(hass: HomeAssistant) -> None:
     _set_first_seen(hass, "update.b", days_ago=UPDATE_GRACE_DAYS + 1)
     # update.c gets a fresh timestamp during the run.
 
-    _p_backup, update_count, _p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, _p_updates, _p_core_lag, pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert update_count == 2
     assert set(pending) == {"A", "B", "C"}
@@ -156,7 +163,9 @@ async def test_ignore_pattern_excludes_update(hass: HomeAssistant) -> None:
     _set_first_seen(hass, "update.core", days_ago=UPDATE_GRACE_DAYS + 1)
     coordinator._update_first_seen = hass.data[DOMAIN][DATA_UPDATE_FIRST_SEEN]
 
-    _p_backup, update_count, _p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, _p_updates, _p_core_lag, pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert update_count == 1
     assert pending == ["Core"]
@@ -173,7 +182,9 @@ async def test_stale_backup_yields_30_point_penalty(hass: HomeAssistant) -> None
     coordinator = _coordinator(hass)
     hass.states.async_set("binary_sensor.backups_stale", "on")
 
-    p_backup, _update_count, _p_updates, _p_core_lag, _pending = coordinator._calc_updates()
+    p_backup, _update_count, _p_updates, _p_core_lag, _pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert p_backup == 30
 
@@ -222,7 +233,9 @@ async def test_disabled_update_entity_is_excluded(hass: HomeAssistant) -> None:
     _set_first_seen(hass, disabled.entity_id, days_ago=UPDATE_GRACE_DAYS + 1)
     _set_first_seen(hass, enabled.entity_id, days_ago=UPDATE_GRACE_DAYS + 1)
 
-    _p_backup, update_count, _p_updates, _p_core_lag, pending = coordinator._calc_updates()
+    _p_backup, update_count, _p_updates, _p_core_lag, pending, _counters = (
+        coordinator._calc_updates()
+    )
 
     assert update_count == 1
     assert pending == ["Core"]
@@ -259,14 +272,25 @@ async def test_area_ignore_update_results_and_tracking(hass: HomeAssistant) -> N
         _set_first_seen(hass, entry.entity_id, days_ago=UPDATE_GRACE_DAYS + 1)
     registry.async_update_entity("update.area_update_control", area_id=control.id)
     actual = coord._calc_updates()
-    assert actual == (0, 1, 5, 0, ["Control firmware"])
+    assert actual[:5] == (0, 1, 5, 0, ["Control firmware"])
+    assert actual[5].pending_skipped == 1
     assert set(coord._update_first_seen) == {"update.area_update_control"}
     areas.async_update(ignored.id, labels=set())
     # Reappearing updates start a new grace window after their tracker was pruned.
     actual = coord._calc_updates()
     expected = (0, 1, 5, 0, ["Ignored firmware", "Control firmware"])
-    assert actual == expected, f"actual={actual}, expected={expected}"
+    assert actual[:5] == expected, f"actual={actual}, expected={expected}"
+    assert actual[5].added == 1
     _set_first_seen(hass, "update.area_update_ignored", days_ago=UPDATE_GRACE_DAYS + 1)
-    assert coord._calc_updates() == (0, 2, 10, 0, ["Ignored firmware", "Control firmware"])
+    assert coord._calc_updates()[:5] == (
+        0,
+        2,
+        10,
+        0,
+        ["Ignored firmware", "Control firmware"],
+    )
     areas.async_update(ignored.id, labels={label.label_id})
-    assert coord._calc_updates() == (0, 1, 5, 0, ["Control firmware"])
+    pruned = coord._calc_updates()
+    assert pruned[:5] == (0, 1, 5, 0, ["Control firmware"])
+    assert pruned[5].pending_skipped == 1
+    assert pruned[5].pruned == 1

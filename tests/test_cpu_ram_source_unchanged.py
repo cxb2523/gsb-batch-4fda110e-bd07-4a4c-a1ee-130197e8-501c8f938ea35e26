@@ -21,6 +21,29 @@ PINS = json.loads(
     (Path(__file__).parent / "data" / "cpu_ram_source_dev.json").read_text(encoding="utf-8")
 )
 NEW_KEYS = {"cpu_ram_source", "rec_cpu_ram_unmeasured"}
+# Per-cycle diagnostics added after the dev capture. This scenario builds the
+# result directly (no full update cycle), so no stage ran and every counter is
+# zero; the stage list itself stays empty.
+DIAGNOSTIC_KEYS = {
+    "diagnostic_stages",
+    "diagnostic_first_seen_loaded",
+    "diagnostic_first_seen_invalid",
+    "diagnostic_first_seen_status",
+    "diagnostic_first_seen_reason",
+    "diagnostic_update_added",
+    "diagnostic_update_pruned",
+    "diagnostic_update_pending_skipped",
+}
+EXPECTED_DIAGNOSTICS = {
+    "diagnostic_stages": [],
+    "diagnostic_first_seen_loaded": 0,
+    "diagnostic_first_seen_invalid": 0,
+    "diagnostic_first_seen_status": None,
+    "diagnostic_first_seen_reason": None,
+    "diagnostic_update_added": 0,
+    "diagnostic_update_pruned": 0,
+    "diagnostic_update_pending_skipped": 0,
+}
 
 # name -> (PSI values, configured sensors with their states)
 SCENARIOS = {
@@ -50,7 +73,10 @@ async def scenario_result(hass: HomeAssistant, name: str) -> dict:
 async def test_score_and_every_attribute_unchanged(hass: HomeAssistant, freezer, name: str) -> None:
     freezer.move_to(FROZEN)
     result = await scenario_result(hass, name)
-    assert set(result) == set(PINS[name]) | NEW_KEYS
-    assert {key: value for key, value in result.items() if key not in NEW_KEYS} == PINS[name]
+    assert set(result) == set(PINS[name]) | NEW_KEYS | DIAGNOSTIC_KEYS
+    assert {
+        key: value for key, value in result.items() if key not in NEW_KEYS | DIAGNOSTIC_KEYS
+    } == PINS[name]
+    assert {key: result[key] for key in DIAGNOSTIC_KEYS} == EXPECTED_DIAGNOSTICS
     expected = "psi" if name.startswith("psi") else "sensors"
     assert (result["cpu_ram_source"], result["rec_cpu_ram_unmeasured"]) == (expected, False)

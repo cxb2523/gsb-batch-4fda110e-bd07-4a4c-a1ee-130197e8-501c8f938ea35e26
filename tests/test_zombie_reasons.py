@@ -23,7 +23,7 @@ from custom_components.haghs.const import (
     ZOMBIE_REASONS,
 )
 from custom_components.haghs.sensor import HaghsSensor
-from tests.factories import make_coordinator, patch_disk, patch_psi
+from tests.factories import DIAGNOSTIC_KEYS, make_coordinator, patch_disk, patch_psi
 
 NEW_KEYS = {"zombie_count_per_reason", "zombie_reasons"}
 # Added after #154-d by later plans (#134, #93, conditional ignore labels, #123 CPU/RAM source);
@@ -38,6 +38,7 @@ ADDED_LATER = {
     "empty_device_ids",
     "cpu_ram_source",
     "rec_cpu_ram_unmeasured",
+    *DIAGNOSTIC_KEYS,
 }
 FROZEN = "2026-10-24T08:00:00+00:00"  # clock of the dev capture
 # Complete results of the same scenarios on dev 1a6de2c before this change, captured on a
