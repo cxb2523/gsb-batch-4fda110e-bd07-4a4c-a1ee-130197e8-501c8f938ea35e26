@@ -65,6 +65,7 @@ function parseArgs(): ServerConfig & {
   client?: SetupClient;
   configFile?: string;
   live?: boolean;
+  captureOut?: string;
   confirmProfileDeletion?: boolean;
   confirmRetirement?: boolean;
 } {
@@ -92,6 +93,7 @@ function parseArgs(): ServerConfig & {
   let client: SetupClient | undefined;
   let configFile: string | undefined;
   let live = false;
+  let captureOut: string | undefined;
   let confirmProfileDeletion = false;
   let confirmRetirement = false;
   let transportChosen = false;
@@ -164,6 +166,13 @@ function parseArgs(): ServerConfig & {
 
       case '--capture':
         setAction('capture');
+        break;
+
+      case '--capture-out':
+        if (!next || next.startsWith('-') || captureOut !== undefined)
+          throw new Error('--capture-out requires one explicit path.');
+        captureOut = next;
+        i++;
         break;
 
       case '--writecapture':
@@ -246,6 +255,8 @@ function parseArgs(): ServerConfig & {
   }
 
   if (live && action !== 'doctor') throw new Error('--live is only supported with --doctor.');
+  if (captureOut !== undefined && action !== 'capture')
+    throw new Error('--capture-out is only supported with --capture.');
   if (configFile !== undefined && action !== 'setup')
     throw new Error('--config-file is only supported with --setup.');
   if (confirmProfileDeletion && action !== 'logout' && action !== 'retire-profile')
@@ -272,6 +283,7 @@ function parseArgs(): ServerConfig & {
     client,
     configFile,
     live,
+    captureOut,
     confirmProfileDeletion,
     confirmRetirement,
   };
@@ -307,6 +319,10 @@ COMMANDS:
   --logout                 Clear the saved Chrome profile; keep safety history
   --confirm-profile-deletion  Required for a custom profile with --logout or --retire-profile
   --spike                  Verify the live data path (fetches your profile)
+  --capture                Drive each LinkedIn section and write a JSON catalog
+                           of the Voyager calls the SPA itself fires
+  --capture-out <path>     Catalog output path for --capture (default:
+                           ./voyager-capture.json, or LINKEDIN_CAPTURE_OUT)
 
 OPTIONS:
   -t, --transport <type>   Transport mode: stdio (default) or http
@@ -441,8 +457,12 @@ async function main(): Promise<void> {
   }
 
   if (config.action === 'capture') {
-    await runCapture(loadConfig(), logger);
-    process.exit(0);
+    const outcome = await runCapture(
+      loadConfig(),
+      logger,
+      config.captureOut ?? process.env.LINKEDIN_CAPTURE_OUT,
+    );
+    process.exit(outcome.ok ? 0 : 1);
   }
 
   if (config.action === 'writecapture') {
