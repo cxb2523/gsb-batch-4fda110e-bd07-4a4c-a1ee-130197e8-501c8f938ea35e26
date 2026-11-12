@@ -1,0 +1,1 @@
+export default "stubbed-asset";

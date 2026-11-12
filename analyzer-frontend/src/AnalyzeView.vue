@@ -3,10 +3,12 @@ import WordCloud from './components/WordCloud.vue';
 import GroupRow from './components/GroupRow.vue';
 import ViewPanelTemplate from './components/ViewPanelTemplate.vue';
 import ContactRow from './components/ContactRow.vue';
+import CollectionManifestPanel from './components/CollectionManifestPanel.vue';
 </script>
 
 <template>
   <div class="contentWrapper">
+    <CollectionManifestPanel />
     <GroupRow></GroupRow>
     <ContactRow></ContactRow>
     <ViewPanelTemplate class="wordCloudWrapper" title="Wordcloud">

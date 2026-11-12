@@ -66,6 +66,12 @@ export async function loadIdentityByUserUUID(
 }
 
 let identitiesCache: ModelsIdentity[] = [];
+
+export function resetIdentityCaches(): void {
+  identityCache.clear();
+  identitiesCache = [];
+}
+
 export async function loadIdentitiesFromCache(): Promise<ModelsIdentity[]> {
   // Cache bereits geladen?
   if (identitiesCache.length > 0) {

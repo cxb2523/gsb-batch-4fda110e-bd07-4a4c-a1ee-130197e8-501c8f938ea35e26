@@ -7,6 +7,9 @@ import * as FileService from "./FileService";
 import * as GroupTimelineService from "./GroupTimelineService";
 import * as ContactTimelineService from "./ContactTimelineService";
 import * as ChatMessageService from "./ChatMessageService";
+import * as BackupCollectionService from "./BackupCollectionService";
+import { resetIdentityCaches } from "./IdentityService";
+import { setManifest, createEmptyManifest } from "./CollectionManifest";
 
 import { AvatarIdGetTypeEnum } from "../models/AvatarIdGetTypeEnum";
 import { ModelsContactTimeline } from "@/models/ModelsContactTimeline";
@@ -94,8 +97,22 @@ export async function uploadZip(
   selectedFile: any,
   password: string,
 ): Promise<void> {
+  // Identity lookups are cached across uploads; drop them so a new backup
+  // cannot be resolved against identities of the previous one.
+  resetIdentityCaches();
   try {
     await FileService.handleZipUpload(selectedFile, password);
+    // Build the checkable collection manifest. Collection is fault
+    // isolated per file, so this must not throw for individual bad files.
+    try {
+      const manifest = await BackupCollectionService.collectBackup(
+        selectedFile.name,
+      );
+      setManifest(manifest);
+    } catch (collectionError) {
+      console.error("Failed to build collection manifest", collectionError);
+      setManifest(createEmptyManifest(selectedFile.name));
+    }
   } catch (err) {
     console.error(err);
     throw err;

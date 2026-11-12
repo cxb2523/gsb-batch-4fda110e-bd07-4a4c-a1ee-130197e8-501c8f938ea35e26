@@ -15,6 +15,10 @@ import { ModelsContact } from "@/models/ModelsContact";
 import { ModelsGroup } from "@/models/ModelsGroup";
 import { ModelsGroupTimeline } from "@/models/ModelsGroupTimeline";
 import { ModelsChat } from "@/models/ModelsChat";
+import {
+  getManifest,
+  type CollectionManifest,
+} from "./CollectionManifest";
 
 export interface LoadedData {
   groups: ModelsGroup[];
@@ -157,6 +161,10 @@ class DataCache {
 
   isLoaded(): boolean {
     return this._isLoaded;
+  }
+
+  getManifest(): CollectionManifest | null {
+    return getManifest();
   }
 
   setLoaded(value: boolean): void {

@@ -1,6 +1,7 @@
 import { ZipReader, BlobReader, BlobWriter } from "@zip.js/zip.js";
 import { toast } from "vue3-toastify";
 import { openDB } from "idb";
+import { resetManifest } from "./CollectionManifest";
 export interface ZipFileEntry {
   filename: string;
   content: Blob;
@@ -15,6 +16,12 @@ export class ZipUnpackService {
     zipFile: File,
     password?: string,
   ): Promise<Map<string, ZipFileEntry>> {
+    // A new upload always fully replaces the previous backup, including
+    // same-named re-uploads: no entry from an earlier extraction may survive.
+    this.clear();
+    resetManifest(zipFile.name);
+
+    const extracted = new Map<string, ZipFileEntry>();
     try {
       const reader = new ZipReader(new BlobReader(zipFile), { password });
       const entries = await reader.getEntries();
@@ -24,7 +31,7 @@ export class ZipUnpackService {
           const writer = new BlobWriter();
           await entry.getData!(writer);
           const content = await writer.getData();
-          this.files.set(entry.filename, {
+          extracted.set(entry.filename, {
             filename: entry.filename,
             content,
             size: content.size,
@@ -34,12 +41,15 @@ export class ZipUnpackService {
       }
 
       await reader.close();
+      this.files = extracted;
       return this.files;
     } catch (error: any) {
+      // Keep the store empty on failure so a broken upload cannot leave a
+      // mix of old and new entries behind.
+      this.files = new Map<string, ZipFileEntry>();
       toast.error("Failed to unzip ZIP file, maybe wrong password or invalid ZIP file");
       throw error;
     }
-    return this.files;
   }
 
   getFile(filename: string): ZipFileEntry | undefined {

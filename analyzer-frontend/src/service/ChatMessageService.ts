@@ -1,5 +1,5 @@
-import Papa from "papaparse";
 import { getZipFile, ZipFileEntry } from "./FileService";
+import { parseMessageCsv } from "./CsvMessageParser";
 import { ModelsChat, ChatMessage } from "@/models/ModelsChat";
 import { loadContacts, loadGroups } from "./ApiService";
 import { ModelsContact } from "@/models/ModelsContact";
@@ -52,32 +52,21 @@ async function parseGroupMessageFromCsv(
   csvContent: string,
 ): Promise<ChatMessage[]> {
   const messages: ChatMessage[] = [];
+  const parsed = parseMessageCsv(csvContent);
 
-  const parsed = Papa.parse(csvContent, {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  const rows = parsed.data as any[];
-
-  for (const row of rows) {
-    if (!row.body) continue;
-    if (row.type && String(row.type).toUpperCase() !== "TEXT") continue;
-
-    const isOutbox = row.isoutbox === "1" || row.isoutbox === 1;
-
+  for (const row of parsed.records) {
     // Determine sender
     let sender: ModelsIdentity;
-    if (isOutbox) {
+    if (row.isOutbox) {
       sender = {
         identity: "You",
         identityID: "You",
         firstName: "You",
       };
-    } else if (row.identity) {
+    } else if (row.identity !== null) {
       // Resolve identity by user id
       try {
-        sender = await loadIdentityByUserID(String(row.identity));
+        sender = await loadIdentityByUserID(row.identity);
       } catch (error) {
         sender = { identity: "", identityID: "", firstName: "" };
       }
@@ -85,14 +74,10 @@ async function parseGroupMessageFromCsv(
       sender = { identity: "", identityID: "", firstName: "" };
     }
 
-    // Convert timestamp to ISO string
-    const timestamp = parseInt(row.posted_at, 10);
-    const date = new Date(timestamp).toISOString();
-
     messages.push({
       sender,
       text: row.body,
-      date,
+      date: new Date(row.postedAt).toISOString(),
     });
   }
 
@@ -116,24 +101,12 @@ function parseContactMessageFromCsv(
   contactIdentity: ModelsIdentity | null,
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
+  const parsed = parseMessageCsv(csvContent);
 
-  const parsed = Papa.parse(csvContent, {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  const rows = parsed.data as any[];
-
-  for (const row of rows) {
-    // ignore non-text messages or missing body
-    if (!row.body) continue;
-    if (row.type && String(row.type).toUpperCase() !== "TEXT") continue;
-
-    const isOutbox = row.isoutbox === "1" || row.isoutbox === 1;
-
+  for (const row of parsed.records) {
     // Determine sender
     let sender: ModelsIdentity;
-    if (isOutbox) {
+    if (row.isOutbox) {
       sender = {
         identity: "You",
         identityID: "You",
@@ -145,14 +118,10 @@ function parseContactMessageFromCsv(
       continue;
     }
 
-    // Convert timestamp to ISO string
-    const timestamp = parseInt(row.posted_at, 10);
-    const date = new Date(timestamp).toISOString();
-
     messages.push({
       sender,
       text: row.body,
-      date,
+      date: new Date(row.postedAt).toISOString(),
     });
   }
 
