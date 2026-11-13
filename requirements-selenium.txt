@@ -1,0 +1,12 @@
+# Selenium engine.
+#
+# Works against a browser it launches itself. It CANNOT attach to an
+# authenticated remote CDP endpoint: chromedriver's `debuggerAddress` takes a
+# bare host:port with nowhere to put credentials. Use Playwright or pyppeteer
+# for that — see README.
+#
+selenium>=4.15.0
+
+# No separate driver package is needed: Selenium 4.6+ locates (and if needed
+# downloads) a matching chromedriver itself through Selenium Manager. Behind
+# an egress allowlist, put a chromedriver on PATH before running.
