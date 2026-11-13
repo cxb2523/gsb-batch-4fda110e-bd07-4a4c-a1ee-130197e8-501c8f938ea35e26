@@ -99,7 +99,12 @@ def write_message(message, write_to_file=None, is_html=False):
                                   .replace("[/yellow]", "</span>") \
                                   .replace("[/cyan]", "</span>") \
                                   .replace("[/blue]", "</span>") \
-                                  .replace("[/magenta]", "</span>")
+                                  .replace("[/magenta]", "</span>") \
+                                  .replace("[/bold red]", "</span>") \
+                                  .replace("[/bold cyan]", "</span>") \
+                                  .replace("[/bold blue]", "</span>") \
+                                  .replace("[/bold green]", "</span>") \
+                                  .replace("[/bold magenta]", "</span>")
 
             if potential_url:
                 html_message = html_message.replace(potential_url, f"<a href='{potential_url}' target='_blank'>{potential_url}</a>")
@@ -109,19 +114,33 @@ def write_message(message, write_to_file=None, is_html=False):
 # --------------------------------------------------
 
 
+# Per-site check outcomes
+STATUS_FOUND = "found"            # a check_text matched
+STATUS_NOT_FOUND = "not_found"    # no check_text matched, but a not_found_text did
+STATUS_UNCERTAIN = "uncertain"    # HTTP 200 but neither text type matched
+STATUS_ERROR = "error"            # timeout, network error, or non-200 response
+
+
 def check_single_site(username, site, info, user_agents, write_to_file=None, debug=False, is_html=False):
-    """Check a single site for the username."""
-    url = info.get("url").format(username=username)
+    """Check a single site for the username.
+
+    Returns a (status, detail) tuple where status is one of STATUS_FOUND,
+    STATUS_NOT_FOUND, STATUS_UNCERTAIN or STATUS_ERROR, and detail holds the
+    HTTP status code or exception summary for error results.
+    """
+    url_template = info.get("url")
     check_texts = info.get("check_text", [])
     not_found_texts = info.get("not_found_text", [])
-    
+
     headers = {
         "User-Agent": random.choice(user_agents)
     }
 
-    if not url or not check_texts:
-        write_message(f"[yellow]Skipping {site}: URL or check text missing.[/yellow]", write_to_file, is_html)
-        return False
+    if not url_template or not check_texts:
+        write_message(f"[yellow]⚠ [ERROR] Skipping {site}: URL or check text missing.[/yellow]", write_to_file, is_html)
+        return STATUS_ERROR, "missing URL or check_text configuration"
+
+    url = url_template.format(username=username)
 
     # Optional POST support for sites that search via a form submission.
     method = info.get("method", "GET").upper()
@@ -129,46 +148,59 @@ def check_single_site(username, site, info, user_agents, write_to_file=None, deb
     if isinstance(post_data, dict):
         post_data = {key: str(value).format(username=username) for key, value in post_data.items()}
 
+    status = STATUS_ERROR
+    detail = ""
     try:
         if method == "POST":
             response = requests.post(url, headers=headers, data=post_data, timeout=5)
         else:
             response = requests.get(url, headers=headers, timeout=5)
         response_code = f" (Response code: {response.status_code})" if debug else ""
-        
+
         # Identify which specific texts matched
         matching_check_texts = [check_text for check_text in check_texts if check_text.lower() in response.text.lower()]
         matching_not_found_texts = [not_found_text for not_found_text in not_found_texts if not_found_text.lower() in response.text.lower()]
 
         # Determine the status and construct the appropriate message
-        if response.status_code == 200:
-            if matching_check_texts:
-                message = f"[green]↳ Account found on {site}: {url}{response_code}[/green]"
-                if debug:
-                    matched_items = ", ".join(matching_check_texts)
-                    message += f" [cyan](Matched check_text items: {matched_items})[/cyan]"
-            elif matching_not_found_texts:
-                message = f"[red]✗ No account found on {site}.{response_code}[/red]"
-                if debug:
-                    matched_items = ", ".join(matching_not_found_texts)
-                    message += f" [cyan](Matched not_found_text items: {matched_items})[/cyan]"
-            else:
-                message = f"[yellow]↳ Possible account found on {site}: {url}{response_code}[/yellow]"
-        else:
-            message = f"[red]✗ No account found on {site}.{response_code}[/red]"
+        if response.status_code != 200:
+            status = STATUS_ERROR
+            detail = f"HTTP {response.status_code}"
+            message = f"[bold red]✗ [ERROR] {site}: unexpected HTTP status {response.status_code}.[/bold red]"
             if debug and matching_not_found_texts:
                 matched_items = ", ".join(matching_not_found_texts)
                 message += f" [cyan](Matched not_found_text items: {matched_items})[/cyan]"
+        elif matching_check_texts:
+            status = STATUS_FOUND
+            detail = f"matched check_text: {', '.join(matching_check_texts)}"
+            message = f"[green]↳ [FOUND] Account found on {site}: {url}{response_code}[/green]"
+            if debug:
+                matched_items = ", ".join(matching_check_texts)
+                message += f" [cyan](Matched check_text items: {matched_items})[/cyan]"
+        elif matching_not_found_texts:
+            status = STATUS_NOT_FOUND
+            detail = f"matched not_found_text: {', '.join(matching_not_found_texts)}"
+            message = f"[red]✗ [NOT FOUND] No account found on {site}.{response_code}[/red]"
+            if debug:
+                matched_items = ", ".join(matching_not_found_texts)
+                message += f" [cyan](Matched not_found_text items: {matched_items})[/cyan]"
+        else:
+            status = STATUS_UNCERTAIN
+            detail = "HTTP 200 but no check_text or not_found_text matched"
+            message = f"[yellow]↳ [UNCERTAIN] Possible account found on {site}: {url}{response_code}[/yellow]"
 
     except requests.Timeout:
-        message = f"[bold red]✗ Timeout while checking {site}.[/bold red]"
+        status = STATUS_ERROR
+        detail = "timeout"
+        message = f"[bold red]✗ [ERROR] Timeout while checking {site}.[/bold red]"
     except requests.RequestException as e:
-        message = f"[bold red]✗ Network error checking {site}: {str(e)}.[/bold red]"
+        status = STATUS_ERROR
+        detail = str(e)
+        message = f"[bold red]✗ [ERROR] Network error checking {site}: {str(e)}.[/bold red]"
 
-    found = "[green]" in message or "[yellow]" in message
-    if debug or found:
+    # Debug mode prints every site; normal mode hides not_found only.
+    if debug or status != STATUS_NOT_FOUND:
         write_message(message, write_to_file, is_html)
-    return found
+    return status, detail
 
 
 # --------------------------------------------------
@@ -218,6 +250,7 @@ def check_usernames(usernames, user_agents, write_to_file=None, debug=False, use
                 print_category_header(category, write_to_file, is_html)
 
                 category_had_hit = False
+                category_error_count = 0
                 with ThreadPoolExecutor(max_workers=8) as executor:
                     future_to_site = {
                         executor.submit(check_single_site, username.strip(), site, info, user_agents, write_to_file, debug, is_html): site
@@ -226,17 +259,25 @@ def check_usernames(usernames, user_agents, write_to_file=None, debug=False, use
                     for future in as_completed(future_to_site):
                         site = future_to_site[future]
                         try:
-                            if future.result():
+                            status, _detail = future.result()
+                            if status == STATUS_FOUND:
                                 category_had_hit = True
+                            elif status == STATUS_ERROR:
+                                category_error_count += 1
                         except Exception as e:
-                            write_message(f"[bold red]Error checking {site}: {e}[bold red]", write_to_file, is_html)
+                            # A single site blowing up must not lose the other results in this batch.
+                            category_error_count += 1
+                            write_message(f"[bold red]✗ [ERROR] Error checking {site}: {e}[/bold red]", write_to_file, is_html)
 
                         progress.update(overall_task, advance=1)  # Advance the task for the overall progress
                         sleep(0.2)
 
                 # Normal mode only: flag categories that returned nothing (debug already lists every site)
                 if not category_had_hit and not debug:
-                    write_message(f"[red]✗ No results found.[/red]", write_to_file, is_html)
+                    if category_error_count:
+                        write_message(f"[red]✗ No results found. ({category_error_count} site(s) could not be confirmed due to errors.)[/red]", write_to_file, is_html)
+                    else:
+                        write_message(f"[red]✗ No results found.[/red]", write_to_file, is_html)
 
             progress.update(overall_task, completed=total_sites)  # Mark the task as completed after finishing all sites
 
