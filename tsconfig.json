@@ -13,7 +13,9 @@
     "noEmit": true
   },
   "include": [
+    "index.ts",
     "client_patches/*.ts",
+    "tests/*.ts",
     "patchright_rebranding.ts",
   ]
 }

@@ -11,6 +11,7 @@ export function patchPage(project: Project) {
 	// ------- Page Class -------
 	const pageClass = pageSourceFile.getClassOrThrow("Page");
 	pageClass.addProperty({ name: "routeInjecting", type: "boolean", initializer: "false" });
+	pageClass.addProperty({ name: "injectRouteError", type: "string | undefined", initializer: "undefined" });
 	
 	// -- addInitScript Method --
 	const addInitScriptMethod = pageClass.getMethodOrThrow("addInitScript");
@@ -32,18 +33,25 @@ export function patchPage(project: Project) {
 	const installInjectRouteMethod = pageClass.getMethodOrThrow("installInjectRoute");
 	installInjectRouteMethod.setBodyText(`
 		if (this.routeInjecting || this.context().routeInjecting) return;
-		await this.route('**/*', async route => {
-			try {
-				if (route.request().resourceType() === 'document' && route.request().url().startsWith('http')) {
-						await route.fallback({ patchrightInitScript: true } as any);
-				} else {
-						await route.fallback();
+		try {
+			await this.route('**/*', async route => {
+				try {
+					if (route.request().resourceType() === 'document' && route.request().url().startsWith('http')) {
+							await route.fallback({ patchrightInitScript: true } as any);
+					} else {
+							await route.fallback();
+					}
+			} catch (error) {
+					await route.fallback();
 				}
+			});
 		} catch (error) {
-				await route.fallback();
-			}
-		});
+			// Registration failed: stay uninstalled and remember the error so callers can inspect and retry.
+			this.injectRouteError = error instanceof Error ? error.message : String(error);
+			throw error;
+		}
 		this.routeInjecting = true;
+		this.injectRouteError = undefined;
 	`);
 	
 	// -- evaluate Method --

@@ -11,6 +11,7 @@ export function patchBrowserContext(project: Project) {
 	// ------- BrowserContext Class -------
 	const browserContextClass = browserContextSourceFile.getClassOrThrow("BrowserContext");
 	browserContextClass.addProperty({ name: "routeInjecting", type: "boolean", initializer: "false" });
+	browserContextClass.addProperty({ name: "injectRouteError", type: "string | undefined", initializer: "undefined" });
 
 	// -- addInitScript Method --
 	const addInitScriptMethod = browserContextClass.getMethodOrThrow("addInitScript");
@@ -32,18 +33,25 @@ export function patchBrowserContext(project: Project) {
 	const installInjectRouteMethod = browserContextClass.getMethodOrThrow("installInjectRoute");
 	installInjectRouteMethod.setBodyText(`
 		if (this.routeInjecting) return;
+		try {
 			await this.route('**/*', async route => {
-			try {
-					if (route.request().resourceType() === 'document' && route.request().url().startsWith('http')) {
-							await route.fallback({ patchrightInitScript: true } as any);
-					} else {
-							await route.fallback();
-					}
-			} catch (error) {
-					await route.fallback();
-			}
-		});
+				try {
+						if (route.request().resourceType() === 'document' && route.request().url().startsWith('http')) {
+								await route.fallback({ patchrightInitScript: true } as any);
+						} else {
+								await route.fallback();
+						}
+				} catch (error) {
+						await route.fallback();
+				}
+			});
+		} catch (error) {
+			// Registration failed: stay uninstalled and remember the error so callers can inspect and retry.
+			this.injectRouteError = error instanceof Error ? error.message : String(error);
+			throw error;
+		}
 		this.routeInjecting = true;
+		this.injectRouteError = undefined;
 	`);
 
 	// -- constructor: wrap auto-dismiss dialog in internal zone to avoid trace pollution --

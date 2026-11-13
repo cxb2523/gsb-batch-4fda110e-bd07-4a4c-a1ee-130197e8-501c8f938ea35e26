@@ -1,7 +1,8 @@
 {
     "scripts": {
         "typecheck": "tsc --noEmit",
-        "format:check": "bash -c 'biome check --line-width=320 --formatter-enabled=false --diagnostic-level=error ${@:-patchright_rebranding.ts client_patches/}' --"
+        "test": "tsx tests/installInjectRoute.test.ts",
+        "format:check": "bash -c 'biome check --line-width=320 --formatter-enabled=false --diagnostic-level=error ${@:-patchright_rebranding.ts client_patches/ tests/ index.ts}' --"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.4.10",

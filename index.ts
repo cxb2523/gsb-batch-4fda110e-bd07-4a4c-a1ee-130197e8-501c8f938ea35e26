@@ -2,6 +2,7 @@ export * from "./client_patches/browserContextPatch.ts";
 export * from "./client_patches/clientHelperPatch.ts";
 export * from "./client_patches/clockPatch.ts";
 export * from "./client_patches/framePatch.ts";
+export * from "./client_patches/injectRouteStatus.ts";
 export * from "./client_patches/jsHandlePatch.ts";
 export * from "./client_patches/locatorPatch.ts";
 export * from "./client_patches/networkPatch.ts"
