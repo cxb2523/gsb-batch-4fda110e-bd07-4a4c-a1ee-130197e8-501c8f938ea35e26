@@ -6,7 +6,7 @@ import pytest
 import requests
 import requests_mock
 
-from instapaper_scraper.api import InstapaperClient
+from instapaper_scraper.api import InstapaperClient, ScrapeResult, StopReason
 from instapaper_scraper.constants import (
     INSTAPAPER_BOOKMARKS_URL,
     INSTAPAPER_USER_SESSION_URL,
@@ -874,3 +874,289 @@ def test_default_user_agent_shape():
             client = InstapaperClient(session, user_agent="   ")
             assert client.user_agent == InstapaperClient.DEFAULT_USER_AGENT
             assert "Empty user_agent provided" in caplog.text
+
+
+class TestTolerantScraping:
+    """Tolerant scraping keeps successfully fetched pages and reports why it stopped."""
+
+    def test_completed_scrape_returns_all_pages(self, client):
+        """A normal finish reports StopReason.COMPLETED and keeps every page."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                json=get_mock_bookmarks_json(page_num=2, has_more=False),
+            )
+
+            result = client.get_all_articles_tolerant()
+
+        assert result.stop_reason is StopReason.COMPLETED
+        assert result.failed_page is None
+        assert result.pages_scraped == 2
+        assert [a["id"] for a in result.articles] == ["1", "2", "3", "4"]
+        assert "reached the last page" in result.describe()
+
+    def test_page_limit_stop_reason(self, client):
+        """Reaching --limit reports PAGE_LIMIT and does not request page 3."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                json=get_mock_bookmarks_json(page_num=2, has_more=True),
+            )
+
+            result = client.get_all_articles_tolerant(limit=2)
+
+            # Only the session call plus the two page requests.
+            assert m.call_count == 3
+
+        assert result.stop_reason is StopReason.PAGE_LIMIT
+        assert result.page_limit == 2
+        assert result.pages_scraped == 2
+        assert len(result.articles) == 4
+        assert "page limit of 2" in result.describe()
+
+    def test_second_page_persistent_500_keeps_page_one(self, client, caplog):
+        """Page 1 succeeds; page 2 fails all retries; result keeps page 1
+        and no request is issued for page 3."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                status_code=500,
+            )
+            # A page-3 route exists but must never be hit: a request after
+            # the failed page would silently continue the scrape.
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=3&sort=newest",
+                json=get_mock_bookmarks_json(page_num=3, has_more=False),
+            )
+
+            client.max_retries = 2
+            client.backoff_factor = 0.01
+
+            with caplog.at_level(logging.ERROR):
+                result = client.get_all_articles_tolerant()
+
+            page_requests = [
+                r for r in m.request_history if r.path != "/data/user_session"
+            ]
+            page3_requests = [r for r in page_requests if r.qs.get("page") == ["3"]]
+
+        assert result.stop_reason is StopReason.PAGE_FAILED
+        assert result.failed_page == 2
+        assert "HTTP 500" in (result.error_detail or "")
+        assert result.pages_scraped == 1
+        assert [a["id"] for a in result.articles] == ["1", "2"]
+        assert "page 2" in result.describe()
+        assert page3_requests == []
+        assert "Stopping at page 2" in caplog.text
+
+    def test_missing_bookmarks_field_stops_as_invalid_data(self, client, caplog):
+        """A 200 response without 'bookmarks' reports INVALID_DATA at that page."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                json={"unexpected": "response"},
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=3&sort=newest",
+                json=get_mock_bookmarks_json(page_num=3, has_more=False),
+            )
+
+            client.max_retries = 2
+            client.backoff_factor = 0.01
+
+            with caplog.at_level(logging.ERROR):
+                result = client.get_all_articles_tolerant()
+
+            assert all(
+                r.qs.get("page") != ["3"]
+                for r in m.request_history
+                if r.path != "/data/user_session"
+            )
+
+        assert result.stop_reason is StopReason.INVALID_DATA
+        assert result.failed_page == 2
+        assert "bookmarks" in (result.error_detail or "")
+        assert result.pages_scraped == 1
+        assert [a["id"] for a in result.articles] == ["1", "2"]
+        assert "page 2" in result.describe()
+
+    def test_unrecoverable_404_not_retried_and_stops(self, client):
+        """404 is not retried and becomes the recorded failure."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                status_code=404,
+            )
+
+            client.max_retries = 3
+            client.backoff_factor = 0.01
+            result = client.get_all_articles_tolerant()
+
+            assert m.call_count == 2  # session + one bookmarks request
+
+        assert result.stop_reason is StopReason.PAGE_FAILED
+        assert result.failed_page == 1
+        assert "HTTP 404" in (result.error_detail or "")
+        assert result.articles == []
+        assert "no output file was written" in result.describe()
+
+    def test_retryable_500_then_success_keeps_scraping(self, client):
+        """A page that succeeds after retries does not stop the run."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                [
+                    {"status_code": 500},
+                    {"json": get_mock_bookmarks_json(page_num=1, has_more=True)},
+                ],
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                json=get_mock_bookmarks_json(page_num=2, has_more=False),
+            )
+
+            client.max_retries = 2
+            client.backoff_factor = 0.01
+            result = client.get_all_articles_tolerant()
+
+        assert result.stop_reason is StopReason.COMPLETED
+        assert result.pages_scraped == 2
+        assert [a["id"] for a in result.articles] == ["1", "2", "3", "4"]
+
+    def test_strict_get_all_articles_still_raises(self, client):
+        """The non-tolerant API keeps its exception semantics unchanged."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                status_code=500,
+            )
+
+            client.max_retries = 2
+            client.backoff_factor = 0.01
+
+            with pytest.raises(requests.exceptions.HTTPError):
+                client.get_all_articles()
+
+    def test_429_retry_after_is_honoured_then_page_failure_recorded(
+        self, client, monkeypatch
+    ):
+        """A persistently 429ing page still waits per Retry-After, then the
+        tolerant path records 429 as the stop reason."""
+        mock_sleep = MagicMock()
+        monkeypatch.setattr("time.sleep", mock_sleep)
+
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=2&sort=newest",
+                status_code=429,
+                headers={"Retry-After": "5"},
+            )
+
+            client.max_retries = 2
+            client.backoff_factor = 0.01
+            result = client.get_all_articles_tolerant()
+
+        assert result.stop_reason is StopReason.PAGE_FAILED
+        assert result.failed_page == 2
+        assert "HTTP 429" in (result.error_detail or "")
+        assert result.pages_scraped == 1
+        assert [a["id"] for a in result.articles] == ["1", "2"]
+        # Retry-After was honoured for each of the max_retries attempts.
+        assert mock_sleep.call_count == client.max_retries
+        assert all(c.args[0] == 5 for c in mock_sleep.call_args_list)
+
+    def test_unexpected_exception_detail_is_preserved(self, client, monkeypatch):
+        """A page failure other than a plain HTTP/network error is still
+        reported: the exception type and message must not be swallowed."""
+        with requests_mock.Mocker() as m:
+            setup_session_mock(m)
+            m.get(
+                INSTAPAPER_BOOKMARKS_URL + "?section_type=home&page=1&sort=newest",
+                json=get_mock_bookmarks_json(page_num=1, has_more=True),
+            )
+            client.max_retries = 1
+            client.backoff_factor = 0.01
+
+            def boom(*args, **kwargs):
+                raise RuntimeError("simulated bug")
+
+            monkeypatch.setattr(client, "_parse_bookmarks", boom)
+
+            result = client.get_all_articles_tolerant()
+
+        assert result.stop_reason is StopReason.PAGE_FAILED
+        assert result.failed_page == 1
+        assert "RuntimeError" in (result.error_detail or "")
+        assert "simulated bug" in (result.error_detail or "")
+        assert result.articles == []
+
+
+def test_scrape_result_describe_variants():
+    """describe() covers each terminal outcome with the right wording."""
+    completed = ScrapeResult(
+        articles=[{"id": "1"}], stop_reason=StopReason.COMPLETED, pages_scraped=1
+    )
+    assert "reached the last page" in completed.describe()
+    assert completed.is_partial() is False
+
+    limited = ScrapeResult(
+        articles=[{"id": "1"}],
+        stop_reason=StopReason.PAGE_LIMIT,
+        pages_scraped=1,
+        page_limit=1,
+    )
+    assert "page limit of 1" in limited.describe()
+    assert limited.is_partial() is False
+
+    failed = ScrapeResult(
+        articles=[{"id": "1"}],
+        stop_reason=StopReason.PAGE_FAILED,
+        pages_scraped=1,
+        failed_page=2,
+        error_detail="ConnectionError",
+    )
+    assert "page 2" in failed.describe()
+    assert "ConnectionError" in failed.describe()
+    assert failed.is_partial() is True
+
+    invalid = ScrapeResult(
+        articles=[],
+        stop_reason=StopReason.INVALID_DATA,
+        failed_page=1,
+        error_detail="missing the 'bookmarks' field",
+    )
+    assert "invalid API response" in invalid.describe()
+    assert "no output file was written" in invalid.describe()
+    assert invalid.is_partial() is True

@@ -2,6 +2,8 @@ import logging
 import os
 import re
 import time
+from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 import requests
@@ -28,6 +30,91 @@ from .constants import (
     XHR_HEADERS,
 )
 from .exceptions import ApiParseError, InstapaperAPIError
+
+
+class StopReason(str, Enum):
+    """Why a tolerant (partial-result) scrape run ended.
+
+    Kept separate from exceptions so the CLI can report a readable summary
+    and still persist everything collected before the stop.
+    """
+
+    COMPLETED = "completed"  # has_more was false: all pages were fetched
+    PAGE_LIMIT = "page_limit"  # the caller's page limit was reached
+    PAGE_FAILED = "page_failed"  # a page kept failing until retries ran out
+    INVALID_DATA = "invalid_data"  # response lacked the bookmarks field
+
+
+MSG_STOP_COMPLETED = (
+    "Scrape completed normally: reached the last page (has_more was false). "
+    "Collected {count} article(s) from {pages} page(s)."
+)
+MSG_STOP_PAGE_LIMIT = (
+    "Scrape stopped at the page limit of {limit} page(s). "
+    "Collected {count} article(s) from {pages} page(s)."
+)
+MSG_STOP_PAGE_FAILED = (
+    "Scrape stopped at page {page}: that page could not be fetched "
+    "(last error: {error}). Collected {count} article(s) from {pages} page(s); "
+    "no request was made after page {page}."
+)
+MSG_STOP_INVALID_DATA = (
+    "Scrape stopped at page {page}: invalid API response ({reason}). "
+    "Collected {count} article(s) from {pages} page(s); "
+    "no request was made after page {page}."
+)
+MSG_STOP_NO_ARTICLES = "No articles were collected, so no output file was written."
+MSG_MISSING_BOOKMARKS_FIELD = "missing the 'bookmarks' field"
+
+
+@dataclass
+class ScrapeResult:
+    """Articles collected by a tolerant scrape plus the reason it ended."""
+
+    articles: list[dict[str, Any]]
+    stop_reason: StopReason
+    pages_scraped: int = 0
+    failed_page: int | None = None
+    error_detail: str | None = None
+    page_limit: int | None = None
+
+    def is_partial(self) -> bool:
+        """True when the run stopped before fetching every page."""
+        return self.stop_reason in (
+            StopReason.PAGE_FAILED,
+            StopReason.INVALID_DATA,
+        )
+
+    def describe(self) -> str:
+        """Returns a human-readable explanation of why the scrape stopped."""
+        if self.stop_reason is StopReason.COMPLETED:
+            summary = MSG_STOP_COMPLETED.format(
+                count=len(self.articles), pages=self.pages_scraped
+            )
+        elif self.stop_reason is StopReason.PAGE_LIMIT:
+            summary = MSG_STOP_PAGE_LIMIT.format(
+                limit=self.page_limit,
+                count=len(self.articles),
+                pages=self.pages_scraped,
+            )
+        elif self.stop_reason is StopReason.PAGE_FAILED:
+            summary = MSG_STOP_PAGE_FAILED.format(
+                page=self.failed_page,
+                error=self.error_detail,
+                count=len(self.articles),
+                pages=self.pages_scraped,
+            )
+        else:  # StopReason.INVALID_DATA
+            summary = MSG_STOP_INVALID_DATA.format(
+                page=self.failed_page,
+                reason=self.error_detail,
+                count=len(self.articles),
+                pages=self.pages_scraped,
+            )
+
+        if not self.articles:
+            summary = f"{summary} {MSG_STOP_NO_ARTICLES}"
+        return summary
 
 
 class InstapaperClient:
@@ -106,6 +193,12 @@ class InstapaperClient:
     MSG_SESSION_FETCH_FAILED = "Failed to fetch user session: {e}"
     MSG_SESSION_FETCH_NON_OK = "User session request failed with status {status_code}."
     MSG_PARSE_FAILED = "Could not parse bookmark {id}: {e}"
+    MSG_STOP_INVALID_RESPONSE_LOGGED = (
+        "Stopping at page {page}: invalid API response ({reason})."
+    )
+    MSG_STOP_PAGE_FAILED_LOGGED = (
+        "Stopping at page {page}: page could not be fetched (last error: {error})."
+    )
 
     def __init__(
         self,
@@ -394,6 +487,126 @@ class InstapaperClient:
                 all_articles.extend(data)
             page += 1
         return all_articles
+
+    def get_all_articles_tolerant(
+        self,
+        limit: int | None = None,
+        folder_info: dict[str, str] | None = None,
+        add_article_preview: bool = False,
+    ) -> ScrapeResult:
+        """Fetches pages like :meth:`get_all_articles` but never raises for a
+        page that fails after its retries are exhausted.
+
+        Instead it stops at the failing page (no request is issued for any
+        later page), returns everything collected so far, and reports why it
+        stopped via :class:`ScrapeResult`.
+
+        Only the outcome of fetching one page is converted into a stop
+        reason. Every other piece of information (HTTP status, exception
+        type and message, the page number) is preserved in
+        :attr:`ScrapeResult.error_detail` and logged, so the tolerant path
+        never hides why a page failed.
+
+        Retry behaviour is inherited from :meth:`get_articles`: retryable
+        errors (5xx, 429 with/without Retry-After, network errors) use the
+        existing backoff, and unrecoverable statuses such as 404 are not
+        retried at all. Whatever the page ultimately failed with is recorded
+        as the stop reason's error detail.
+        """
+        all_articles: list[dict[str, str]] = []
+        page = self.DEFAULT_PAGE_START
+        has_more = True
+        pages_scraped = 0
+
+        while has_more:
+            if limit is not None and page > limit:
+                logging.info(f"Reached page limit of {limit}.")
+                return ScrapeResult(
+                    articles=all_articles,
+                    stop_reason=StopReason.PAGE_LIMIT,
+                    pages_scraped=pages_scraped,
+                    page_limit=limit,
+                )
+
+            logging.info(self.MSG_SCRAPING_PAGE.format(page=page))
+            try:
+                data, has_more = self.get_articles(
+                    page=page,
+                    folder_info=folder_info,
+                    add_article_preview=add_article_preview,
+                )
+            except InstapaperAPIError as e:
+                # A 200 response whose payload shape is unusable (most
+                # commonly no "bookmarks" field, or a body that isn't JSON).
+                # Retrying cannot fix it, so record and stop.
+                if isinstance(e, ApiParseError):
+                    reason = f"invalid JSON response ({e})"
+                else:
+                    reason = MSG_MISSING_BOOKMARKS_FIELD
+                logging.error(
+                    self.MSG_STOP_INVALID_RESPONSE_LOGGED.format(
+                        page=page, reason=reason
+                    )
+                )
+                return ScrapeResult(
+                    articles=all_articles,
+                    stop_reason=StopReason.INVALID_DATA,
+                    pages_scraped=pages_scraped,
+                    failed_page=page,
+                    error_detail=reason,
+                )
+            except Exception as e:
+                # get_articles() applied the retry policy and re-raised the
+                # last error, so this is a page-level failure: a
+                # retry-exhausted 5xx/network error, an unrecoverable
+                # status (e.g. 404), or an unexpected error it retried.
+                # Stop here: never request a page after the failed one.
+                # The status/exception type/message is preserved in the
+                # summary rather than swallowed.
+                detail = self._describe_page_failure(e)
+                logging.error(
+                    self.MSG_STOP_PAGE_FAILED_LOGGED.format(page=page, error=detail)
+                )
+                return ScrapeResult(
+                    articles=all_articles,
+                    stop_reason=StopReason.PAGE_FAILED,
+                    pages_scraped=pages_scraped,
+                    failed_page=page,
+                    error_detail=detail,
+                )
+
+            pages_scraped += 1
+            if data:
+                all_articles.extend(data)
+            page += 1
+
+        return ScrapeResult(
+            articles=all_articles,
+            stop_reason=StopReason.COMPLETED,
+            pages_scraped=pages_scraped,
+        )
+
+    def _describe_page_failure(self, error: Exception) -> str:
+        """Builds a concise, human-readable description of a page failure.
+
+        Includes the HTTP status code when the failure came from a response,
+        otherwise the exception type (e.g. ``ConnectionError``).
+        """
+        if (
+            isinstance(error, requests.exceptions.HTTPError)
+            and error.response is not None
+        ):
+            status_code = error.response.status_code
+            reason = error.response.reason
+            if reason and str(reason) != str(status_code):
+                return f"HTTP {status_code} {reason}"
+            return f"HTTP {status_code}"
+        if isinstance(
+            error, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+        ):
+            return type(error).__name__
+        message = str(error)
+        return f"{type(error).__name__}: {message}" if message else type(error).__name__
 
     def _handle_http_error(
         self, e: requests.exceptions.HTTPError, attempt: int

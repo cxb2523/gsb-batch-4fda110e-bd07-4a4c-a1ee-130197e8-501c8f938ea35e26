@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from instapaper_scraper.api import ScrapeResult, StopReason
 from instapaper_scraper.cli import main
 
 
@@ -24,9 +25,9 @@ def test_main_with_liked_folder_arg(
     with patch("sys.argv", test_args):
         main()
 
-    # Verify that get_all_articles was called with the correct folder_info
-    mock_client_instance.get_all_articles.assert_called_once()
-    call_args, call_kwargs = mock_client_instance.get_all_articles.call_args
+    # Verify that get_all_articles_tolerant was called with the correct folder_info
+    mock_client_instance.get_all_articles_tolerant.assert_called_once()
+    call_args, call_kwargs = mock_client_instance.get_all_articles_tolerant.call_args
     assert call_kwargs.get("folder_info") == {"id": "liked"}
 
 
@@ -51,9 +52,9 @@ def test_main_with_archive_folder_arg(
     with patch("sys.argv", test_args):
         main()
 
-    # Verify that get_all_articles was called with the correct folder_info
-    mock_client_instance.get_all_articles.assert_called_once()
-    call_args, call_kwargs = mock_client_instance.get_all_articles.call_args
+    # Verify that get_all_articles_tolerant was called with the correct folder_info
+    mock_client_instance.get_all_articles_tolerant.assert_called_once()
+    call_args, call_kwargs = mock_client_instance.get_all_articles_tolerant.call_args
     assert call_kwargs.get("folder_info") == {"id": "archive"}
 
 
@@ -79,9 +80,9 @@ def test_main_interactive_liked(
     with patch("sys.argv", test_args):
         main()
 
-    # Verify that get_all_articles was called with the correct folder_info
-    mock_client_instance.get_all_articles.assert_called_once()
-    call_args, call_kwargs = mock_client_instance.get_all_articles.call_args
+    # Verify that get_all_articles_tolerant was called with the correct folder_info
+    mock_client_instance.get_all_articles_tolerant.assert_called_once()
+    call_args, call_kwargs = mock_client_instance.get_all_articles_tolerant.call_args
     assert call_kwargs.get("folder_info") == {"id": "liked"}
 
 
@@ -107,9 +108,9 @@ def test_main_interactive_archive(
     with patch("sys.argv", test_args):
         main()
 
-    # Verify that get_all_articles was called with the correct folder_info
-    mock_client_instance.get_all_articles.assert_called_once()
-    call_args, call_kwargs = mock_client_instance.get_all_articles.call_args
+    # Verify that get_all_articles_tolerant was called with the correct folder_info
+    mock_client_instance.get_all_articles_tolerant.assert_called_once()
+    call_args, call_kwargs = mock_client_instance.get_all_articles_tolerant.call_args
     assert call_kwargs.get("folder_info") == {"id": "archive"}
 
 
@@ -127,7 +128,9 @@ def test_main_liked_folder_with_custom_filename(
     mock_authenticator.return_value = mock_auth_instance
 
     mock_client_instance = MagicMock()
-    mock_client_instance.get_all_articles.return_value = []
+    mock_client_instance.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     mock_client.return_value = mock_client_instance
 
     test_args = ["instapaper-scraper", "--folder", "liked", "--format", "json"]
@@ -158,7 +161,9 @@ def test_main_archive_folder_with_custom_filename(
     mock_authenticator.return_value = mock_auth_instance
 
     mock_client_instance = MagicMock()
-    mock_client_instance.get_all_articles.return_value = []
+    mock_client_instance.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     mock_client.return_value = mock_client_instance
 
     test_args = ["instapaper-scraper", "--folder", "archive", "--format", "sqlite"]

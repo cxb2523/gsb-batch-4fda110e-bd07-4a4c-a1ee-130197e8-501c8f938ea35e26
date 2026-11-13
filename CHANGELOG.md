@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Partial Exports**: The CLI now saves the articles fetched before a page failed instead of aborting the whole run, and prints a readable stop summary that distinguishes a normal end (`has_more` false), the page limit being reached, a page that failed after its retries were exhausted (with the page number and last error / HTTP status), and an invalid response missing the `bookmarks` field. When no page succeeds, no empty output file is written and the summary says so. No request is made after the failed page.
+- **`InstapaperClient.get_all_articles_tolerant()`**: New method returning a `ScrapeResult` (articles plus `StopReason` and failure detail). Retry behaviour is unchanged (5xx/network errors back off, 429 honours `Retry-After`, 404 and other unrecoverable statuses are not retried). `get_articles()` and `get_all_articles()` keep their existing exceptions.
+
 ## [1.4.1] - 2026-09-06
 
 ### Fixed

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from instapaper_scraper import cli
+from instapaper_scraper.api import ScrapeResult, StopReason
 
 
 # Fixtures to mock dependencies, making tests focused and fast.
@@ -21,7 +22,9 @@ def mock_client(monkeypatch):
     """Fixture to mock the InstapaperClient."""
     mock = MagicMock()
     # Assume no articles are returned to speed up the test
-    mock.return_value.get_all_articles.return_value = []
+    mock.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("instapaper_scraper.cli.InstapaperClient", mock)
     return mock
 

@@ -375,7 +375,7 @@ def main() -> None:
     client = InstapaperClient(session, form_key=authenticator.form_key)
     try:
         folder_info = selected_folder if selected_folder else None
-        all_articles = client.get_all_articles(
+        result = client.get_all_articles_tolerant(
             limit=args.limit,
             folder_info=folder_info,
             add_article_preview=final_add_article_preview,
@@ -390,6 +390,8 @@ def main() -> None:
         logging.error(f"An unexpected error occurred during scraping: {e}")
         sys.exit(1)
 
+    all_articles = result.articles
+
     # 4. Save Articles
     try:
         save_articles(
@@ -399,10 +401,15 @@ def main() -> None:
             add_instapaper_url=final_add_instapaper_url,
             add_article_preview=final_add_article_preview,
         )
-        logging.info("Articles scraped and saved successfully.")
+        if all_articles:
+            logging.info("Articles scraped and saved successfully.")
     except Exception as e:
         logging.error(f"An unexpected error occurred during saving: {e}")
         sys.exit(1)
+
+    # 5. Report why scraping stopped. This is printed even when a page
+    # failed, so the user knows the export is partial and where it stopped.
+    print(result.describe())
 
 
 if __name__ == "__main__":

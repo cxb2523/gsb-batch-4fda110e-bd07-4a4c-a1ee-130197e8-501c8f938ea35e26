@@ -5,6 +5,7 @@ from unittest.mock import patch
 from cryptography.fernet import Fernet
 
 from instapaper_scraper import cli, constants
+from instapaper_scraper.api import ScrapeResult, StopReason
 
 
 def test_load_config_priority(monkeypatch, tmp_path):
@@ -76,7 +77,9 @@ def test_session_file_resolution_priority(monkeypatch, tmp_path):
         patch("instapaper_scraper.cli.InstapaperClient") as mock_client,
     ):
         mock_auth.return_value.login.return_value = True
-        mock_client.return_value.get_all_articles.return_value = []
+        mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+            articles=[], stop_reason=StopReason.COMPLETED
+        )
 
         # Case 1: CLI arguments provided
         monkeypatch.setattr(

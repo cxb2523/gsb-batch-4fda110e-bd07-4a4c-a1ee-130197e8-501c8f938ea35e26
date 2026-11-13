@@ -6,6 +6,7 @@ import pytest
 import requests
 
 from instapaper_scraper import cli
+from instapaper_scraper.api import ScrapeResult, StopReason
 from instapaper_scraper.exceptions import SessionLogoutError
 
 
@@ -37,7 +38,9 @@ def test_cli_successful_run(mock_auth, mock_client, mock_save, monkeypatch, capl
     """Test a successful run of the CLI with default arguments."""
     mock_auth.return_value.login.return_value = True
     mock_articles = [{"id": "1", "title": "Test", "url": "http://test.com"}]
-    mock_client.return_value.get_all_articles.return_value = mock_articles
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=mock_articles, stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
     # Mock CONFIG_DIR and CONFIG_FILENAME to ensure no config file is found
     monkeypatch.setattr("instapaper_scraper.cli.CONFIG_DIR", Path("/non/existent/dir"))
@@ -50,7 +53,7 @@ def test_cli_successful_run(mock_auth, mock_client, mock_save, monkeypatch, capl
 
     mock_auth.assert_called_once()
     mock_auth.return_value.login.assert_called_once()
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
     mock_save.assert_called_once_with(
@@ -75,7 +78,7 @@ def test_cli_login_failure(mock_auth, mock_client, mock_save, monkeypatch, capsy
                 cli.main()
 
     assert e.value.code == 1
-    mock_client.return_value.get_all_articles.assert_not_called()
+    mock_client.return_value.get_all_articles_tolerant.assert_not_called()
     mock_save.assert_not_called()
 
 
@@ -90,7 +93,9 @@ def test_cli_custom_format(
 ):
     """Test the CLI with custom format arguments."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--format", format])
 
     with patch("instapaper_scraper.cli.load_config", return_value={}):
@@ -110,7 +115,9 @@ def test_cli_custom_format(
 def test_cli_custom_output_file(mock_auth, mock_client, mock_save, monkeypatch):
     """Test the CLI with a custom output file argument."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     custom_file = "my_special_bookmarks.json"
     monkeypatch.setattr(
         "sys.argv", ["instapaper-scraper", "--format", "json", "-o", custom_file]
@@ -128,7 +135,9 @@ def test_cli_custom_output_file(mock_auth, mock_client, mock_save, monkeypatch):
 def test_cli_custom_auth_files(mock_auth, mock_client, mock_save, monkeypatch):
     """Test that custom session and key files are passed to the authenticator."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     session_file = "my_session.file"
     key_file = "my_key.file"
     monkeypatch.setattr(
@@ -155,7 +164,9 @@ def test_cli_custom_auth_files(mock_auth, mock_client, mock_save, monkeypatch):
 def test_cli_custom_credentials(mock_auth, mock_client, mock_save, monkeypatch):
     """Test that custom username and password are passed to the authenticator."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     username = "cli_user"
     password = "cli_password"
     monkeypatch.setattr(
@@ -175,7 +186,9 @@ def test_cli_custom_credentials(mock_auth, mock_client, mock_save, monkeypatch):
 def test_cli_with_add_instapaper_url(mock_auth, mock_client, mock_save, monkeypatch):
     """Test that the --add-instapaper-url argument triggers the read URL prefix."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--add-instapaper-url"])
 
     with patch("instapaper_scraper.cli.load_config", return_value={}):
@@ -194,14 +207,16 @@ def test_cli_with_add_instapaper_url(mock_auth, mock_client, mock_save, monkeypa
 def test_cli_with_limit(mock_auth, mock_client, mock_save, monkeypatch):
     """Test that the --limit argument is passed to the client."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--limit", "5"])
 
     with patch("instapaper_scraper.cli.load_config", return_value={}):
         with patch("builtins.input", return_value="0"):
             cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=5, folder_info=None, add_article_preview=False
     )
 
@@ -211,7 +226,7 @@ def test_cli_scraper_exception(mock_auth, mock_client, monkeypatch, caplog):
     from instapaper_scraper.exceptions import ApiResponseError
 
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.side_effect = ApiResponseError(
+    mock_client.return_value.get_all_articles_tolerant.side_effect = ApiResponseError(
         "API error"
     )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
@@ -246,7 +261,9 @@ def test_cli_with_config_interactive_selection(
 ):
     """Test interactive folder selection with a config file."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     folder_config = {"key": "ml", "id": "12345", "slug": "machine-learning"}
     config = {"folders": [folder_config]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
@@ -255,7 +272,7 @@ def test_cli_with_config_interactive_selection(
         with patch("builtins.input", return_value="3"):
             cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=folder_config, add_article_preview=False
     )
 
@@ -265,7 +282,9 @@ def test_cli_with_config_folder_argument(
 ):
     """Test selecting a folder via the --folder argument."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     folder_config = {"key": "ml", "id": "12345", "slug": "machine-learning"}
     config = {"folders": [folder_config]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--folder", "ml"])
@@ -273,7 +292,7 @@ def test_cli_with_config_folder_argument(
     with patch("instapaper_scraper.cli.load_config", return_value=config):
         cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=folder_config, add_article_preview=False
     )
 
@@ -283,7 +302,9 @@ def test_cli_with_config_folder_output_preset(
 ):
     """Test using the output filename preset from the config."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {
         "folders": [
             {
@@ -313,14 +334,16 @@ def test_cli_folder_none_with_config_output(
 ):
     """Test --folder=none with a top-level output_filename in config."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"output_filename": "home.csv"}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--folder", "none"])
 
     with patch("instapaper_scraper.cli.load_config", return_value=config):
         cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
     mock_save.assert_called_once_with(
@@ -333,14 +356,16 @@ def test_cli_no_folder_with_config_output(
 ):
     """Test non-folder mode with a top-level output_filename in config."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"output_filename": "home.csv", "folders": []}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
     with patch("instapaper_scraper.cli.load_config", return_value=config):
         cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
     mock_save.assert_called_once_with(
@@ -464,14 +489,16 @@ def test_load_config_empty_toml(tmp_path):
 def test_cli_folder_id_not_in_config(mock_auth, mock_client, mock_save, monkeypatch):
     """Test providing a folder ID that is not in the config."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"folders": [{"key": "other", "id": "999"}]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--folder", "12345"])
 
     with patch("instapaper_scraper.cli.load_config", return_value=config):
         cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info={"id": "12345"}, add_article_preview=False
     )
 
@@ -479,7 +506,9 @@ def test_cli_folder_id_not_in_config(mock_auth, mock_client, mock_save, monkeypa
 def test_cli_interactive_invalid_input(mock_auth, mock_client, mock_save, monkeypatch):
     """Test interactive selection with invalid input (non-integer)."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"folders": [{"key": "ml", "id": "12345"}]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
@@ -488,7 +517,7 @@ def test_cli_interactive_invalid_input(mock_auth, mock_client, mock_save, monkey
             cli.main()
 
     # Should default to non-folder mode
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
 
@@ -496,7 +525,9 @@ def test_cli_interactive_invalid_input(mock_auth, mock_client, mock_save, monkey
 def test_cli_interactive_out_of_range(mock_auth, mock_client, mock_save, monkeypatch):
     """Test interactive selection with out of range integer."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"folders": [{"key": "ml", "id": "12345"}]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
@@ -505,7 +536,7 @@ def test_cli_interactive_out_of_range(mock_auth, mock_client, mock_save, monkeyp
             cli.main()
 
     # Should default to non-folder mode
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
 
@@ -515,7 +546,9 @@ def test_cli_interactive_empty_folder_list(
 ):
     """Test interactive selection when the config's folders list is empty."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     config = {"folders": []}  # Empty folders list
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
@@ -523,7 +556,7 @@ def test_cli_interactive_empty_folder_list(
         # input() should not be called as there are no folders to choose from
         cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
     mock_save.assert_called_once_with(
@@ -540,7 +573,9 @@ def test_cli_interactive_select_no_folder(
 ):
     """Test interactive selection where user chooses '0' for no folder."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     folder_config = {"key": "ml", "id": "12345", "slug": "machine-learning"}
     config = {"folders": [folder_config]}
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
@@ -549,7 +584,7 @@ def test_cli_interactive_select_no_folder(
         with patch("builtins.input", return_value="0"):  # User selects '0'
             cli.main()
 
-    mock_client.return_value.get_all_articles.assert_called_once_with(
+    mock_client.return_value.get_all_articles_tolerant.assert_called_once_with(
         limit=None, folder_info=None, add_article_preview=False
     )
     mock_save.assert_called_once_with(
@@ -564,7 +599,9 @@ def test_cli_interactive_select_no_folder(
 def test_cli_with_add_article_preview(mock_auth, mock_client, mock_save, monkeypatch):
     """Test that the --add-article-preview argument is passed to the save function."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = []
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[], stop_reason=StopReason.COMPLETED
+    )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper", "--add-article-preview"])
 
     with patch("instapaper_scraper.cli.load_config", return_value={}):
@@ -583,7 +620,7 @@ def test_cli_with_add_article_preview(mock_auth, mock_client, mock_save, monkeyp
 def test_cli_http_error(mock_auth, mock_client, monkeypatch, caplog):
     """Test that the CLI handles requests.exceptions.RequestException."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.side_effect = (
+    mock_client.return_value.get_all_articles_tolerant.side_effect = (
         requests.exceptions.RequestException("Connection error")
     )
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
@@ -599,7 +636,7 @@ def test_cli_http_error(mock_auth, mock_client, monkeypatch, caplog):
 def test_cli_unexpected_error(mock_auth, mock_client, monkeypatch, caplog):
     """Test that the CLI handles unexpected exceptions."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.side_effect = Exception("Boom!")
+    mock_client.return_value.get_all_articles_tolerant.side_effect = Exception("Boom!")
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
     with patch("instapaper_scraper.cli.load_config", return_value={}):
@@ -615,7 +652,9 @@ def test_cli_save_articles_exception(
 ):
     """Test that a generic exception in save_articles is caught."""
     mock_auth.return_value.login.return_value = True
-    mock_client.return_value.get_all_articles.return_value = [{"id": "1"}]
+    mock_client.return_value.get_all_articles_tolerant.return_value = ScrapeResult(
+        articles=[{"id": "1"}], stop_reason=StopReason.COMPLETED
+    )
     mock_save.side_effect = Exception("Something broke")
     monkeypatch.setattr("sys.argv", ["instapaper-scraper"])
 
