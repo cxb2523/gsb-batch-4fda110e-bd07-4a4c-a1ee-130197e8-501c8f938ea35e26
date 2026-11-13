@@ -13,6 +13,8 @@ or an empty column.
 
 ### Fixed
 
+- **Empty pages and failed pages are now reported as distinct facts, in the sequential and the `--concurrency` path.** A page that returns zero rows while the listing's own `total`/`lotsPerPage` says it should hold lots is fetched exactly once more; only when the re-fetch is also empty does the run stop with `stop_reason: listing_ended_early`, `status: partial` and exit 6. An empty page at or past the declared page count, and any empty page of a single-page listing, is the normal end (`no_new_products`, complete) and is never retried. A re-fetch that errors is a failure (`pages_failed`), not an early end. Under `--concurrency` an early end stops further dispatch; queued and in-flight-but-discarded page numbers go to a new `pages_unattempted` sidecar field (never `pages_failed`), and the concurrent run now yields the same stop reason and the same sku-deduped rows as the sequential run. New sidecar fields: `pages_early_empty`, `pages_normal_empty`, `pages_unattempted`, `empty_page_rechecks`.
+
 Found by a third-party audit on 2026-11-10 and reproduced against `main` the same day; each fix below was re-run live afterwards.
 
 - **A run asking for more than 100 pages no longer loses everything.** It used to plan page 101, get no address for it, crash and write nothing. It now stops at the site's cap, keeps what it gathered and records `pages_capped_by_site` and `pages_requested_by_user` in the sidecar.

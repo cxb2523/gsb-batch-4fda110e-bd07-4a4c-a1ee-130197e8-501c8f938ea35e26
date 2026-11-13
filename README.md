@@ -244,7 +244,22 @@ answer it with page 100's lots.
 A page that comes back empty although the listing's own count says it exists is
 fetched once more. If it is empty again the run stops with `stop_reason`
 `listing_ended_early`, `status: partial` and exit 6, rather than calling a
-glitch the end of the listing and reporting a complete run.
+glitch the end of the listing and reporting a complete run. The two empty
+answers are kept distinct from a failure: a page that errors lands in
+`pages_failed`, while the twice-empty page is recorded in the sidecar's
+`pages_early_empty` and the extra fetch is counted in `empty_page_rechecks`.
+
+An empty page the listing's own size places at or past its end is the opposite
+case — the site honestly running out, not a glitch. Such a page is **not**
+retried and does not partialise the run: it is recorded in
+`pages_normal_empty` and the run ends complete with `stop_reason`
+`no_new_products`. A listing whose payload declares a single page is treated
+the same way, so an empty page 2 can never be an "early" end. Under
+`--concurrency`, when an early end stops dispatch, the page numbers still
+queued (and any fetched in flight and discarded to match the sequential row
+set) are listed in `pages_unattempted` and are never counted as failures; the
+concurrent and sequential paths report the same stop reason and the same
+sku-deduped rows for the same pages.
 
 A search that matches nothing is a related trap: HTTP 200, the words "No
 results", **and 24 suggested lots** reported as `total: 24`. That state is

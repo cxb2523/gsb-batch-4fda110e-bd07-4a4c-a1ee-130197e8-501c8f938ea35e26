@@ -159,6 +159,13 @@ class PageOutcome:
     # How many pages the listing's own payload says it has (capped by the site).
     # Read on page 1 and used to tell a glitched empty page from the end.
     listing_pages: Optional[int] = None
+    # How many times this page was re-fetched purely because it came back
+    # row-less inside the listing's stated size (the "empty page is a glitch"
+    # recheck in page_flow). Zero for an ordinary page and for a correct empty
+    # page past the end; one for a page whose first answer was empty, whether
+    # the second fetch filled it or confirmed the early end. A failed page
+    # never gets here, so this count cannot be confused with load retries.
+    empty_rechecks: int = 0
     # The query a search page ran, read from its payload, for the sidecar.
     header: Optional[str] = None
 
@@ -1142,10 +1149,26 @@ def _worker_pool(pool, worker_index: int):
 
 
 def _recheck_early_empty(session, args, pool, page_num, url, outcome, listing_pages):
-    """Playwright's binding of page_flow.recheck_early_empty."""
+    """Playwright's binding of page_flow.recheck_early_empty.
+
+    Asks page_flow whether this row-less page contradicts the listing's own
+    stated size before fetching it again, and stamps the re-fetch on the
+    outcome that comes back (`empty_rechecks`). The stamp is how the caller
+    distinguishes, in the merged results, a page that was fetched twice because
+    its first answer was empty from one that simply returned zero rows once —
+    the two are opposite facts about the same zero-length list.
+    """
+    if not page_flow.would_recheck_early_empty(
+            args, page_num, outcome, listing_pages):
+        return outcome, False
+
+    def refetch():
+        rechecked = _fetch_one_page(session, args, pool, page_num, url)
+        rechecked.empty_rechecks = getattr(outcome, "empty_rechecks", 0) + 1
+        return rechecked
+
     return page_flow.recheck_early_empty(
-        args, page_num, outcome, listing_pages,
-        lambda: _fetch_one_page(session, args, pool, page_num, url))
+        args, page_num, outcome, listing_pages, refetch)
 
 
 def _fetch_pages_concurrently(args, pool, specs, concurrency: int,
@@ -1155,6 +1178,21 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int,
     Each worker owns its own Playwright instance, browser and exit: with the
     sync API a browser belongs to the thread that made it, so sharing one
     across threads is not an option even if it were desirable.
+
+    Returns (results, unattempted, early_empty, normal_empty):
+
+      results        one PageOutcome per page actually fetched
+      unattempted    page numbers still queued when dispatch stopped; never
+                     counted as failed because they were never tried
+      early_empty    pages empty twice although the listing says they exist
+                     (a listing_ended_early stop)
+      normal_empty   row-less pages at or past the listing's stated end — a
+                     correct "nothing more here", not a fault
+
+    The two empty lists are what make "the listing ended early" and "the site
+    really had no more" separable in the concurrent path: both surface as a
+    zero-row outcome, but only the first one stops dispatch and partialises
+    the run.
     """
     work = queue.Queue()
     for spec in specs:
@@ -1162,6 +1200,7 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int,
 
     results = []
     early_empty = []     # pages empty twice although the listing says they exist
+    normal_empty = []    # row-less pages at/past the stated end: a correct answer
     results_lock = threading.Lock()
     # Set when a page comes back with no rows at all — the end of the
     # listing. Without it, asking for 50 pages of a 5-page result would fetch
@@ -1191,12 +1230,34 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int,
                             listing_pages)
                         with results_lock:
                             results.append(outcome)
-                        if outcome.ok and not outcome.products:
+                        if not outcome.ok:
+                            # A failed page — including a re-fetch that died —
+                            # is neither kind of empty. Do not trip the
+                            # exhaustion event: the caller reports it as a
+                            # failure, and stopping dispatch on it would hide
+                            # healthy pages behind one dead re-fetch.
+                            continue
+                        if not outcome.products:
                             if rechecked:
-                                early_empty.append(page_num)
-                            logger.info("[%s] page %d returned no rows — "
-                                        "treating that as the end of the listing "
-                                        "and stopping dispatch.", name, page_num)
+                                # Two empty answers inside the stated size:
+                                # the listing ended before its own payload said
+                                # it would. This is the partialising stop.
+                                with results_lock:
+                                    early_empty.append(page_num)
+                                logger.warning("[%s] page %d was empty twice "
+                                               "although the listing states %s "
+                                               "page(s) — stopping dispatch; the "
+                                               "run is partial, not complete.",
+                                               name, page_num, listing_pages)
+                            else:
+                                # A row-less page the listing's own size says
+                                # is at or past the end — the normal, complete
+                                # terminator.
+                                with results_lock:
+                                    normal_empty.append(page_num)
+                                logger.info("[%s] page %d returned no rows at "
+                                            "the stated end of the listing — "
+                                            "stopping dispatch.", name, page_num)
                             exhausted.set()
                 finally:
                     session.close()
@@ -1219,7 +1280,8 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int,
             unattempted.append(work.get_nowait()[0])
         except queue.Empty:
             break
-    return results, sorted(unattempted), exhausted.is_set(), sorted(early_empty)
+    return (results, sorted(unattempted), sorted(early_empty),
+            sorted(normal_empty))
 
 
 def scrape(args) -> int:
@@ -1238,6 +1300,15 @@ def scrape(args) -> int:
     # partial view.
     stop_reason = ("single_page_mode" if args.mode in ("lot", "auctions")
                    else "completed")
+    # Page accounting carried to the sidecar so an empty page and a failed
+    # page cannot be read as the same fact there either:
+    #   pages_early_empty   row-less twice inside the stated size (partial)
+    #   pages_normal_empty  row-less at/past the stated end (a correct answer)
+    #   pages_unattempted   never dispatched once the stop event tripped; NOT
+    #                       failures, because they were never tried
+    pages_early_empty: List[int] = []
+    pages_normal_empty: List[int] = []
+    pages_unattempted: List[int] = []
 
     pool = proxy_pool_from_args(args)
     if pool and args.cdp_endpoint:
@@ -1318,9 +1389,13 @@ def scrape(args) -> int:
                     logger.info("Fetching pages 2-%d across %d workers%s.",
                                 args.pages, concurrency,
                                 f" over {len(pool)} exit(s)" if pool else "")
-                    rest, unattempted, exhausted, early_empty = _fetch_pages_concurrently(
+                    (rest, unattempted, early_empty,
+                     normal_empty) = _fetch_pages_concurrently(
                         args, pool, specs, concurrency, first.listing_pages)
                     outcomes.extend(rest)
+                    pages_early_empty = early_empty
+                    pages_normal_empty = normal_empty
+                    pages_unattempted = unattempted
 
                     failed = [o for o in rest if not o.ok]
                     if failed:
@@ -1330,11 +1405,39 @@ def scrape(args) -> int:
                         blocked = any(o.blocked_by for o in rest)
                     elif early_empty:
                         stop_reason = "listing_ended_early"
+                        # Sequential parity. A sequential run stops AT the first
+                        # twice-empty page and never fetches anything after it.
+                        # Under concurrency a handful of later pages can already
+                        # have been in flight when dispatch stopped, so their
+                        # outcomes sit in `rest`. Two things have to happen to
+                        # them:
+                        #   * their ROWS are dropped, so the merged sku set is
+                        #     byte-identical to the sequential run's;
+                        #   * their page NUMBERS join `pages_unattempted`, so no
+                        #     page beyond the early end vanishes from the
+                        #     accounting — none of them is a failed page, and a
+                        #     consumer reconstructing the requested window can
+                        #     see exactly which part was never part of the run.
+                        cutoff = min(early_empty)
+                        dropped = [o.page_num for o in rest
+                                   if o.page_num > cutoff]
+                        if dropped:
+                            logger.info("Discarding %d page(s) fetched past the "
+                                        "early end at page %d so the concurrent "
+                                        "run matches the sequential one: %s.",
+                                        len(dropped), cutoff, dropped)
+                        pages_unattempted = sorted(
+                            set(pages_unattempted) | set(dropped))
+                        outcomes = [o for o in outcomes
+                                    if o.page_num <= cutoff]
                         logger.warning("Page(s) %s were empty twice although the "
                                        "listing states %s page(s): the run is "
                                        "reported as partial, not complete.",
                                        early_empty, first.listing_pages)
-                    elif exhausted:
+                    elif normal_empty:
+                        # A row-less page at or past the listing's stated end.
+                        # That is the site honestly running out, the same
+                        # complete terminator the sequential path uses.
                         stop_reason = "no_new_products"
                     elif unattempted:
                         # Should not happen without a failure or exhaustion,
@@ -1357,18 +1460,37 @@ def scrape(args) -> int:
                             session, args, pool, page_num, url, outcome,
                             first.listing_pages)
                         outcomes.append(outcome)
-                        if rechecked and outcome.ok and not outcome.products:
-                            stop_reason = "listing_ended_early"
-                            logger.warning("Page %d was empty twice although the "
-                                           "listing states %s page(s): the run is "
-                                           "reported as partial, not complete.",
-                                           page_num, first.listing_pages)
-                            break
+                        # A failed page is a failure however it was reached —
+                        # including when the failure was the re-fetch of a
+                        # suspiciously empty page. The ok-check must come first:
+                        # a load failure also carries zero products, so deciding
+                        # the early end before it would label a dead re-fetch as
+                        # "empty twice" and write listing_ended_early for what is
+                        # really a transport failure.
                         if not outcome.ok:
                             stop_reason = ("page_load_timeout" if outcome.load_failed
                                            else f"blocked_{outcome.blocked_by}")
                             blocked = outcome.blocked_by is not None
                             break
+                        if rechecked and not outcome.products:
+                            stop_reason = "listing_ended_early"
+                            pages_early_empty.append(page_num)
+                            logger.warning("Page %d was empty twice although the "
+                                           "listing states %s page(s): the run is "
+                                           "reported as partial, not complete.",
+                                           page_num, first.listing_pages)
+                            break
+
+                        # A row-less page that was NOT rechecked is one the
+                        # listing's own stated size places at or past its end
+                        # (or a listing whose payload declares a single page).
+                        # That is a correct empty answer, not a glitch: record
+                        # it as such and stop as a complete run, without
+                        # retrying or partialising. It also contributes no new
+                        # sku, so the data-based terminator below fires with
+                        # the complete reason.
+                        if not outcome.products:
+                            pages_normal_empty.append(page_num)
 
                         # Whether this page contributed anything not already
                         # seen. Kept as a running check because the condition is
@@ -1485,6 +1607,25 @@ def scrape(args) -> int:
     headers = {o.page_num: o.header for o in outcomes if o.header}
     if headers:
         extra["result_header"] = headers
+    # The empty-page accounting, kept as its own sidecar fields so a consumer
+    # can tell the two kinds of zero-row page apart, and so the pages that were
+    # still queued when dispatch stopped are never mistaken for failures:
+    #
+    #   pages_early_empty   empty twice inside the listing's stated size —
+    #                       why the run is partial (listing_ended_early)
+    #   pages_normal_empty  empty at/past the stated end — a correct answer
+    #   pages_unattempted   never dispatched once the stop event tripped;
+    #                       NOT in pages_failed, because they were never tried
+    #   empty_page_rechecks how many extra fetches the recheck rule bought
+    if pages_early_empty:
+        extra["pages_early_empty"] = sorted(set(pages_early_empty))
+    if pages_normal_empty:
+        extra["pages_normal_empty"] = sorted(set(pages_normal_empty))
+    if pages_unattempted:
+        extra["pages_unattempted"] = sorted(set(pages_unattempted))
+    recheck_total = sum(getattr(o, "empty_rechecks", 0) for o in outcomes)
+    if recheck_total:
+        extra["empty_page_rechecks"] = recheck_total
     extra = extra or None
 
     return finish_run(all_rows, args.out, args.format, args.allow_empty,

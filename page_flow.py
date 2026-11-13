@@ -708,8 +708,34 @@ def empty_page_is_early(listing_pages: Optional[int], page_number: int) -> bool:
     page 62 of 100, and the next page was full), not the end of the listing.
     Without a stated size there is nothing to contradict, so the empty page
     is taken as the end.
+
+    A listing whose own payload says it has exactly ONE page cannot have a
+    glitched page 2: there is nothing past page 1, so a zero-row answer there
+    is the normal end, not an early one, and must not be retried or reported
+    as partial. Same for any page strictly past the stated count.
     """
-    return listing_pages is not None and page_number <= listing_pages
+    if listing_pages is None:
+        return False
+    if listing_pages <= 1:
+        return False
+    return page_number <= listing_pages
+
+
+def would_recheck_early_empty(args, page_num: int, outcome,
+                              listing_pages: Optional[int]) -> bool:
+    """Whether an empty `outcome` for `page_num` deserves one more fetch.
+
+    The decision `recheck_early_empty` acts on, exposed as its own predicate
+    so an engine can mark the recheck on the outcome it is about to re-fetch
+    without re-deriving the rule. Kept identical to the guard inside
+    `recheck_early_empty` so the two cannot drift: only a page that is OK,
+    row-less and INSIDE the listing's own stated size (which itself has more
+    than one page) is suspicious enough to fetch again.
+    """
+    if not (outcome.ok and not outcome.products):
+        return False
+    site_n = site_page(args.url, page_num)
+    return empty_page_is_early(listing_pages, site_n)
 
 
 def recheck_early_empty(args, page_num: int, outcome, listing_pages: Optional[int],
@@ -721,12 +747,14 @@ def recheck_early_empty(args, page_num: int, outcome, listing_pages: Optional[in
     on page 62 of 100 with the next page full, and the run called that the end
     and reported itself complete with 1536 of 2400 rows. `refetch` asks for the
     page once more; if it is still empty the caller stops AND says so.
+
+    A page outside the stated count, and any page of a listing the payload
+    says has only one page, is a correct empty answer: it is handed back
+    untouched, never re-fetched.
     """
-    if listing_pages is None or not (outcome.ok and not outcome.products):
+    if not would_recheck_early_empty(args, page_num, outcome, listing_pages):
         return outcome, False
     site_n = site_page(args.url, page_num)
-    if not empty_page_is_early(listing_pages, site_n):
-        return outcome, False
     logger.warning("Page %d (site page %d) came back with no rows, but the "
                    "listing states it has %d page(s) — fetching it once more "
                    "before treating that as the end.", page_num, site_n,

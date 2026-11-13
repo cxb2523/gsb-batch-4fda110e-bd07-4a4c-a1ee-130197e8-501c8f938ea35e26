@@ -1699,7 +1699,8 @@ def test_concurrent_dispatch(skips):
     # whether the rest may be addressed, so a blocked page 1 means the
     # workers never start. Driven here with the browser stubbed out, which
     # leaves exactly the concurrency logic under test.
-    original = (eng.sync_playwright, eng._BrowserSession, eng._fetch_one_page)
+    original = (eng.sync_playwright, eng._BrowserSession, eng._fetch_one_page,
+                eng._recheck_early_empty)
 
     class Args:
         delay = 0
@@ -1718,27 +1719,36 @@ def test_concurrent_dispatch(skips):
             outcome.products = rows_for_page(page_num)
             return outcome
 
+        # The empty-page recheck policy is exercised in its own test; here the
+        # dispatch accounting is the unit under test, so the recheck wrapper is
+        # a passthrough that never re-fetches.
+        def fake_recheck(session, args, pool, page_num, url, outcome,
+                         listing_pages):
+            return outcome, False
+
         eng.sync_playwright = lambda: _FakePlaywright()
         eng._BrowserSession = lambda pw, args, pool, **kw: _FakeSession(pool)
         eng._fetch_one_page = fake_fetch
+        eng._recheck_early_empty = fake_recheck
         try:
-            results, unattempted, exhausted, _early = eng._fetch_pages_concurrently(
+            (results, unattempted, early_empty,
+             normal_empty) = eng._fetch_pages_concurrently(
                 Args(), None, specs, concurrency)
         finally:
             (eng.sync_playwright, eng._BrowserSession,
-             eng._fetch_one_page) = original
-        return fetched, results, unattempted, exhausted
+             eng._fetch_one_page, eng._recheck_early_empty) = original
+        return fetched, results, unattempted, early_empty, normal_empty
 
     # 1. Every page fetched exactly once, whatever the worker count.
     specs = [(n, "u%d" % n) for n in range(2, 12)]
-    fetched, results, unattempted, exhausted = run(
+    fetched, results, unattempted, early_empty, normal_empty = run(
         specs, 4, lambda n: ["row"])
     ok &= check("every queued page is fetched exactly once",
                 sorted(fetched) == [n for n, _ in specs])
     ok &= check("every page produces an outcome",
                 sorted(o.page_num for o in results) == [n for n, _ in specs])
     ok &= check("nothing is left unattempted when the listing does not end",
-                unattempted == [] and not exhausted)
+                unattempted == [] and not early_empty and not normal_empty)
 
     # 2. Results arrive in whatever order the threads finish, which is
     #    exactly why the caller merges by page number instead of by arrival.
@@ -1750,10 +1760,14 @@ def test_concurrent_dispatch(skips):
     # 3. The stop event. Asking for 50 pages of a listing that ends at page 5
     #    must not fetch 45 empty ones: workers check the event before taking
     #    more work, so at most (concurrency - 1) extra are already in flight.
+    #    With no stated listing size the stubbed recheck never fires, so the
+    #    empty pages are NORMAL empties (the real end), not early ones.
     specs = [(n, "u%d" % n) for n in range(2, 51)]
-    fetched, results, unattempted, exhausted = run(
+    fetched, results, unattempted, early_empty, normal_empty = run(
         specs, 3, lambda n: [] if n >= 5 else ["row"])
-    ok &= check("the end of the listing stops dispatch", exhausted)
+    ok &= check("the end of the listing stops dispatch", normal_empty)
+    ok &= check("a stated-size-less empty page is a NORMAL empty, not early",
+                not early_empty and normal_empty)
     ok &= check("an exhausted listing costs at most (concurrency-1) extra "
                 "fetches (%d fetched of 49 queued)" % len(fetched),
                 len(fetched) <= 4 + 3)
@@ -1765,7 +1779,7 @@ def test_concurrent_dispatch(skips):
     # 4. A worker that dies must not hang the run, and must not swallow the
     #    pages its siblings did fetch.
     specs = [(n, "u%d" % n) for n in range(2, 8)]
-    fetched, results, unattempted, exhausted = run(
+    fetched, results, unattempted, early_empty, normal_empty = run(
         specs, 3, lambda n: ["row"], die_on={3})
     ok &= check("a worker that raises does not hang the run",
                 len(results) + len(unattempted) + 1 >= len(specs))
@@ -3191,6 +3205,10 @@ def test_audit_2026_11_10(skips):
                 not page_flow.empty_page_is_early(5, 6))
     ok &= check("with no stated size an empty page is taken as the end",
                 not page_flow.empty_page_is_early(None, 3))
+    ok &= check("a single-page listing can never end early on page 2",
+                not page_flow.empty_page_is_early(1, 2))
+    ok &= check("a single-page listing has no glitched page 1 either",
+                not page_flow.empty_page_is_early(1, 1))
 
     class _O:
         def __init__(self, ok_, products):
@@ -3204,6 +3222,10 @@ def test_audit_2026_11_10(skips):
     out, again = page_flow.recheck_early_empty(
         a, 6, _O(True, []), 5, lambda: calls.append(1) or _O(True, ["row"]))
     ok &= check("an empty page past the end is NOT fetched again",
+                not again and len(calls) == 1)
+    out, again = page_flow.recheck_early_empty(
+        a, 2, _O(True, []), 1, lambda: calls.append(1) or _O(True, ["row"]))
+    ok &= check("an empty page 2 of a single-page listing is NOT fetched again",
                 not again and len(calls) == 1)
     out, again = page_flow.recheck_early_empty(
         a, 3, _O(True, ["row"]), 100, lambda: calls.append(1))
