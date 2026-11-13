@@ -1,0 +1,230 @@
+# Contributing
+
+Contributions to `meta-ads-collector` are welcome. This guide covers the development setup, testing, and submission process.
+
+## Development Setup
+
+### Prerequisites
+
+- Python 3.9 or later
+- Git
+- A virtual environment tool (venv, virtualenv, etc.)
+
+### Clone and Install
+
+```bash
+git clone https://github.com/promisingcoder/MetaAdsCollector.git
+cd MetaAdsCollector
+
+# Create a virtual environment
+python -m venv .venv
+# PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+
+# Install in editable mode with all dev dependencies
+pip install -e ".[dev]"
+```
+
+Async support is included in the package and does not require a separate optional dependency group.
+
+### Dependency Groups
+
+| Group | What it includes | When to install |
+|---|---|---|
+| (none) | `curl_cffi>=0.17.0` on Python 3.10+, `curl_cffi>=0.13.0` on Python 3.9 (the last curl_cffi that supports 3.9) | Always (core dependency, provides Chrome TLS fingerprinting) |
+| `dev` | `pytest`, `pytest-cov`, `pytest-asyncio`, `requests`, `PySocks`, `ruff`, `mypy`, `build`, `packaging`, `setuptools`, `twine` | For tests and development tools |
+
+## Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-cov
+
+# Run a specific test file
+python -m pytest tests/test_collector.py
+
+# Run tests matching a pattern
+python -m pytest -k "test_search"
+
+# Run with verbose output
+python -m pytest -v
+```
+
+### Test Configuration
+
+Tests are configured in `pyproject.toml`:
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+markers = [
+    "integration: tests that hit real Meta API servers (deselected by default)",
+]
+```
+
+Integration tests marked with `@pytest.mark.integration` are skipped by default. They contact Meta when enabled, require network access, and may fail if Meta changes or blocks its internal endpoints. To opt in, use `python -m pytest --run-integration` or set `RUN_INTEGRATION_TESTS=1`.
+
+### Checks on every push
+
+CI runs the regression suite on Python 3.9–3.14 on Linux and Python 3.12 on Windows. It builds and checks the wheel/source archive, tests the installed wheel outside the checkout, and repeats the regressions with the exact declared curl-cffi minimum.
+
+The blocking live job uses the built wheel against real Meta ads, including pagination, field fidelity, exports, media, and authenticated/rotating local forwarding proxies. The forwarding proxies tunnel to Meta; they do not supply fabricated responses. Network or Meta changes can fail this job and are visible in the uploaded JUnit results. Missing optional data is reported as unverified rather than assumed to work.
+
+Live GitHub CI requires a working upstream proxy configured as the private GitHub Actions secret `METAADS_CI_PROXY`. Tests use it for actual Meta/CDN requests, including the upstream leg of the local proxy transport checks. Apify proxies use one persistent session per test run. Credentials belong only in the secret, never in a workflow, fixture, or committed file. The bounded connectivity check fails before the full workload when Meta refuses access.
+
+Publishing reuses all CI checks before uploading the tested artifacts with PyPI Trusted Publishing. The final job downloads hash-verified public PyPI artifacts and repeats minimum-dependency and live checks. No PyPI token belongs in the repository.
+
+```bash
+python -m build
+python scripts/check_distribution.py
+python scripts/check_distribution.py --minimum
+python scripts/check_distribution.py --live
+```
+
+## Code Style
+
+### Linting with Ruff
+
+The project uses [ruff](https://docs.astral.sh/ruff/) for linting and formatting.
+
+```bash
+# Check for issues
+make lint
+
+# Auto-format code
+make format
+```
+
+Ruff configuration from `pyproject.toml`:
+
+```toml
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+```
+
+Selected rule sets:
+- **E**: pycodestyle errors
+- **F**: pyflakes
+- **W**: pycodestyle warnings
+- **I**: isort (import ordering)
+- **UP**: pyupgrade (modern Python idioms)
+- **B**: bugbear (common bugs)
+- **SIM**: simplify (unnecessary complexity)
+
+### Type Checking with mypy
+
+```bash
+make typecheck
+```
+
+mypy configuration from `pyproject.toml`:
+
+```toml
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+```
+
+### Run All Checks
+
+```bash
+make check  # lint + typecheck + test
+```
+
+## Project Structure
+
+```
+meta-ads-collector/
+  meta_ads_collector/         # Source package
+    __init__.py               # Public exports
+    __main__.py               # python -m entry point
+    cli.py                    # Command-line interface
+    client.py                 # Sync HTTP client
+    async_client.py           # Async HTTP client
+    collector.py              # Sync collector (high-level API)
+    async_collector.py        # Async collector
+    models.py                 # Data models (Ad, AdCreative, etc.)
+    filters.py                # Client-side filtering
+    dedup.py                  # Deduplication tracker
+    events.py                 # Event emitter system
+    webhooks.py               # Webhook sender
+    media.py                  # Media downloader
+    proxy_pool.py             # Proxy rotation
+    fingerprint.py            # Browser fingerprint generation
+    url_parser.py             # Facebook URL parsing
+    constants.py              # Constants and defaults
+    exceptions.py             # Exception hierarchy
+    logging_config.py         # Logging setup
+    reporting.py              # Collection report formatting
+    py.typed                  # PEP 561 marker
+  tests/                      # Test suite
+  docs/                       # Documentation
+  .github/                    # CI/CD and templates
+```
+
+## Adding a Feature
+
+1. **Check existing issues** to see if the feature has been discussed.
+2. **Create a branch** from `main`:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Write your code** following the existing patterns:
+   - Add the public API to `__init__.py` and `__all__`
+   - Add corresponding tests in `tests/`
+   - Use type hints on all public methods
+   - Add docstrings following the existing Google-style format
+4. **Write tests** covering the happy path and edge cases.
+5. **Run all checks**:
+   ```bash
+   make check
+   ```
+6. **Update documentation** if the feature adds new user-facing behavior:
+   - Update `README.md` if it's a headline feature
+   - Add or update the relevant `docs/*.md` file
+   - Update `CHANGELOG.md` under `## [Unreleased]`
+
+## Fixing a Bug
+
+1. **Create a failing test** that reproduces the bug.
+2. **Fix the bug** in the source code.
+3. **Verify the test passes**.
+4. **Add a `CHANGELOG.md` entry** under `### Fixed`.
+
+## Submitting a Pull Request
+
+1. Push your branch to your fork.
+2. Open a pull request against `main`.
+3. Fill out the PR template:
+   - Summary of changes
+   - Type of change (bug fix, feature, refactor, docs)
+   - Checklist: ruff passes, tests pass, mypy passes, docs updated, CHANGELOG updated
+   - Test plan
+4. Wait for CI to pass (Python 3.9–3.14, Windows, linting, type checking, distribution checks, and actual Meta integration tests).
+5. Address any review feedback.
+
+## Commit Messages
+
+Use clear, descriptive commit messages:
+
+- `Add proxy rotation support to async collector`
+- `Fix session refresh loop when all tokens are stale`
+- `Update CLI to support --webhook flag`
+
+## Important Constraints
+
+- **Never modify Python source files in documentation-only PRs.** Keep docs and code changes in separate commits when possible.
+- **All public classes and methods must have docstrings.**
+- **Test coverage should not decrease.** New features must include tests.
+- **The library must remain compatible with Python 3.9+.** Do not use features from 3.10+ without `from __future__ import annotations`.

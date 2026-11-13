@@ -1,0 +1,342 @@
+"""Actual Meta requests over local HTTP CONNECT proxies, including rotation."""
+
+from __future__ import annotations
+
+import ipaddress
+import json
+import os
+import secrets
+from urllib.parse import quote
+
+import pytest
+
+from meta_ads_collector.client import MetaAdsClient
+from meta_ads_collector.collector import MetaAdsCollector
+
+from . import meta_forward_proxy
+from .meta_forward_proxy import MetaForwardProxy, MetaSocksProxy, _is_meta_host
+from .meta_transport_diagnostics import MetaTransportDiagnostics
+
+
+@pytest.fixture(autouse=True)
+def isolated_proxy_family(request, ci_meta_network, monkeypatch):
+    """Keep related DNS cases matched, separate from preceding live-suite load."""
+    from .ci_network import scoped_ci_proxy
+
+    if request.node.get_closest_marker("integration"):
+        proxy = os.environ.get("METAADS_CI_PROXY")
+        if proxy:
+            monkeypatch.setenv("METAADS_CI_PROXY", scoped_ci_proxy(proxy, request.node.originalname))
+
+
+@pytest.fixture
+def transport_diagnostics(record_property):
+    diagnostics = MetaTransportDiagnostics()
+    gateways = []
+    yield diagnostics, gateways
+    destinations = [host for gateway in gateways for host in gateway.connections]
+    evidence = json.dumps(diagnostics.snapshot(destinations), sort_keys=True)
+    record_property("meta_transport", evidence)
+    print("Meta transport metadata: " + evidence)
+
+
+def _proxy_string(proxy, form):
+    if form == "legacy":
+        return f"{proxy.host_port}:{proxy.username}:{proxy.password}"
+    return f"http://{quote(proxy.username, safe='')}:{quote(proxy.password, safe='')}@{proxy.host_port}"
+
+
+@pytest.mark.parametrize("form", ["legacy", "url"])
+def test_sync_proxy_constructor_preserves_normalized_proxy_without_logging_failure(form):
+    """Guard the sync setup path, including its status log after normalization."""
+    proxy = "127.0.0.1:8080" if form == "legacy" else "http://127.0.0.1:8080"
+    with MetaAdsClient(proxy=proxy) as client:
+        assert client.session.proxies["https"] == "http://127.0.0.1:8080"
+
+
+def test_socks_gateway_does_not_require_an_independent_meta_dns_snapshot(monkeypatch):
+    import socket
+
+    resolver = socket.getaddrinfo
+
+    def unrelated_python_dns_view(host, *args, **kwargs):
+        assert host != "www.facebook.com", "Curl's resolver supplies the actual SOCKS destination"
+        return resolver(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "getaddrinfo", unrelated_python_dns_view)
+    with MetaSocksProxy("audit", "ephemeral"):
+        pass
+
+
+@pytest.mark.parametrize("host,allowed", [
+    ("www.facebook.com", True), ("web.facebook.com", True), ("facebook.com", True),
+    ("scontent.xx.fbcdn.net", True), ("facebook.com.example", False),
+    ("evilfacebook.com", False), ("127.0.0.1", False),
+])
+def test_forward_gateway_allows_meta_subdomains_without_allowing_lookalikes(host, allowed):
+    assert _is_meta_host(host) is allowed
+
+
+def test_upstream_tunnel_retries_one_stalled_attempt_within_the_client_budget(monkeypatch):
+    import socket
+
+    attempts = []
+    opened = socket.socket()
+    try:
+        def flaky_upstream(host, port, upstream, server_name, timeout):
+            attempts.append(timeout)
+            if len(attempts) == 1:
+                raise socket.timeout("upstream stalled")
+            return opened
+
+        monkeypatch.setattr(meta_forward_proxy, "_connect_upstream_once", flaky_upstream)
+        remote = meta_forward_proxy._connect_remote("www.facebook.com", 443, "http://user:pw@upstream.example:8080")
+        assert remote is opened
+        assert attempts == [meta_forward_proxy.UPSTREAM_ATTEMPT_TIMEOUT] * 2
+        assert meta_forward_proxy.UPSTREAM_ATTEMPTS * meta_forward_proxy.UPSTREAM_ATTEMPT_TIMEOUT < 30
+        assert remote.gettimeout() == meta_forward_proxy.RELAY_TIMEOUT
+    finally:
+        opened.close()
+
+
+def test_upstream_tunnel_reports_a_persistent_stall_as_a_gateway_error(monkeypatch):
+    import socket
+
+    def stalled_upstream(host, port, upstream, server_name, timeout):
+        raise socket.timeout("upstream stalled")
+
+    monkeypatch.setattr(meta_forward_proxy, "_connect_upstream_once", stalled_upstream)
+    with pytest.raises(OSError, match="2 attempts"):
+        meta_forward_proxy._connect_remote("www.facebook.com", 443, "socks5h://upstream.example:1080")
+
+
+def test_direct_tunnel_does_not_use_the_upstream_retry_path(monkeypatch):
+    import socket
+
+    monkeypatch.setattr(meta_forward_proxy, "_connect_upstream_once", lambda *args: pytest.fail("no upstream"))
+    created = []
+    monkeypatch.setattr(socket, "create_connection", lambda address, timeout: created.append((address, timeout)))
+    meta_forward_proxy._connect_remote("www.facebook.com", 443, None)
+    assert created == [(("www.facebook.com", 443), meta_forward_proxy.RELAY_TIMEOUT)]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("async_mode", [False, True], ids=["sync", "async"])
+def test_live_socks5_meta_collection_survives_a_different_python_dns_view(
+    monkeypatch, async_mode, transport_diagnostics,
+):
+    import asyncio
+    import socket
+
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+
+    resolver = socket.getaddrinfo
+
+    def independent_dns_view(host, *args, **kwargs):
+        # Simulate a stale/unavailable second resolver without inventing a
+        # destination: curl still resolves the actual Meta hostname itself.
+        return [] if host == "www.facebook.com" else resolver(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "getaddrinfo", independent_dns_view)
+    with MetaSocksProxy("audit@meta", "local/" + secrets.token_hex(12)) as proxy:
+        diagnostics, gateways = transport_diagnostics
+        gateways.append(proxy)
+        address = _proxy_string(proxy, "url").replace("http://", "socks5://", 1)
+        if async_mode:
+            async def collect():
+                async with AsyncMetaAdsCollector(proxy=address, timeout=30, max_retries=2,
+                                                 rate_limit_delay=0.5, jitter=0) as collector:
+                    diagnostics.instrument(monkeypatch, collector.client)
+                    return await collector.collect(query="nike", country="US", max_results=3, page_size=2)
+            ads = asyncio.run(collect())
+        else:
+            with MetaAdsCollector(proxy=address, timeout=30, max_retries=2,
+                                  rate_limit_delay=0.5, jitter=0) as collector:
+                diagnostics.instrument(monkeypatch, collector.client)
+                ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+        assert len(ads) == 3
+        assert all(ad.id and ad.page and ad.page.id for ad in ads)
+        assert proxy.connections
+        assert all(ipaddress.ip_address(host) for host in proxy.connections)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("form", ["legacy", "url"])
+def test_live_sync_authenticated_proxy_collects_actual_meta_ads(form):
+    with MetaForwardProxy("audit@meta", "local/" + secrets.token_hex(12)) as proxy:
+        with MetaAdsCollector(proxy=_proxy_string(proxy, form), timeout=30, max_retries=2,
+                              rate_limit_delay=0.5, jitter=0) as collector:
+            ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+        assert len(ads) == 3
+        assert all(ad.id and ad.page and ad.page.id for ad in ads)
+        assert proxy.connections, "No actual Meta tunnel was used"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("async_mode", [False, True], ids=["sync", "async"])
+def test_live_meta_web_bootstrap_and_ads_work_through_authenticated_proxy(async_mode, monkeypatch):
+    import asyncio
+
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+
+    with MetaForwardProxy("audit@meta", "local/" + secrets.token_hex(12)) as proxy:
+        if async_mode:
+            async def collect():
+                async with AsyncMetaAdsCollector(proxy=_proxy_string(proxy, "url"), timeout=30,
+                                                 max_retries=2, rate_limit_delay=0.5, jitter=0) as collector:
+                    real_request = collector.client._make_request
+
+                    async def request_web_bootstrap(method, url, **kwargs):
+                        if method == "GET" and url == "https://www.facebook.com/":
+                            url = "https://web.facebook.com/"
+                        return await real_request(method, url, **kwargs)
+
+                    monkeypatch.setattr(collector.client, "_make_request", request_web_bootstrap)
+                    return await collector.collect(query="nike", country="US", max_results=3, page_size=2)
+            ads = asyncio.run(collect())
+        else:
+            with MetaAdsCollector(proxy=_proxy_string(proxy, "url"), timeout=30, max_retries=2,
+                                  rate_limit_delay=0.5, jitter=0) as collector:
+                collector.client.HOME_URL = "https://web.facebook.com/"
+                ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+        assert len(ads) == 3
+        assert all(ad.id and ad.page and ad.page.id for ad in ads)
+        assert "web.facebook.com" in proxy.connections
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize("form", ["legacy", "url"])
+async def test_live_async_authenticated_proxy_collects_actual_meta_ads(form):
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+
+    with MetaForwardProxy("audit@meta", "local/" + secrets.token_hex(12)) as proxy:
+        async with AsyncMetaAdsCollector(proxy=_proxy_string(proxy, form), timeout=30, max_retries=2,
+                                         rate_limit_delay=0.5, jitter=0) as collector:
+            ads = await collector.collect(query="nike", country="US", max_results=3, page_size=2)
+        assert len(ads) == 3
+        assert all(ad.id and ad.page and ad.page.id for ad in ads)
+        assert proxy.connections
+
+@pytest.mark.integration
+@pytest.mark.parametrize("async_mode", [False, True], ids=["sync", "async"])
+def test_live_proxy_pool_routes_actual_meta_requests_through_both_proxies(async_mode):
+    import asyncio
+
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+
+    with MetaForwardProxy() as first, MetaForwardProxy() as second:
+        proxies = [f"http://{first.host_port}", f"http://{second.host_port}"]
+        if async_mode:
+            async def collect():
+                async with AsyncMetaAdsCollector(proxy=proxies, timeout=30, max_retries=2,
+                                                 rate_limit_delay=0.5, jitter=0) as collector:
+                    return await collector.collect(query="nike", country="US", max_results=3, page_size=2)
+            ads = asyncio.run(collect())
+        else:
+            with MetaAdsCollector(proxy=proxies, timeout=30, max_retries=2,
+                                  rate_limit_delay=0.5, jitter=0) as collector:
+                ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+        assert len(ads) == 3
+        assert first.connections and second.connections, "Pool did not rotate both actual Meta tunnels"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scheme", ["socks5", "socks5h"])
+@pytest.mark.parametrize("async_mode", [False, True], ids=["sync", "async"])
+def test_live_authenticated_socks_proxy_collects_actual_meta_ads(
+    scheme, async_mode, monkeypatch, transport_diagnostics,
+):
+    import asyncio
+
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+
+    with MetaSocksProxy("audit@meta", "local/" + secrets.token_hex(12)) as proxy:
+        diagnostics, gateways = transport_diagnostics
+        gateways.append(proxy)
+        address = _proxy_string(proxy, "url").replace("http://", scheme + "://", 1)
+        if async_mode:
+            async def collect():
+                async with AsyncMetaAdsCollector(proxy=address, timeout=30, max_retries=2,
+                                                 rate_limit_delay=0.5, jitter=0) as collector:
+                    diagnostics.instrument(monkeypatch, collector.client)
+                    return await collector.collect(query="nike", country="US", max_results=3, page_size=2)
+            ads = asyncio.run(collect())
+        else:
+            with MetaAdsCollector(proxy=address, timeout=30, max_retries=2,
+                                  rate_limit_delay=0.5, jitter=0) as collector:
+                diagnostics.instrument(monkeypatch, collector.client)
+                ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+        assert len(ads) == 3
+        assert all(ad.id and ad.page and ad.page.id for ad in ads)
+        assert proxy.connections
+
+        # Verify both SOCKS DNS modes using addresses from the actual Meta DNS.
+        if scheme == "socks5":
+            assert all(ipaddress.ip_address(host) for host in proxy.connections)
+        else:
+            assert "www.facebook.com" in proxy.connections
+
+
+@pytest.mark.integration
+def test_live_proxy_transfers_actual_meta_media(collected_ads, tmp_path):
+    from meta_ads_collector.models import Ad, AdCreative
+
+    source = next(ad for ad in collected_ads if any(c.thumbnail_url or c.image_url for c in ad.creatives))
+    url = next(c.thumbnail_url or c.image_url for c in source.creatives if c.thumbnail_url or c.image_url)
+    with MetaForwardProxy() as proxy:
+        with MetaAdsCollector(proxy=f"http://{proxy.host_port}", timeout=30, max_retries=2) as collector:
+            results = collector.download_ad_media(Ad(id=source.id, creatives=[AdCreative(image_url=url)]), tmp_path)
+        assert len(results) == 1 and results[0].success, results
+        assert results[0].file_size > 0
+        assert any(host.endswith(".fbcdn.net") for host in proxy.connections)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scheme", ["http", "socks5h"])
+def test_live_local_proxy_chains_through_authenticated_upstream_to_actual_meta(scheme, monkeypatch):
+    """Exercise the same extra upstream leg used by privately configured CI."""
+    upstream_type = MetaForwardProxy if scheme == "http" else MetaSocksProxy
+    with upstream_type("audit@meta", "local/" + secrets.token_hex(12)) as upstream:
+        address = _proxy_string(upstream, "url").replace("http://", scheme + "://", 1)
+        monkeypatch.setenv("METAADS_CI_PROXY", address)
+        with MetaForwardProxy() as inner:
+            with MetaAdsCollector(proxy=f"http://{inner.host_port}", timeout=30, max_retries=2,
+                                  rate_limit_delay=0.5, jitter=0) as collector:
+                ads = list(collector.search(query="nike", country="US", max_results=3, page_size=2))
+            assert len(ads) == 3
+            assert inner.connections and upstream.connections
+            assert all(ad.id and ad.page and ad.page.id for ad in ads)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("mode", ["sync", "async", "cli"])
+def test_live_default_clients_and_cli_use_configured_ci_proxy(mode, monkeypatch, tmp_path):
+    import asyncio
+    import json
+    import subprocess
+    import sys
+
+    from meta_ads_collector.async_collector import AsyncMetaAdsCollector
+    from tests.ci_network import configure_ci_network
+
+    with MetaForwardProxy() as proxy:
+        configure_ci_network(monkeypatch, f"http://{proxy.host_port}")
+        if mode == "async":
+            async def collect():
+                async with AsyncMetaAdsCollector(timeout=30, max_retries=2) as collector:
+                    return await collector.collect(query="nike", country="US", max_results=2)
+            ads = asyncio.run(collect())
+        elif mode == "cli":
+            path = tmp_path / "ci-proxy-ads.json"
+            completed = subprocess.run(
+                [sys.executable, "-m", "meta_ads_collector", "-q", "nike", "-n", "2", "-o", str(path)],
+                capture_output=True, text=True, timeout=120, check=False,
+            )
+            assert completed.returncode == 0, "Actual Meta CLI proxy request failed"
+            ads = json.loads(path.read_text(encoding="utf-8"))["ads"]
+        else:
+            with MetaAdsCollector(timeout=30, max_retries=2) as collector:
+                ads = list(collector.search(query="nike", country="US", max_results=2))
+        assert len(ads) == 2
+        assert proxy.connections, "Default transport bypassed the configured CI proxy"
