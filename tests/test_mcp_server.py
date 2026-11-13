@@ -1,0 +1,209 @@
+from __future__ import annotations
+
+import json
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+import crawler
+from crawler import mcp_server
+from crawler.mcp_server import _resolve_log_level
+
+
+def _doc(metadata: dict | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        request_url="https://example.com",
+        final_url="https://example.com",
+        status="success",
+        markdown="# ok",
+        error_message=None,
+        metadata=metadata or {},
+        references=[],
+    )
+
+
+@pytest.mark.asyncio
+async def test_mcp_crawl_forwards_dedup_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict = {}
+
+    async def fake_crawl_page_async(
+        url: str, *, dedup_mode: str = "exact", auth=None, timeout=None
+    ):
+        captured["mode"] = dedup_mode
+        captured["auth"] = auth
+        return _doc()
+
+    async def fake_crawl_pages_async(
+        urls, *, concurrency=3, dedup_mode="exact", auth=None, timeout=None
+    ):
+        return [_doc() for _ in urls]
+
+    monkeypatch.setattr(crawler, "crawl_page_async", fake_crawl_page_async)
+    monkeypatch.setattr(crawler, "crawl_pages_async", fake_crawl_pages_async)
+
+    await mcp_server.crawl(
+        urls=["https://example.com"],
+        output_format="json",
+        dedup_mode="off",
+        storage_state="/tmp/state.json",
+    )
+
+    assert captured["mode"] == "off"
+    assert captured["auth"] == {"storage_state": "/tmp/state.json"}
+
+
+@pytest.mark.asyncio
+async def test_mcp_crawl_site_forwards_dedup_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict = {}
+
+    async def fake_site_crawl(url: str, **kwargs):
+        captured["mode"] = kwargs.get("dedup_mode")
+        captured["auth"] = kwargs.get("auth")
+        return SimpleNamespace(
+            documents=[_doc()],
+            stats={"total_pages": 1, "successful_pages": 1, "failed_pages": 0},
+        )
+
+    monkeypatch.setattr(crawler, "crawl_site_async", fake_site_crawl)
+
+    await mcp_server.crawl_site(
+        url="https://example.com",
+        output_format="json",
+        dedup_mode="off",
+        storage_state="/tmp/state.json",
+    )
+
+    assert captured["mode"] == "off"
+    assert captured["auth"] == {"storage_state": "/tmp/state.json"}
+
+
+@pytest.mark.asyncio
+async def test_mcp_json_output_includes_builder_guardrail_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = {
+        "dedup_mode": "exact",
+        "dedup_sections_total": 4,
+        "dedup_sections_removed": 2,
+        "dedup_guardrail_checked": True,
+        "dedup_guardrail_triggered": True,
+        "dedup_guardrail_reason": "high-removal-rate",
+    }
+
+    async def fake_crawl_page_async(
+        url: str, *, dedup_mode: str = "exact", auth=None, timeout=None
+    ):
+        return _doc(metadata=metadata)
+
+    async def fake_crawl_pages_async(
+        urls, *, concurrency=3, dedup_mode="exact", auth=None, timeout=None
+    ):
+        return [_doc(metadata=metadata) for _ in urls]
+
+    monkeypatch.setattr(crawler, "crawl_page_async", fake_crawl_page_async)
+    monkeypatch.setattr(crawler, "crawl_pages_async", fake_crawl_pages_async)
+
+    out = await mcp_server.crawl(urls=["https://example.com"], output_format="json")
+    payload = json.loads(out)
+
+    doc_meta = payload["documents"][0]["metadata"]
+    assert doc_meta["dedup_mode"] == "exact"
+    assert doc_meta["dedup_guardrail_checked"] is True
+    assert doc_meta["dedup_guardrail_triggered"] is True
+    assert doc_meta["dedup_guardrail_reason"] == "high-removal-rate"
+
+
+@pytest.mark.asyncio
+async def test_mcp_crawl_auth_error_propagates_from_resolver(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_crawl_page_async(
+        url: str, *, dedup_mode: str = "exact", auth=None, timeout=None
+    ):
+        raise ValueError("Auth storage_state file not found: /tmp/missing.json")
+
+    async def fake_crawl_pages_async(
+        urls, *, concurrency=3, dedup_mode="exact", auth=None, timeout=None
+    ):
+        return [_doc() for _ in urls]
+
+    monkeypatch.setattr(crawler, "crawl_page_async", fake_crawl_page_async)
+    monkeypatch.setattr(crawler, "crawl_pages_async", fake_crawl_pages_async)
+
+    out = await mcp_server.crawl(
+        urls=["https://example.com"],
+        output_format="json",
+        storage_state="/tmp/missing.json",
+    )
+    payload = json.loads(out)
+    assert payload["documents"][0]["status"] == "failed"
+    assert (
+        "Auth storage_state file not found" in payload["documents"][0]["error_message"]
+    )
+
+
+def test_configure_stdio_encoding_calls_reconfigure() -> None:
+    """UTF-8 stdio config should call reconfigure on both streams."""
+    mock_stdout = MagicMock()
+    mock_stderr = MagicMock()
+
+    with (
+        patch.object(mcp_server.sys, "stdout", mock_stdout),
+        patch.object(mcp_server.sys, "stderr", mock_stderr),
+    ):
+        mcp_server._configure_stdio_encoding()
+
+    mock_stdout.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
+    mock_stderr.reconfigure.assert_called_once_with(encoding="utf-8", errors="replace")
+
+
+def test_configure_stdio_encoding_skips_streams_without_reconfigure() -> None:
+    """Missing reconfigure should be a safe no-op."""
+
+    class StreamWithoutReconfigure:
+        pass
+
+    with (
+        patch.object(mcp_server.sys, "stdout", StreamWithoutReconfigure()),
+        patch.object(mcp_server.sys, "stderr", StreamWithoutReconfigure()),
+    ):
+        mcp_server._configure_stdio_encoding()
+
+
+def test_resolve_log_level_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "WARNING")
+    assert _resolve_log_level() == ("warning", 30)
+
+
+def test_resolve_log_level_info_lowercase(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "info")
+    assert _resolve_log_level() == ("info", 20)
+
+
+def test_resolve_log_level_invalid_falls_back_to_info(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LOG_LEVEL", "invalid")
+    assert _resolve_log_level() == ("info", 20)
+
+
+def test_resolve_log_level_unset_defaults_to_info(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    assert _resolve_log_level() == ("info", 20)
+
+
+def test_markdown_output_nests_page_headings_under_url_header() -> None:
+    doc = _doc()
+    doc.markdown = "# Page\n## Section\n```\n# code\n```"
+
+    output = mcp_server._format_output([doc, doc], mcp_server.OutputFormat.markdown)
+
+    h1_lines = [line for line in output.splitlines() if line.startswith("# ")]
+    assert h1_lines == ["# https://example.com", "# code"] * 2
+    assert "## Page\n### Section\n```\n# code\n```" in output
+    assert doc.markdown.startswith("# Page")

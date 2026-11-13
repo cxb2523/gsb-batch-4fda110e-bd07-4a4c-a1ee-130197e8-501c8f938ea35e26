@@ -1,0 +1,121 @@
+{
+  "manifest_version": "0.4",
+  "name": "searxncrawl",
+  "display_name": "searxNcrawl",
+  "version": "0.33.2",
+  "description": "Web search via your own SearXNG and/or You.com, plus clean Markdown crawling with Crawl4AI and Playwright.",
+  "long_description": "Web search and clean Markdown crawling for AI agents.\n\n- search: parallel SearXNG/You.com results; include_content also crawls result pages.\n- crawl: one or many pages rendered in Chromium to Markdown or JSON.\n- crawl_site: follow links within depth, page and timeout limits.\n- Private SearXNG: optional basic auth and extra headers, including @/absolute or @~/ secret files.\n- Crawling needs no search provider; Chromium installs automatically on first use.",
+  "author": {
+    "name": "DDM – Das Digitale Momentum GmbH & Co. KG",
+    "url": "https://www.das-digitale-momentum.de/en/open-source/#searxncrawl"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DasDigitaleMomentum/searxNcrawl"
+  },
+  "homepage": "https://www.searxncrawl.io/",
+  "documentation": "https://github.com/DasDigitaleMomentum/searxNcrawl#readme",
+  "support": "https://github.com/DasDigitaleMomentum/searxNcrawl/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "src/server.py"
+      ],
+      "env": {
+        "SEARXNG_URL": "${user_config.searxng_url}",
+        "YDC_API_KEY": "${user_config.ydc_api_key}",
+        "SEARXNG_USERNAME": "${user_config.searxng_username}",
+        "SEARXNG_PASSWORD": "${user_config.searxng_password}",
+        "SEARXNG_EXTRA_HEADERS": "${user_config.searxng_extra_headers}",
+        "SEARCH_RESULT_FIELDS": "${user_config.search_result_fields}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "search",
+      "description": "Search the web through the configured providers (SearXNG, You.com) in parallel; results are merged and attributed per provider."
+    },
+    {
+      "name": "crawl",
+      "description": "Crawl one or more URLs and return clean Markdown or JSON with metadata and references."
+    },
+    {
+      "name": "crawl_site",
+      "description": "Crawl a website from a seed URL within depth, page and timeout limits."
+    }
+  ],
+  "user_config": {
+    "searxng_url": {
+      "type": "string",
+      "title": "SearXNG URL",
+      "description": "URL of your SearXNG instance with JSON output enabled, e.g. http://localhost:8888. Leave empty to search with You.com only.",
+      "required": false,
+      "default": ""
+    },
+    "ydc_api_key": {
+      "type": "string",
+      "title": "You.com API key",
+      "description": "Optional. Enables You.com search; queries go to You.com (US).",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "searxng_username": {
+      "type": "string",
+      "title": "SearXNG basic auth username",
+      "description": "Optional; set both username and password, or leave both empty.",
+      "required": false,
+      "default": ""
+    },
+    "searxng_password": {
+      "type": "string",
+      "title": "SearXNG basic auth password",
+      "description": "Optional; set both username and password, or leave both empty.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "searxng_extra_headers": {
+      "type": "string",
+      "title": "SearXNG extra headers (JSON)",
+      "description": "Optional JSON object of ASCII header values. Use @/absolute/path or @~/path for secret files; invalid configuration disables SearXNG.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "search_result_fields": {
+      "type": "string",
+      "title": "Search result fields",
+      "description": "Optional comma-separated fields: title,url,content,publishedDate,providers. Empty returns all fields.",
+      "required": false,
+      "default": ""
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  },
+  "keywords": [
+    "search",
+    "searxng",
+    "crawl4ai",
+    "web-crawler",
+    "markdown",
+    "you.com"
+  ],
+  "license": "MIT"
+}
