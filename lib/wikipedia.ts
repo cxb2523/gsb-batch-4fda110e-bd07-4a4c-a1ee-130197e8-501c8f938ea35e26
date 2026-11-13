@@ -261,7 +261,23 @@ export async function getPageLinksBatch(
   };
   const cachedPages = new Map<string, PageLinksResult>();
   const missingTitles = requestedTitles.filter((title) => {
-    if (continueToken) return true;
+    if (continueToken) {
+      // A continuation only needs to keep draining the page(s) that are still
+      // accumulating. A title with a complete cached result and no active
+      // accumulation is already satisfied: re-requesting it alongside the
+      // token would clobber its cached links with the partial rows MediaWiki
+      // returns for the pages that are not the continuation target.
+      if (readAccumulated(title)) return true;
+
+      const cachedPage = getCachedPageLinks(title);
+      if (cachedPage?.complete) {
+        cachedPages.set(title, { ...cachedPage, title });
+        deleteAccumulated(title);
+        return false;
+      }
+
+      return true;
+    }
 
     const cachedPage = getCachedPageLinks(title);
     if (!cachedPage || !cachedPage.complete) return true;
@@ -370,8 +386,13 @@ for (let index = 0; index < fetchedPages.length; index += 1) {
 
   const accumulated = readAccumulated(requestedTitle);
 
+  // Cache under the resolved canonical title (e.g. the redirect target) so a
+  // later direct request for it also hits the cache, and mirror the result
+  // under the request alias (the redirect title) so re-requesting the alias
+  // is served without another upstream call.
+  const canonicalTitle = page.resolvedTitle || requestedTitle;
   const cachedPage: PageLinksResult = {
-    title: page.title,
+    title: canonicalTitle,
     resolvedTitle: accumulated?.resolvedTitle ?? page.resolvedTitle,
     links: accumulated?.links ?? page.links,
     complete: true,
@@ -379,9 +400,7 @@ for (let index = 0; index < fetchedPages.length; index += 1) {
 
   setCachedPageLinks(cachedPage);
 
-  // Also cache the redirect alias so requesting the original
-  // redirect title can hit the cache next time.
-  if (normalizeTitle(requestedTitle) !== normalizeTitle(page.title)) {
+  if (normalizeTitle(requestedTitle) !== normalizeTitle(canonicalTitle)) {
     setCachedPageLinks({
       ...cachedPage,
       title: requestedTitle,

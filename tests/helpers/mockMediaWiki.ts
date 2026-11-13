@@ -1,10 +1,16 @@
 export type MockMediaWikiMode = 'default' | 'topical' | 'alphabetical';
 
+export interface MockLinkRequest {
+  titles: string[];
+  continueToken: string | null;
+}
+
 export interface MockMediaWikiStats {
   requests: number;
   linkRowsDownloaded: number;
   pageviewRequests: number;
   pageviewLatencyMs: number;
+  linkRequests: MockLinkRequest[];
 }
 
 export interface MockMediaWikiOptions {
@@ -139,7 +145,7 @@ function responseFor(
 
 export function installMockMediaWiki(options: MockMediaWikiOptions = {}): MockMediaWikiHandle {
   const mode = options.mode ?? 'default';
-  const stats: MockMediaWikiStats = { requests: 0, linkRowsDownloaded: 0, pageviewRequests: 0, pageviewLatencyMs: options.pageviewLatencyMs ?? 0 };
+  const stats: MockMediaWikiStats = { requests: 0, linkRowsDownloaded: 0, pageviewRequests: 0, pageviewLatencyMs: options.pageviewLatencyMs ?? 0, linkRequests: [] };
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = async (input: RequestInfo | URL): Promise<Response> => {
@@ -178,6 +184,8 @@ export function installMockMediaWiki(options: MockMediaWikiOptions = {}): MockMe
     const titles = (url.searchParams.get('titles') || '').split('|').filter(Boolean);
     const continueToken = url.searchParams.get('plcontinue');
     const offset = continuationOffset(continueToken);
+
+    stats.linkRequests.push({ titles, continueToken });
 
     return responseFor(titles, offset, mode, stats);
   };

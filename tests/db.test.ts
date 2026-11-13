@@ -48,7 +48,15 @@ afterAll(() => {
   delete process.env.WIKICRAWL_DB_PATH;
 
   if (tempDir) {
-    rmSync(tempDir, { recursive: true, force: true });
+    // On Windows SQLite can still hold the database file open at teardown
+    // time, which surfaces as EPERM/EBUSY. Cleanup is best-effort: a leftover
+    // temp directory must not fail the suite.
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'EPERM' && code !== 'EBUSY' && code !== 'ENOTEMPTY') throw error;
+    }
   }
 });
 
