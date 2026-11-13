@@ -1,0 +1,230 @@
+name: Windows App
+
+# Builds the desktop app into a single .exe on a real Windows runner —
+# PyInstaller cannot cross-compile, so this is how a Windows binary gets made
+# without a Windows machine. Every run uploads the .exe as an artifact; a run
+# that carries a tag also publishes the GitHub release with the .exe attached.
+#
+# version.yml calls this workflow after it tags a release. That call is the
+# path that matters: the tag it pushes uses GITHUB_TOKEN, and GitHub does not
+# start new workflow runs for those, so a tag-triggered build would never fire
+# on its own. Calling it from inside that same run sidesteps the restriction.
+
+on:
+  # Note there is deliberately no `tags:` here. A push trigger's `paths` filter
+  # applies to tag pushes too, and a tag push changes no files, so it can never
+  # match — a `tags: ["v*"]` entry alongside these paths silently never fires.
+  # Every route to a release is spelled out below instead.
+  push:
+    branches: [main]
+    paths: &build_inputs
+      # Everything the .exe is built from — the spec bundles the root scraper
+      # modules and salescall too, so a change there can break the package.
+      - "gui/**"
+      - "tui/**"
+      - "salescall/**"
+      - "packaging/**"
+      - "email_templates/**"
+      - "run_gui.py"
+      - "contact_scraper.py"
+      - "google_maps_scraper.py"
+      - "phone_lookup.py"
+      - "generate_emails.py"
+      - "send_emails.py"
+      - "data_store.py"
+      - "industries.py"
+      - "pricing_store.py"
+      - "email_config.py"
+      - "deliverability.py"
+      - "image_host.py"
+      - "site_preview.py"
+      - "email_template.html"
+      - "pitch_script.md"
+      - "requirements*.txt"
+      - "VERSION"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths: *build_inputs
+  # Someone publishing a release by hand gets the .exe attached to it.
+  release:
+    types: [published]
+  # ...or build and publish for an existing tag on demand.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish a release for (blank = just build)."
+        type: string
+        required: false
+        default: ""
+  # version.yml calls this after it tags a release.
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag to build and publish the release for, e.g. v1.3."
+        type: string
+        required: true
+
+jobs:
+  build:
+    # Both Windows architectures. PyInstaller cannot cross-compile and neither
+    # can Qt, so an ARM64 executable has to be built on an ARM64 runner — which
+    # is the native one for recent Surface/Snapdragon machines. The x64 build
+    # still runs there under emulation, but slower.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            python_arch: x64
+            chromium: Win_x64
+          - arch: arm64
+            runner: windows-11-arm
+            python_arch: arm64
+            chromium: Win_Arm64
+    runs-on: ${{ matrix.runner }}
+    name: build (${{ matrix.arch }})
+    timeout-minutes: 60
+    permissions:
+      contents: write  # to publish the release
+    env:
+      # The release this run is for, from whichever route started it; empty on
+      # an ordinary push or pull request, which only build the artifact.
+      RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build the tagged commit itself, not whatever main has moved on to
+          # by the time this runs.
+          ref: ${{ inputs.tag || github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.python_arch }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-gui.txt
+
+      - name: Smoke-test the UI offscreen
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest tests/test_gui.py tests/test_gui_flow.py -q
+
+      - name: Scrape a live page with the real browser
+        # The runner ships Chrome, and driving it is the app's whole job — the
+        # offscreen suite would not have caught a bundle that cannot scrape.
+        # Non-blocking: a browser/driver hiccup on the runner must not fail a
+        # release, but it is worth seeing in the log.
+        continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LLSP_LIVE_TESTS: "1"
+        run: pytest tests/test_live_scrape.py -q
+
+      - name: Generate icon and version resource
+        run: |
+          python packaging/make_icon.py
+          python packaging/make_version_info.py
+
+      - name: Fetch the Chromium payload
+        # Bundled so the app needs no browser installed. Browser and driver
+        # come from one snapshot revision, so they always match — which is why
+        # there is no separate chromedriver step: Chrome for Testing publishes
+        # no ARM64 Windows driver, and this pairing needs none.
+        run: python packaging/fetch_chromium.py --platform ${{ matrix.chromium }}
+
+      - name: Build LocalLeadScraperPro.exe
+        run: pyinstaller --clean --noconfirm packaging/LocalLeadScraperPro.spec
+
+      - name: Append the browser payload
+        # After PyInstaller, not inside it: one-file builds unpack everything
+        # they bundle on every launch, and that would add minutes to each start.
+        run: |
+          python packaging/append_payload.py dist/LocalLeadScraperPro.exe
+          Rename-Item dist/LocalLeadScraperPro.exe LocalLeadScraperPro-${{ matrix.arch }}.exe
+
+      - name: Check the executable launches
+        run: |
+          $exe = "dist/LocalLeadScraperPro-${{ matrix.arch }}.exe"
+          if (-not (Test-Path $exe)) { throw "the build produced no executable" }
+          $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          Write-Host "built $exe ($size MB)"
+
+          # --selftest builds every screen offscreen and exits non-zero on any
+          # failure, so a broken bundle fails here rather than on someone's desk.
+          #
+          # Start-Process, not "& $exe": this is a windowed (GUI-subsystem)
+          # binary, so the call operator returns immediately without waiting and
+          # leaves $LASTEXITCODE empty, which reads as a failure even when the
+          # self-test passed.
+          $startArgs = @{
+            FilePath               = $exe
+            # --with-browser unpacks the bundled Chromium and drives it, so a
+            # build that cannot run without an installed browser fails here.
+            ArgumentList           = "--selftest", "--with-browser"
+            PassThru               = $true
+            NoNewWindow            = $true
+            RedirectStandardOutput = "selftest-out.txt"
+            RedirectStandardError  = "selftest-err.txt"
+          }
+          $proc = Start-Process @startArgs
+          # Unpacking a few hundred megabytes of browser takes a while.
+          if (-not $proc.WaitForExit(600000)) {
+            $proc.Kill()
+            throw "self-test did not finish within 10 minutes"
+          }
+          $out = Get-Content selftest-out.txt -Raw -ErrorAction SilentlyContinue
+          $err = Get-Content selftest-err.txt -Raw -ErrorAction SilentlyContinue
+          if ($out) { Write-Host $out }
+          if ($err) { Write-Host $err }
+
+          $code = $proc.ExitCode
+          if ($null -eq $code) {
+            # Some Windows/PowerShell combinations do not surface an exit code
+            # for a detached GUI process; fall back to the success marker the
+            # self-test prints.
+            if ($out -and $out.StartsWith("OK")) {
+              Write-Host "self-test passed (no exit code reported)"
+            } else {
+              throw "self-test reported neither an exit code nor an OK marker"
+            }
+          } elseif ($code -ne 0) {
+            throw "self-test failed (exit $code)"
+          } else {
+            Write-Host "self-test passed"
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LocalLeadScraperPro-windows-${{ matrix.arch }}
+          path: dist/LocalLeadScraperPro-${{ matrix.arch }}.exe
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish the release with the exe attached
+        if: env.RELEASE_TAG != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          files: dist/LocalLeadScraperPro-${{ matrix.arch }}.exe
+          generate_release_notes: true
+          body: |
+            ## Local Lead Scraper Pro — Windows
+
+            Download **LocalLeadScraperPro.exe** below and double-click it.
+            No installer and no Python needed; Windows 10 or 11, 64-bit.
+
+            Live scraping needs Google Chrome installed. Sending needs an
+            app-specific password on the Settings page. Try **Demo mode**
+            (Settings → Scraping) first to tour every screen with neither.
+
+            Windows SmartScreen will warn on first run because the .exe is
+            unsigned — *More info* → *Run anyway*.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
