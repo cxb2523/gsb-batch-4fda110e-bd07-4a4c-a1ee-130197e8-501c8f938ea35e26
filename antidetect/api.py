@@ -733,6 +733,30 @@ async def fetch_free_proxies(req: FreeProxyRequest) -> dict[str, Any]:
     return {"count": len(proxies), "alive": len(live), "proxies": live, "protocol": ptype}
 
 
+class FetchHarvestRequest(BaseModel):
+    protocol: str = "http"          # "http" (also https) or "socks5"
+    expected: int = Field(default=100, ge=1, le=500)  # proxy count wanted
+    total_timeout: float = Field(default=30.0, gt=0, le=300)  # whole-batch limit
+    verify: bool = True             # test the kept entries before reporting them
+
+
+@app.post("/api/proxy/fetch-harvest")
+async def fetch_proxy_harvest(req: FetchHarvestRequest) -> dict[str, Any]:
+    """Fetch, de-dupe and verify free proxies, reporting each stage separately.
+
+    Unlike `/api/proxy/fetch-free`, each source is timed and reported on its own and
+    verification is bounded by one `total_timeout`: entries still running when that
+    expires land in `unfinished` instead of blocking the request or counting as usable.
+    Incremental only — `fetch-free` and `test-pool` keep their existing behaviour.
+    """
+    return await proxy_mod.harvest(
+        protocol=req.protocol,
+        expected=req.expected,
+        verify=req.verify,
+        total_timeout=req.total_timeout,
+    )
+
+
 # -------------------------------------------------------------- fingerprint ---
 
 @app.get("/api/devices")

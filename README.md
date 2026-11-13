@@ -121,6 +121,13 @@ The dashboard is in [web/](web/). The FastAPI server, profile storage, and
 engine integrations are in [antidetect/](antidetect/). The server exposes
 interactive API documentation at `/docs`.
 
+`POST /api/proxy/fetch-harvest` fetches free proxies in three separately reported
+stages: per-source fetch details (each source timed and marked failed on its own),
+de-duplicated entries with their origin source (first occurrence wins, capped at
+`expected` with `truncated` flagged), and verification split into `available`,
+`unfinished` (hit the batch `total_timeout` and are never counted as usable), and
+`unavailable` with an `error_summary`. `fetch-free` and `test-pool` are unchanged.
+
 ```sh
 python -m unittest discover -s tests -v
 node --check web/app.js
