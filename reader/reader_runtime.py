@@ -19,6 +19,22 @@ def state_path(name):
     return state_dir() / spec_path(name).name
 
 
+def run_log_path(name):
+    # Per-run audit trail; distinct from state_path so page_hash and other run state stay intact.
+    return state_dir() / f"{spec_path(name).stem}.runlog.jsonl"
+
+
+def append_run_record(name, record):
+    # A logging failure must never mask the run's own result or failure.
+    try:
+        path = run_log_path(name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n")
+    except OSError:
+        pass
+
+
 def override_path(name):
     return state_dir() / "specs" / spec_path(name).name
 
@@ -108,36 +124,106 @@ def render_url(template, params):
 
 
 def run_spec(spec, params, no_heal):
-    url = render_url(spec["url_template"], {**spec["params"], **params})
-    html, fetch_method = fetch(url, preferred=spec.get("fetch_method", "urllib"))
+    name = spec["name"]
+    record = {
+        "record_version": 1,
+        "name": name,
+        "started_at": now(),
+        "params": {**spec["params"], **params},
+        "url": None,
+        "fetch_method": None,
+        "healed": False,
+        "heal_attempted": False,
+        "spec_source": "runtime_override" if override_path(name).exists() else "original",
+        "spec_path": str(selected_path(name)),
+        "row_count": None,
+        "status": "failed",
+        "failure_stage": None,
+        "missing_fields": [],
+        "error": None,
+        "exit_code": None,
+    }
     try:
-        rows = extract(spec, html)
-        errors = failures(spec, rows)
-    except (ReaderError, ValueError, TypeError, KeyError, re.error) as exc:
-        errors = [str(exc), *spec["required"]]
-    if errors:
-        if no_heal:
-            raise ReaderError(12, "extraction failed; missing fields: " + "; ".join(errors))
+        url = render_url(spec["url_template"], record["params"])
+        record["url"] = url
+        html, fetch_method = fetch(url, preferred=spec.get("fetch_method", "urllib"))
+        record["fetch_method"] = fetch_method
         try:
-            healed, rows = compile_spec(spec["name"], spec["url_template"],
-                                        {**spec["params"], **params}, spec["want"],
-                                        spec.get("example"), html, healed_at=now(),
-                                        required_contract=spec["required"], fetch_method=fetch_method,
-                                        anchor_example=False)
-            # Rerun the replacement spec before replacing the saved file.
-            rows = extract(healed, html)
-            errors = failures(healed, rows)
-            if not errors:
-                save(healed, runtime=True)
-                save_state(healed, html, fetch_method)
-                return {"rows": rows, "meta": {"fetch_method": fetch_method}}
-        except ReaderError as exc:
-            if exc.code == 2:
-                raise
-            errors += [str(exc)]
-        raise ReaderError(12, "extraction failed after one heal; missing fields: " + "; ".join(errors))
-    save_state(spec, html, fetch_method)
-    return {"rows": rows, "meta": {"fetch_method": fetch_method}}
+            rows = extract(spec, html)
+            errors = failures(spec, rows)
+        except (ReaderError, ValueError, TypeError, KeyError, re.error) as exc:
+            errors = [str(exc), *spec["required"]]
+        if errors:
+            if no_heal:
+                record["failure_stage"] = "extract"
+                record["missing_fields"] = errors
+                record["error"] = "extraction failed; missing fields: " + "; ".join(errors)
+                record["exit_code"] = 12
+                raise ReaderError(12, record["error"])
+            record["heal_attempted"] = True
+            try:
+                healed, rows = compile_spec(spec["name"], spec["url_template"],
+                                            {**spec["params"], **params}, spec["want"],
+                                            spec.get("example"), html, healed_at=now(),
+                                            required_contract=spec["required"], fetch_method=fetch_method,
+                                            anchor_example=False)
+                # Rerun the replacement spec before replacing the saved file.
+                rows = extract(healed, html)
+                errors = failures(healed, rows)
+                if not errors:
+                    save(healed, runtime=True)
+                    save_state(healed, html, fetch_method)
+                    record["healed"] = True
+                    record["spec_source"] = "runtime_override"
+                    record["spec_path"] = str(override_path(name))
+                    record["row_count"] = len(rows)
+                    record["status"] = "ok"
+                    record["exit_code"] = 0
+                    return {"rows": rows, "meta": {"fetch_method": fetch_method}}
+                record["failure_stage"] = "heal"
+                record["missing_fields"] = errors
+                record["error"] = "extraction failed after one heal; missing fields: " + "; ".join(errors)
+                record["exit_code"] = 12
+            except ReaderError as exc:
+                if exc.code == 2:
+                    # Typically the missing/unusable compile command; no extraction result exists.
+                    record["failure_stage"] = "heal"
+                    record["missing_fields"] = errors
+                    record["error"] = str(exc)
+                    record["exit_code"] = 2
+                    raise
+                record["failure_stage"] = "heal"
+                errors += [str(exc)]
+                record["missing_fields"] = errors
+                record["error"] = "extraction failed after one heal; missing fields: " + "; ".join(errors)
+                record["exit_code"] = 12
+            raise ReaderError(12, record["error"])
+        save_state(spec, html, fetch_method)
+        record["row_count"] = len(rows)
+        record["status"] = "ok"
+        record["exit_code"] = 0
+        return {"rows": rows, "meta": {"fetch_method": fetch_method}}
+    except ReaderError as exc:
+        if record["exit_code"] is None:
+            # No extraction result exists yet: a refused target (2), fetch failure (10),
+            # or a rejected URL template (2) raised before or inside fetch().
+            record["failure_stage"] = "fetch"
+            record["error"] = str(exc)
+            record["exit_code"] = exc.code
+        raise
+    except Exception as exc:
+        # Local I/O or invalid-spec failure outside the fetch/extract/heal taxonomy;
+        # main() reports these as exit 2. Never let the record claim a success that did not persist.
+        record["status"] = "failed"
+        record["error"] = f"local failure: {exc}"
+        if record["failure_stage"] is None:
+            record["failure_stage"] = "local"
+        if record["exit_code"] is None:
+            record["exit_code"] = 2
+        raise
+    finally:
+        record["finished_at"] = now()
+        append_run_record(name, record)
 
 
 def main(argv=None):

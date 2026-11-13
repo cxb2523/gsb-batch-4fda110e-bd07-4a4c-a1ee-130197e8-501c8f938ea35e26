@@ -23,6 +23,10 @@ reader/reader ls
 
 A failed extraction gets one self-heal. `--no-heal` reports the extraction failure directly. Fetches accept public HTTP and HTTPS destinations, check redirects and browser requests, and refuse private addresses. Use the browser runner for pages that need your login.
 
+## Run records
+
+Every `run` appends one JSON line to `<state_dir>/<name>.runlog.jsonl`, next to the run state but in a separate file, so `page_hash` and the other state fields are never overwritten. Each record lets a reader judge the run without the source code: the rendered `url`, the `fetch_method` actually used (`urllib` or `crwl`, taken from the `fetch` return), whether a heal was attempted and whether it succeeded, whether the effective spec came from the original spec directory or the runtime override (plus its path), `row_count`, and on failure the `failure_stage` (`fetch`, `extract`, or `heal`), the `missing_fields`, the error text, and the `exit_code`. Records contain no page body. Fetch refusal (2), fetch failure (10), and extraction failure (12) are recorded as distinct stages rather than one generic failure.
+
 ## Files and state
 
 Bundled specs are in `specs/`. `READER_SPECS_DIR` selects a different spec directory. Successful reads and healed overrides live under `~/.cache/lean-browser-use/reader`, or `READER_STATE_DIR`. Runs preserve the bundled spec files. `READER_CRAWL4AI_PYTHON` selects the Python executable with Crawl4AI installed.

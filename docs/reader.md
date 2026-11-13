@@ -26,6 +26,8 @@ Give `compile` an observed `--example` row when possible. Verify the resulting v
 
 `run` returns `rows` and fetch metadata. `ls` shows available specs and their state. Use `--no-heal` to keep a run to code-only extraction even when validation fails. A successful heal is stored in runtime state, preserving shipped specs. `READER_SPECS_DIR` selects specs and `READER_STATE_DIR` selects state.
 
+Each `run` also appends a JSON audit line to `<state_dir>/<name>.runlog.jsonl`, separate from the run state file. It records the rendered URL, the fetch channel actually used (`urllib` or `crwl`), whether self-heal happened, whether the effective spec is the original spec or the runtime override (with its path), the row count, and on failure the stage (`fetch`, `extract`, or `heal`), missing fields, and exit code. The record never includes the page body.
+
 Only public HTTP and HTTPS pages are eligible. Private targets and authenticated browsing belong outside this reader. Use the user-selected browser route for logged-in work.
 
 | Exit | Meaning |
