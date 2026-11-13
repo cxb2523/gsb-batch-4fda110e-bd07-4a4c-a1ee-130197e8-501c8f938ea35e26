@@ -164,27 +164,65 @@ def _mark(conn, lp_id: int, status: str) -> None:
     conn.commit()
 
 
-def crawl_landing_page(conn, lp: dict) -> str:
+def crawl_landing_page(conn, lp: dict) -> dict:
     """Fetch a landing page and snapshot its title if the content changed.
-    Returns the resolution_status ('ok' | 'fetch_failed' | 'no_content')."""
+
+    Returns a structured result so the caller can reconcile exactly what
+    happened::
+
+        {
+            "landing_page_id": int,
+            "url": str,                     # the canonical URL we started from
+            "status": "ok" | "fetch_failed" | "no_content",
+            "final_url": str | None,        # where the redirect chain ended
+            "http_status": int | None,      # status code of the final response
+            "title": str | None,
+            "description": str | None,
+            "write_action": "created" | "refreshed" | "none",
+            "error": str | None,            # why it failed, when it did
+        }
+
+    "created"  — a new page_snapshots row was inserted (new content hash);
+    "refreshed" — the page text was unchanged, only title/description differed,
+                  so the latest snapshot was updated in place (no new version);
+    "none"     — nothing was written (failure, no content, or no change at all).
+    """
     url = lp["url_canonical"]
+    result = {
+        "landing_page_id": lp["id"],
+        "url": url,
+        "status": "fetch_failed",
+        "final_url": None,
+        "http_status": None,
+        "title": None,
+        "description": None,
+        "write_action": "none",
+        "error": None,
+    }
     try:
         resp = _fetch(url)
     except Exception as exc:
         logger.warning("  fetch failed %s: %s", url, exc)
+        result["error"] = str(exc)
         _mark(conn, lp["id"], "fetch_failed")
-        return "fetch_failed"
+        return result
+
+    result["final_url"] = str(resp.url)
+    result["http_status"] = resp.status_code
     if resp.status_code >= 400:
         logger.warning("  fetch failed %s: HTTP %s", url, resp.status_code)
+        result["error"] = f"HTTP {resp.status_code}"
         _mark(conn, lp["id"], "fetch_failed")
-        return "fetch_failed"
+        return result
 
     html = resp.text or ""
     title, description = extract_title_and_description(html)
+    result["title"], result["description"] = title, description
     normalized = _normalize_text(html)
     if not normalized and not title:
+        result["status"] = "no_content"
         _mark(conn, lp["id"], "no_content")
-        return "no_content"
+        return result
 
     content_hash = hashlib.sha256((normalized or title or "").encode("utf-8")).hexdigest()
     latest = _latest_snapshot(conn, lp["id"])
@@ -198,23 +236,28 @@ def crawl_landing_page(conn, lp: dict) -> str:
                VALUES (%s, %s, %s, %s, %s)""",
             (lp["id"], content_hash, title, description, Jsonb(raw)),
         )
+        result["write_action"] = "created"
         logger.info("  snapshot+ %s (%s)", url, title or "no title")
     elif title and (title, description) != (latest["headline"], latest["description"]):
         # Same page text, but the title/description read now differ (the meta
-        # tags changed): refresh the
-        # latest snapshot in place rather than recording a new page version.
+        # tags changed): refresh the latest snapshot in place rather than
+        # recording a new page version.
         conn.execute(
             "UPDATE page_snapshots SET headline = %s, description = %s WHERE id = %s",
             (title, description, latest["id"]),
         )
+        result["write_action"] = "refreshed"
+        logger.info("  snapshot~ %s (%s)", url, title)
 
+    result["status"] = "ok"
     _mark(conn, lp["id"], "ok")
-    return "ok"
+    return result
 
 
 def crawl_pending(conn, on_progress=None) -> dict[str, int]:
     """Crawl the landing pages that are new or due a re-check.
-    `on_progress(done, total)` is called after each page."""
+    `on_progress(done, total)` is called after each page. A page that fails
+    (or crashes unexpectedly) is counted and the batch carries on."""
     pages = conn.execute(
         """SELECT id, url_canonical FROM landing_pages
            WHERE last_resolved_at IS NULL
@@ -227,7 +270,12 @@ def crawl_pending(conn, on_progress=None) -> dict[str, int]:
 
     counts: dict[str, int] = {}
     for i, lp in enumerate(pages):
-        status = crawl_landing_page(conn, lp)
+        try:
+            result = crawl_landing_page(conn, lp)
+        except Exception as exc:  # one bad page must not abort the batch
+            logger.exception("  crawl crashed %s: %s", lp["url_canonical"], exc)
+            result = {"status": "fetch_failed"}
+        status = result["status"]
         counts[status] = counts.get(status, 0) + 1
         if on_progress:
             on_progress(i + 1, len(pages))

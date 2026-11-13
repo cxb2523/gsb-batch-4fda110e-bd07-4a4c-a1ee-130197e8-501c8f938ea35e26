@@ -188,7 +188,7 @@ def test_landing_title_crawl(seeded, db, monkeypatch):
             (seeded["lp"],),
         ).fetchall()
 
-    assert resolver.crawl_landing_page(db, lp) == "ok"
+    assert resolver.crawl_landing_page(db, lp)["status"] == "ok"
     assert [s["headline"] for s in snapshots()] == ["Approval guaranteed", "Exam Prep | Northwind"]
     resolver.crawl_landing_page(db, lp)              # same content -> no new version
     assert len(snapshots()) == 2
@@ -200,7 +200,7 @@ def test_landing_title_crawl(seeded, db, monkeypatch):
     assert [s["headline"] for s in snapshots()] == ["Approval guaranteed", "Exam Prep"]
 
     monkeypatch.setattr(resolver, "_fetch", lambda url: Resp("gone", status=404))
-    assert resolver.crawl_landing_page(db, lp) == "fetch_failed"
+    assert resolver.crawl_landing_page(db, lp)["status"] == "fetch_failed"
     assert len(snapshots()) == 2
 
     # progress is reported per page for the run status
@@ -210,6 +210,107 @@ def test_landing_title_crawl(seeded, db, monkeypatch):
     seen = []
     resolver.crawl_pending(db, on_progress=lambda done, total: seen.append((done, total)))
     assert seen == [(1, 1)]
+
+
+def test_landing_crawl_structured_results(seeded, db, monkeypatch):
+    """Acceptance: structured per-page results over local fake-fetch samples —
+    a 200 page with og:title, a 302 into a private/metadata address, a retitled
+    page with identical body, and a 404."""
+    import ipaddress
+
+    from tracker.worker import resolver
+
+    monkeypatch.setattr(resolver, "REQUEST_DELAY", 0)
+
+    # Fake DNS: shop.example is public; IP literals resolve to themselves.
+    def resolve(host, port):
+        try:
+            ipaddress.ip_address(host)
+            return [host]
+        except ValueError:
+            return {"shop.example": ["93.184.215.14"],
+                    "northwindprep.example": ["93.184.215.14"]}[host]
+
+    monkeypatch.setattr(resolver, "_resolve", resolve)
+
+    class Resp:
+        def __init__(self, url, html="", status=200, location=None):
+            self.url, self.text, self.status_code = url, html, status
+            self.headers = {"location": location} if location else {}
+
+    PAGE = ('<html><head><meta property="og:title" content="{title}">'
+            '<meta name="description" content="Course catalog"></head>'
+            '<body>Same body text</body></html>')
+    routes = {
+        "https://shop.example/offer":
+            lambda url: Resp(url, PAGE.format(title="Spring Sale")),
+        "https://shop.example/escape":
+            lambda url: Resp(url, status=302, location="http://169.254.169.254/latest/meta-data"),
+        "https://shop.example/gone":
+            lambda url: Resp(url, "not found", status=404),
+        "https://northwindprep.example/exam-prep":
+            lambda url: Resp(url, PAGE.format(title="Exam Prep")),
+    }
+    requested = []
+
+    def fake_get(url):
+        requested.append(url)
+        return routes[url](url)
+
+    monkeypatch.setattr(resolver, "_get", fake_get)
+
+    def add_lp(url):
+        return db.execute(
+            "INSERT INTO landing_pages (url_canonical) VALUES (%s) RETURNING id", (url,)
+        ).fetchone()["id"]
+
+    def snap_count(lp_id):
+        return db.execute(
+            "SELECT count(*) AS n FROM page_snapshots WHERE landing_page_id = %s", (lp_id,)
+        ).fetchone()["n"]
+
+    lp_offer = add_lp("https://shop.example/offer")
+    lp_escape = add_lp("https://shop.example/escape")
+    lp_gone = add_lp("https://shop.example/gone")
+    db.commit()
+
+    # 1) plain 200 with og:title -> new snapshot created
+    r1 = resolver.crawl_landing_page(db, {"id": lp_offer, "url_canonical": "https://shop.example/offer"})
+    assert r1["status"] == "ok" and r1["write_action"] == "created"
+    assert r1["http_status"] == 200 and r1["final_url"] == "https://shop.example/offer"
+    assert r1["title"] == "Spring Sale" and r1["description"] == "Course catalog"
+    assert snap_count(lp_offer) == 1
+
+    # 2) 302 to a cloud-metadata address -> blocked; the private hop is never requested
+    requested.clear()
+    r2 = resolver.crawl_landing_page(db, {"id": lp_escape, "url_canonical": "https://shop.example/escape"})
+    assert r2["status"] == "fetch_failed" and r2["write_action"] == "none"
+    assert r2["http_status"] is None and r2["final_url"] is None
+    assert "169.254.169.254" in r2["error"]
+    assert requested == ["https://shop.example/escape"]   # metadata address never requested
+    assert snap_count(lp_escape) == 0
+
+    # 3) same body, new og:title -> latest snapshot refreshed in place, no new version
+    routes["https://shop.example/offer"] = lambda url: Resp(url, PAGE.format(title="Summer Sale"))
+    r3 = resolver.crawl_landing_page(db, {"id": lp_offer, "url_canonical": "https://shop.example/offer"})
+    assert r3["status"] == "ok" and r3["write_action"] == "refreshed"
+    assert r3["title"] == "Summer Sale"
+    assert snap_count(lp_offer) == 1
+    row = db.execute(
+        "SELECT headline FROM page_snapshots WHERE landing_page_id = %s", (lp_offer,)
+    ).fetchone()
+    assert row["headline"] == "Summer Sale"
+
+    # 4) 404 -> fetch_failed, nothing written
+    r4 = resolver.crawl_landing_page(db, {"id": lp_gone, "url_canonical": "https://shop.example/gone"})
+    assert r4["status"] == "fetch_failed" and r4["http_status"] == 404
+    assert r4["write_action"] == "none" and snap_count(lp_gone) == 0
+
+    # Batch: per-status counts, and the failed pages don't abort the run.
+    db.execute("UPDATE landing_pages SET last_resolved_at = NULL")
+    db.commit()
+    counts = resolver.crawl_pending(db)
+    assert counts == {"ok": 2, "fetch_failed": 2}
 
 
 def test_admin_queries(seeded):
