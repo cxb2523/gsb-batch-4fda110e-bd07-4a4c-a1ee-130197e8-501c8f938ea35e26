@@ -1,0 +1,224 @@
+{
+ "updated": "2026-10-21",
+ "currency": "USD",
+ "source": "TikHub 官方免费接口 /api/v1/tikhub/user/calculate_price 的返回，以及作者自己的使用记录",
+ "matching": "按接口最长前缀匹配；未知接口用 default。金额均为估算，不是实际扣费账单。",
+ "default": {
+  "usd": 0.01,
+  "status": "未核",
+  "timeout": 30
+ },
+ "endpoints": {
+  "account": {
+   "usd": 0,
+   "status": "免费"
+  },
+  "/api/v1/tikhub/user/get_user_info": {
+   "usd": 0,
+   "status": "免费"
+  },
+  "/api/v1/tikhub/user/calculate_price": {
+   "usd": 0,
+   "status": "免费"
+  },
+  "/api/v1/youtube/web_v2/get_video_info": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/youtube/web_v2/get_channel_videos": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/youtube/web_v2/get_general_search": {
+   "usd": 0.002,
+   "status": "已核"
+  },
+  "/api/v1/xiaohongshu/app_v2/search_notes": {
+   "usd": 0.01,
+   "status": "已核"
+  },
+  "/api/v1/xiaohongshu/app_v2/get_image_note_detail": {
+   "usd": 0.01,
+   "status": "已核"
+  },
+  "/api/v1/xiaohongshu/app_v2/get_note_comments": {
+   "usd": 0.01,
+   "status": "已核"
+  },
+  "/api/v1/douyin/search/fetch_video_search": {
+   "usd": 0.01,
+   "status": "已核"
+  },
+  "/api/v1/douyin/search/fetch_user_search": {
+   "usd": 0.01,
+   "status": "已核"
+  },
+  "/api/v1/douyin/app/v3/fetch_one_video": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/douyin/app/v3/fetch_video_comments": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/wechat_search/": {
+   "usd": 0.01,
+   "status": "已核",
+   "timeout": 90
+  },
+  "/api/v1/wechat_channels/": {
+   "usd": 0.01,
+   "status": "已核",
+   "timeout": 90
+  },
+  "/api/v1/bilibili/": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/zhihu/": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/weibo/": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/reddit/": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/twitter/": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/tiktok/app/v3/fetch_video_search_result": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/youtube/web_v2/get_channel_description": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/youtube/web_v2/get_video_info_v2": {
+   "usd": 0.001,
+   "status": "已核"
+  },
+  "/api/v1/youtube/web_v2/get_general_search_v2": {
+   "usd": 0.002,
+   "status": "已核"
+  },
+  "/api/v1/instagram/v2/fetch_post_comments": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/instagram/v2/fetch_post_info": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/linkedin/web_v2/get_post_comments": {
+   "usd": 0.05,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/linkedin/web_v2/get_post_detail": {
+   "usd": 0.008,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/telegram/web/fetch_post_comments": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/threads/web/fetch_post_comments": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/threads/web/fetch_post_detail_v2": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/tiktok/app/v3/fetch_one_video_v3": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/tiktok/app/v3/fetch_video_comments": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/wechat_mp/v2/fetch_article_comments": {
+   "usd": 0.01,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/wechat_mp/v2/fetch_article_detail": {
+   "usd": 0.01,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/youtube/web_v2/get_video_comments": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/douyin/app/v3/handler_user_profile": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/douyin/app/v3/fetch_user_post_videos": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/bilibili/web/fetch_user_profile": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/tiktok/app/v3/fetch_user_post_videos_v3": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/twitter/web/fetch_user_profile": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/xiaohongshu/pgy/get_note_detail": {
+   "usd": 0.02,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/bilibili/web/fetch_user_post_videos": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/douyin/app/v3/fetch_video_statistics": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/instagram/v2/fetch_user_info": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/instagram/v2/fetch_user_posts": {
+   "usd": 0.002,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/tiktok/app/v3/handler_user_profile": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/twitter/web/fetch_user_post_tweet": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/xiaohongshu/app_v2/get_user_info": {
+   "usd": 0.01,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/xiaohongshu/app_v2/get_user_posted_notes": {
+   "usd": 0.01,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/bilibili/web/fetch_video_playurl": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  },
+  "/api/v1/bilibili/app/fetch_user_info": {
+   "usd": 0.001,
+   "status": "已核 2026-11-01"
+  }
+ },
+ "verified_by": "2026-10-21 用官方 calculate_price 核过部分接口；其余为使用中观察到的单价。TikHub 可能调价，以官方为准。"
+}

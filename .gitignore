@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.DS_Store
+# 钥匙和本机配置绝不进仓库
+*.env
+config.env
+# 运行产物都在数据目录（默认 ~/SourceBoard），不该出现在仓库里
+runs/
+searches/

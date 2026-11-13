@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""SourceBoard 命令入口。只用 Python 标准库，不需要 pip 装任何东西。"""
+import os
+import sys
+from pathlib import Path
+
+LIB = Path(os.path.realpath(__file__)).parent.parent / 'lib'
+sys.path.insert(0, str(LIB))
+sys.dont_write_bytecode = True
+
+HELP = '''SourceBoard（信源看板）：让 Agent 搜得到、抓得回各平台的内容，并摆成一张网页看板。
+
+第一次用：
+  sourceboard setup                     带着你配好 TikHub 钥匙、预算上限和常用平台（必须先做）
+  sourceboard doctor                    体检：钥匙、余额、可选组件
+
+日常：
+  sourceboard search "关键词" -p 抖音,小红书,B站 --open      按关键词搜，出看板
+  sourceboard grab '链接或整段分享文案' --open               给链接抓回正文、数据、评论，出看板
+  sourceboard grab --input-file 链接清单.txt --out 目录      批量抓
+  sourceboard board 结果目录 --conclusion 结论.md --open      给看板补上 Agent 写的结论
+
+钱和账：
+  sourceboard account                   TikHub 余额（免费）
+  sourceboard usage --by day --since 7d 花费记录（估算）
+  sourceboard search "关键词" --plan     只看会花多少，不联网
+  sourceboard grab 链接 --no-paid        完全不花钱，拿不到的如实标出
+
+高级：
+  sourceboard api get --path /api/v1/... --param k=v        直接调 TikHub 的任意只读接口（带缓存和记账）
+  sourceboard api post --path /api/v1/... --json '{...}'
+  sourceboard incidents                 渠道出过的问题清单
+
+每个子命令加 --help 看全部参数。说明文档：README.md；让 Agent 帮你安装：AGENT_INSTALL.md
+'''
+
+
+def tikhub(args):
+    import tikhub as t
+    sys.argv = ['sourceboard api', *args]
+    return t.main()
+
+
+def grab(args):
+    import cli
+    sys.argv = ['sourceboard grab', *args]
+    return cli.main()
+
+
+def main():
+    argv = sys.argv[1:]
+    cmd = argv[0] if argv else ''
+    if cmd in ('', '-h', '--help', 'help'):
+        print(HELP)
+        return 0
+    if cmd == 'setup':
+        import onboard
+        return onboard.main(argv[1:])
+    if cmd == 'search':
+        import search
+        return search.main(argv[1:])
+    if cmd == 'board':
+        import board
+        return board.main(argv[1:])
+    if cmd in ('account', 'usage'):
+        return tikhub(argv)
+    if cmd == 'api':
+        return tikhub(argv[1:])
+    if cmd == 'grab':
+        return grab(argv[1:])
+    # doctor、incidents、--version，或者直接丢一个链接
+    return grab(argv)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
