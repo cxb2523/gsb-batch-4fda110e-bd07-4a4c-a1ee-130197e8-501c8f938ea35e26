@@ -123,9 +123,21 @@ Master.reset()                 // reset combined data
 await Master.runAllChains()                    // all 6 chains
 await Master.runAllChains(['sol', 'eth'])       // specific chains
 await Master.runAllChains(['bsc'], 'sm')       // SM only on BSC
-Master.multiChainStatus()                       // per-chain summary table
-Master.exportMultiChain()                       // download multi-chain JSON
+Master.multiChainStatus()                       // per-chain summary table (status, failed steps, wallet totals)
+Master.crossChainWallets()                      // deduped cross-chain wallet index
+Master.exportMultiChain()                       // download multi-chain JSON (includes wallet index)
 ```
+
+Each chain entry in the multi-chain result carries a `status` field — `ok` (all steps
+succeeded), `partial` (chain finished but some steps failed; wallets already collected
+are kept), or `failed` (the whole chain run threw) — plus a `failedSteps` list naming
+the steps that errored. `Master.crossChainWallets()` returns
+`{ summary, wallets }`: every wallet address appears once (same address on different
+chains counts as the same wallet; `0x` addresses are case-normalized), annotated with
+the `chains` and `sources` (`smartMoney:<tag>`, `kol`) it was seen in. The summary
+reports `totalUniqueWallets`, `crossChainWallets` (seen on ≥2 chains) and
+`singleChainWallets`, and is also shown by `Master.multiChainStatus()` and written
+into the `Master.exportMultiChain()` JSON as `walletIndex`.
 
 ## Resilience
 

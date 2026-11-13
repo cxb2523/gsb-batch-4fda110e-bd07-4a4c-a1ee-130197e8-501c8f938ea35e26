@@ -13,6 +13,7 @@
  *   Master.runAll('tokens')      — tokens + radar only
  *   Master.runAllChains()        — run all on every supported chain
  *   Master.runAllChains(['sol','eth'])  — run all on specific chains
+ *   Master.crossChainWallets()   — deduped cross-chain wallet index
  *   Master.export()              — download unified JSON
  *   Master.exportCSV()           — download flattened wallet CSV
  *   Master.status()              — summary table
@@ -47,6 +48,7 @@
   // Multi-chain aggregated results
   var multiChain = {
     chains: {},
+    walletIndex: null,
     meta: { startedAt: '', finishedAt: '', chains: [], durationMs: 0, errors: [] },
   };
 
@@ -223,6 +225,80 @@
     return combined;
   }
 
+  // ── Cross-chain wallet index ───────────────────────────────────────
+  function uniqueStepNames(errors) {
+    var names = [];
+    (errors || []).forEach(function(e) {
+      if (e && e.step && names.indexOf(e.step) === -1) names.push(e.step);
+    });
+    return names;
+  }
+
+  // Same address on different chains = same wallet. EVM addresses are
+  // case-insensitive, so normalize 0x addresses to lowercase for dedup.
+  function normalizeAddress(addr) {
+    if (!addr) return '';
+    var s = String(addr).trim();
+    return s.indexOf('0x') === 0 ? s.toLowerCase() : s;
+  }
+
+  // Extract { address, source } pairs from one chain's combined snapshot.
+  // Sources: 'smartMoney:<tag>' for each SM tag bucket, 'kol' for KOL wallets.
+  function collectChainWallets(chainData) {
+    var out = [];
+    var sm = chainData && chainData.smartMoney;
+    if (sm && sm.wallets) {
+      Object.keys(sm.wallets).forEach(function(tag) {
+        (sm.wallets[tag] || []).forEach(function(w) {
+          var addr = w && (w.wallet_address || w.address);
+          if (addr) out.push({ address: addr, source: 'smartMoney:' + tag });
+        });
+      });
+    }
+    var kol = chainData && chainData.kol;
+    if (kol && Array.isArray(kol.wallets)) {
+      kol.wallets.forEach(function(w) {
+        var addr = w && (w.wallet_address || w.address);
+        if (addr) out.push({ address: addr, source: 'kol' });
+      });
+    }
+    return out;
+  }
+
+  // Build a deduped wallet index across all chains in multiChain.chains.
+  // Each wallet appears once, recording every chain and source it was seen in.
+  function buildWalletIndex() {
+    var map = new Map();
+    Object.keys(multiChain.chains).forEach(function(chain) {
+      collectChainWallets(multiChain.chains[chain]).forEach(function(rec) {
+        var key = normalizeAddress(rec.address);
+        if (!key) return;
+        if (!map.has(key)) {
+          map.set(key, { address: rec.address, chains: [], sources: [], byChain: {} });
+        }
+        var entry = map.get(key);
+        if (entry.chains.indexOf(chain) === -1) entry.chains.push(chain);
+        if (entry.sources.indexOf(rec.source) === -1) entry.sources.push(rec.source);
+        if (!entry.byChain[chain]) entry.byChain[chain] = [];
+        if (entry.byChain[chain].indexOf(rec.source) === -1) entry.byChain[chain].push(rec.source);
+      });
+    });
+
+    var wallets = Array.from(map.values());
+    wallets.forEach(function(w) { w.chains.sort(); w.sources.sort(); });
+    wallets.sort(function(a, b) { return b.chains.length - a.chains.length; });
+
+    var crossChain = wallets.filter(function(w) { return w.chains.length > 1; }).length;
+    return {
+      summary: {
+        totalUniqueWallets: wallets.length,
+        crossChainWallets: crossChain,
+        singleChainWallets: wallets.length - crossChain,
+      },
+      wallets: wallets,
+    };
+  }
+
   // ── Run All Chains ───────────────────────────────────────────────────
   async function runAllChains(chains, mode) {
     var targetChains = chains || SUPPORTED_CHAINS;
@@ -238,6 +314,7 @@
     multiChain.meta.startedAt = new Date().toISOString();
     multiChain.meta.chains = targetChains;
     multiChain.chains = {};
+    multiChain.walletIndex = null;
 
     var multiStart = Date.now();
     console.log('%c[Master v4] Multi-chain run: ' + targetChains.join(', '), 'color: #00ff88; font-weight: bold; font-size: 16px;');
@@ -277,9 +354,23 @@
 
       try {
         await runAll(mode);
-        multiChain.chains[chain] = JSON.parse(JSON.stringify(combined));
+        var snapshot = JSON.parse(JSON.stringify(combined));
+        // 'ok' = no step errors; 'partial' = chain finished but some steps failed
+        snapshot.status = combined.meta.errors.length > 0 ? 'partial' : 'ok';
+        snapshot.failedSteps = uniqueStepNames(combined.meta.errors);
+        multiChain.chains[chain] = snapshot;
+        if (snapshot.status === 'partial') {
+          console.warn('[Master] Chain ' + chain + ' finished with failed steps: ' + snapshot.failedSteps.join(', '));
+        }
       } catch (error) {
-        multiChain.meta.errors.push({ chain: chain, message: error.message || String(error) });
+        // Whole-chain failure: keep the chain in the summary (with whatever
+        // partial data combined holds) and mark it as failed.
+        var failedSnapshot = JSON.parse(JSON.stringify(combined));
+        failedSnapshot.status = 'failed';
+        failedSnapshot.failedSteps = uniqueStepNames(combined.meta.errors).concat(['runAll']);
+        failedSnapshot.fatalError = (error && error.message) ? error.message : String(error);
+        multiChain.chains[chain] = failedSnapshot;
+        multiChain.meta.errors.push({ chain: chain, message: failedSnapshot.fatalError });
         console.error('[Master] Chain ' + chain + ' failed:', error);
       }
 
@@ -291,6 +382,7 @@
 
     multiChain.meta.finishedAt = new Date().toISOString();
     multiChain.meta.durationMs = Date.now() - multiStart;
+    multiChain.walletIndex = buildWalletIndex();
     console.log('%c[Master] ✓ Multi-chain complete in ' + (multiChain.meta.durationMs / 1000).toFixed(1) + 's (' + targetChains.length + ' chains)', 'color: #00ff88; font-weight: bold; font-size: 16px;');
     multiChainStatus();
     return multiChain;
@@ -306,18 +398,41 @@
     Object.keys(multiChain.chains).forEach(function(chain) {
       var d = multiChain.chains[chain];
       var smTotal = 0;
-      if (d.smartMoney) Object.values(d.smartMoney.wallets).forEach(function(a) { smTotal += a.length; });
+      if (d.smartMoney && d.smartMoney.wallets) Object.values(d.smartMoney.wallets).forEach(function(a) { smTotal += a.length; });
       table[chain.toUpperCase()] = {
+        'Status': d.status || 'ok',
         'SM Wallets': smTotal,
-        'KOL Wallets': d.kol ? d.kol.wallets.length : 0,
-        'Trending': d.tokens ? d.tokens.trending.length : 0,
-        'Radar': d.tokens ? d.tokens.radar.list.length : 0,
-        'DEX Trades': d.tokens ? d.tokens.dexTrades.length : 0,
-        'Duration (s)': d.meta.durationMs ? (d.meta.durationMs / 1000).toFixed(1) : '0',
-        'Errors': d.meta.errors.length,
+        'KOL Wallets': (d.kol && d.kol.wallets) ? d.kol.wallets.length : 0,
+        'Trending': (d.tokens && d.tokens.trending) ? d.tokens.trending.length : 0,
+        'Radar': (d.tokens && d.tokens.radar && d.tokens.radar.list) ? d.tokens.radar.list.length : 0,
+        'DEX Trades': (d.tokens && d.tokens.dexTrades) ? d.tokens.dexTrades.length : 0,
+        'Duration (s)': d.meta && d.meta.durationMs ? (d.meta.durationMs / 1000).toFixed(1) : '0',
+        'Errors': (d.meta && d.meta.errors) ? d.meta.errors.length : 0,
+        'Failed Steps': (d.failedSteps && d.failedSteps.length) ? d.failedSteps.join(', ') : '—',
       };
     });
     console.table(table);
+
+    var index = multiChain.walletIndex || buildWalletIndex();
+    console.log('[Master] Cross-chain wallet index:');
+    console.table({
+      'Total Unique Wallets': index.summary.totalUniqueWallets,
+      'Cross-Chain (≥2 chains)': index.summary.crossChainWallets,
+      'Single-Chain Only': index.summary.singleChainWallets,
+    });
+  }
+
+  // ── Cross-chain wallet index (public) ──────────────────────────────
+  function crossChainWallets() {
+    if (Object.keys(multiChain.chains).length === 0) {
+      console.warn('[Master] No multi-chain data. Run Master.runAllChains() first.');
+      return null;
+    }
+    multiChain.walletIndex = buildWalletIndex();
+    console.log('[Master] Cross-chain wallets: ' + multiChain.walletIndex.summary.totalUniqueWallets +
+      ' unique (' + multiChain.walletIndex.summary.crossChainWallets + ' on ≥2 chains, ' +
+      multiChain.walletIndex.summary.singleChainWallets + ' single-chain)');
+    return multiChain.walletIndex;
   }
 
   // ── Status (single chain) ───────────────────────────────────────────
@@ -500,6 +615,8 @@
       return;
     }
     var payload = JSON.parse(JSON.stringify(multiChain));
+    // Always ship a fresh cross-chain wallet index with the export
+    payload.walletIndex = buildWalletIndex();
     payload.meta.exportedAt = new Date().toISOString();
 
     var name = filename || 'gmgn-multi-chain-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.json';
@@ -600,6 +717,7 @@
     runAllChains: runAllChains,
     status: status,
     multiChainStatus: multiChainStatus,
+    crossChainWallets: crossChainWallets,
     analytics: analytics,
     export: exportAll,
     exportMultiChain: exportMultiChain,
@@ -609,7 +727,7 @@
   };
 
   console.log('%c[Master Orchestrator v4] Ready', 'color: #00ff88; font-weight: bold; font-size: 14px;');
-  console.log('Commands: Master.runAll() | Master.runAllChains() | Master.status() | Master.analytics()');
+  console.log('Commands: Master.runAll() | Master.runAllChains() | Master.status() | Master.analytics() | Master.crossChainWallets()');
   console.log('Export:   Master.export() | Master.exportCSV() | Master.exportMultiChain()');
   console.log('Chains:   ' + SUPPORTED_CHAINS.join(', '));
 })();
