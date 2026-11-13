@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Ancient Rome",
+  "seedId": "Ancient Rome",
+  "nodes": [
+    {
+      "id": "Anatolia",
+      "title": "Anatolia",
+      "url": "https://en.wikipedia.org/wiki/Anatolia",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06097442892506647,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Ancient Rome",
+      "title": "Ancient Rome",
+      "url": "https://en.wikipedia.org/wiki/Ancient_Rome",
+      "depth": 0,
+      "inDegree": 3,
+      "outDegree": 21,
+      "pagerank": 0.0696606297084889,
+      "betweenness": 0.12380952380952381,
+      "communityId": 0
+    },
+    {
+      "id": "Athens",
+      "title": "Athens",
+      "url": "https://en.wikipedia.org/wiki/Athens",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 3,
+      "pagerank": 0.04751254930977267,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Attila",
+      "title": "Attila",
+      "url": "https://en.wikipedia.org/wiki/Attila",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 3,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Byzantine Empire",
+      "title": "Byzantine Empire",
+      "url": "https://en.wikipedia.org/wiki/Byzantine_Empire",
+      "depth": 1,
+      "inDegree": 4,
+      "outDegree": 0,
+      "pagerank": 0.07248027336949366,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Catholic Church",
+      "title": "Catholic Church",
+      "url": "https://en.wikipedia.org/wiki/Catholic_Church",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04751254930977267,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Cicero",
+      "title": "Cicero",
+      "url": "https://en.wikipedia.org/wiki/Cicero",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Damascus",
+      "title": "Damascus",
+      "url": "https://en.wikipedia.org/wiki/Damascus",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Europe",
+      "title": "Europe",
+      "url": "https://en.wikipedia.org/wiki/Europe",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 5,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Iran",
+      "title": "Iran",
+      "url": "https://en.wikipedia.org/wiki/Iran",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Justinian I",
+      "title": "Justinian I",
+      "url": "https://en.wikipedia.org/wiki/Justinian_I",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05211488708754354,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "London",
+      "title": "London",
+      "url": "https://en.wikipedia.org/wiki/London",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Mediterranean Sea",
+      "title": "Mediterranean Sea",
+      "url": "https://en.wikipedia.org/wiki/Mediterranean_Sea",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Mehmed II",
+      "title": "Mehmed II",
+      "url": "https://en.wikipedia.org/wiki/Mehmed_II",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Mesopotamia",
+      "title": "Mesopotamia",
+      "url": "https://en.wikipedia.org/wiki/Mesopotamia",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Nero",
+      "title": "Nero",
+      "url": "https://en.wikipedia.org/wiki/Nero",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "New York City",
+      "title": "New York City",
+      "url": "https://en.wikipedia.org/wiki/New_York_City",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Saint Petersburg",
+      "title": "Saint Petersburg",
+      "url": "https://en.wikipedia.org/wiki/Saint_Petersburg",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tiberius",
+      "title": "Tiberius",
+      "url": "https://en.wikipedia.org/wiki/Tiberius",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Trojan War",
+      "title": "Trojan War",
+      "url": "https://en.wikipedia.org/wiki/Trojan_War",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tunisia",
+      "title": "Tunisia",
+      "url": "https://en.wikipedia.org/wiki/Tunisia",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Turkey",
+      "title": "Turkey",
+      "url": "https://en.wikipedia.org/wiki/Turkey",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04060904264311636,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Ancient Rome",
+      "target": "Anatolia"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Athens"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Attila"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Byzantine Empire"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Catholic Church"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Cicero"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Damascus"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Europe"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Iran"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Justinian I"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "London"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Mediterranean Sea"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Mehmed II"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Mesopotamia"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Nero"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "New York City"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Saint Petersburg"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Tiberius"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Trojan War"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Tunisia"
+    },
+    {
+      "source": "Ancient Rome",
+      "target": "Turkey"
+    },
+    {
+      "source": "Athens",
+      "target": "Anatolia"
+    },
+    {
+      "source": "Athens",
+      "target": "Ancient Rome"
+    },
+    {
+      "source": "Athens",
+      "target": "Byzantine Empire"
+    },
+    {
+      "source": "Attila",
+      "target": "Ancient Rome"
+    },
+    {
+      "source": "Attila",
+      "target": "Byzantine Empire"
+    },
+    {
+      "source": "Attila",
+      "target": "Justinian I"
+    },
+    {
+      "source": "Europe",
+      "target": "Anatolia"
+    },
+    {
+      "source": "Europe",
+      "target": "Ancient Rome"
+    },
+    {
+      "source": "Europe",
+      "target": "Athens"
+    },
+    {
+      "source": "Europe",
+      "target": "Byzantine Empire"
+    },
+    {
+      "source": "Europe",
+      "target": "Catholic Church"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

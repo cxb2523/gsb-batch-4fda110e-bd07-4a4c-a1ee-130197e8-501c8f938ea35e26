@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Ancient Egypt",
+  "seedId": "Ancient Egypt",
+  "nodes": [
+    {
+      "id": "Abbasid Caliphate",
+      "title": "Abbasid Caliphate",
+      "url": "https://en.wikipedia.org/wiki/Abbasid_Caliphate",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.057165160738388336,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Ancient Egypt",
+      "title": "Ancient Egypt",
+      "url": "https://en.wikipedia.org/wiki/Ancient_Egypt",
+      "depth": 0,
+      "inDegree": 3,
+      "outDegree": 19,
+      "pagerank": 0.10001829600130287,
+      "betweenness": 0.14327485380116958,
+      "communityId": 0
+    },
+    {
+      "id": "Atropa bella-donna",
+      "title": "Atropa bella-donna",
+      "url": "https://en.wikipedia.org/wiki/Atropa_bella-donna",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Augustus",
+      "title": "Augustus",
+      "url": "https://en.wikipedia.org/wiki/Augustus",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Austria-Hungary",
+      "title": "Austria-Hungary",
+      "url": "https://en.wikipedia.org/wiki/Austria-Hungary",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Bronze Age",
+      "title": "Bronze Age",
+      "url": "https://en.wikipedia.org/wiki/Bronze_Age",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Cairo",
+      "title": "Cairo",
+      "url": "https://en.wikipedia.org/wiki/Cairo",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 3,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Caliphate",
+      "title": "Caliphate",
+      "url": "https://en.wikipedia.org/wiki/Caliphate",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Canaan",
+      "title": "Canaan",
+      "url": "https://en.wikipedia.org/wiki/Canaan",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05400996836498695,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Egypt",
+      "title": "Egypt",
+      "url": "https://en.wikipedia.org/wiki/Egypt",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.057165160738388336,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Ethiopian Empire",
+      "title": "Ethiopian Empire",
+      "url": "https://en.wikipedia.org/wiki/Ethiopian_Empire",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Iran",
+      "title": "Iran",
+      "url": "https://en.wikipedia.org/wiki/Iran",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Levant",
+      "title": "Levant",
+      "url": "https://en.wikipedia.org/wiki/Levant",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054009968364986956,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Nile",
+      "title": "Nile",
+      "url": "https://en.wikipedia.org/wiki/Nile",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05400996836498695,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Osiris",
+      "title": "Osiris",
+      "url": "https://en.wikipedia.org/wiki/Osiris",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ottoman Empire",
+      "title": "Ottoman Empire",
+      "url": "https://en.wikipedia.org/wiki/Ottoman_Empire",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Pythagorean theorem",
+      "title": "Pythagorean theorem",
+      "url": "https://en.wikipedia.org/wiki/Pythagorean_theorem",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Sahara",
+      "title": "Sahara",
+      "url": "https://en.wikipedia.org/wiki/Sahara",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Sudan",
+      "title": "Sudan",
+      "url": "https://en.wikipedia.org/wiki/Sudan",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tutankhamun",
+      "title": "Tutankhamun",
+      "url": "https://en.wikipedia.org/wiki/Tutankhamun",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.0445443912447828,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Ancient Egypt",
+      "target": "Abbasid Caliphate"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Atropa bella-donna"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Augustus"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Austria-Hungary"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Bronze Age"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Cairo"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Caliphate"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Canaan"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Egypt"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Ethiopian Empire"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Iran"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Levant"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Nile"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Osiris"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Ottoman Empire"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Pythagorean theorem"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Sahara"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Sudan"
+    },
+    {
+      "source": "Ancient Egypt",
+      "target": "Tutankhamun"
+    },
+    {
+      "source": "Augustus",
+      "target": "Ancient Egypt"
+    },
+    {
+      "source": "Bronze Age",
+      "target": "Ancient Egypt"
+    },
+    {
+      "source": "Bronze Age",
+      "target": "Canaan"
+    },
+    {
+      "source": "Bronze Age",
+      "target": "Levant"
+    },
+    {
+      "source": "Bronze Age",
+      "target": "Nile"
+    },
+    {
+      "source": "Cairo",
+      "target": "Abbasid Caliphate"
+    },
+    {
+      "source": "Cairo",
+      "target": "Ancient Egypt"
+    },
+    {
+      "source": "Cairo",
+      "target": "Egypt"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

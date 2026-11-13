@@ -1,0 +1,451 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Gravitational wave",
+  "seedId": "Gravitational wave",
+  "nodes": [
+    {
+      "id": "68–95–99.7 rule",
+      "title": "68–95–99.7 rule",
+      "url": "https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Black hole",
+      "title": "Black hole",
+      "url": "https://en.wikipedia.org/wiki/Black_hole",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 10,
+      "pagerank": 0.05876660232484346,
+      "betweenness": 0.016798418972332016,
+      "communityId": 2
+    },
+    {
+      "id": "Boson",
+      "title": "Boson",
+      "url": "https://en.wikipedia.org/wiki/Boson",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.041710191214210476,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Brownian motion",
+      "title": "Brownian motion",
+      "url": "https://en.wikipedia.org/wiki/Brownian_motion",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 3,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Chronology of the universe",
+      "title": "Chronology of the universe",
+      "url": "https://en.wikipedia.org/wiki/Chronology_of_the_universe",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Dolly (sheep)",
+      "title": "Dolly (sheep)",
+      "url": "https://en.wikipedia.org/wiki/Dolly_(sheep)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Doppler effect",
+      "title": "Doppler effect",
+      "url": "https://en.wikipedia.org/wiki/Doppler_effect",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 2,
+      "pagerank": 0.04670552554216086,
+      "betweenness": 0.038537549407114624,
+      "communityId": 1
+    },
+    {
+      "id": "Force",
+      "title": "Force",
+      "url": "https://en.wikipedia.org/wiki/Force",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Gravitational wave",
+      "title": "Gravitational wave",
+      "url": "https://en.wikipedia.org/wiki/Gravitational_wave",
+      "depth": 0,
+      "inDegree": 4,
+      "outDegree": 23,
+      "pagerank": 0.08063232719755395,
+      "betweenness": 0.16403162055335968,
+      "communityId": 0
+    },
+    {
+      "id": "Light",
+      "title": "Light",
+      "url": "https://en.wikipedia.org/wiki/Light",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.04670552554216086,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Liu Cixin",
+      "title": "Liu Cixin",
+      "url": "https://en.wikipedia.org/wiki/Liu_Cixin",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Milky Way",
+      "title": "Milky Way",
+      "url": "https://en.wikipedia.org/wiki/Milky_Way",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Names of large numbers",
+      "title": "Names of large numbers",
+      "url": "https://en.wikipedia.org/wiki/Names_of_large_numbers",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Oxford",
+      "title": "Oxford",
+      "url": "https://en.wikipedia.org/wiki/Oxford",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Paul Dirac",
+      "title": "Paul Dirac",
+      "url": "https://en.wikipedia.org/wiki/Paul_Dirac",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.041710191214210476,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Photon",
+      "title": "Photon",
+      "url": "https://en.wikipedia.org/wiki/Photon",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Pulsar",
+      "title": "Pulsar",
+      "url": "https://en.wikipedia.org/wiki/Pulsar",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Quasar",
+      "title": "Quasar",
+      "url": "https://en.wikipedia.org/wiki/Quasar",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Supermassive black hole",
+      "title": "Supermassive black hole",
+      "url": "https://en.wikipedia.org/wiki/Supermassive_black_hole",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.04914215570082271,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Supernova",
+      "title": "Supernova",
+      "url": "https://en.wikipedia.org/wiki/Supernova",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "University of North Carolina at Chapel Hill",
+      "title": "University of North Carolina at Chapel Hill",
+      "url": "https://en.wikipedia.org/wiki/University_of_North_Carolina_at_Chapel_Hill",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Watt",
+      "title": "Watt",
+      "url": "https://en.wikipedia.org/wiki/Watt",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.034400300738224907,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Wavelength",
+      "title": "Wavelength",
+      "url": "https://en.wikipedia.org/wiki/Wavelength",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054250663484736436,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Wormhole",
+      "title": "Wormhole",
+      "url": "https://en.wikipedia.org/wiki/Wormhole",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.03939563506617529,
+      "betweenness": 0,
+      "communityId": 2
+    }
+  ],
+  "edges": [
+    {
+      "source": "Black hole",
+      "target": "Chronology of the universe"
+    },
+    {
+      "source": "Black hole",
+      "target": "Doppler effect"
+    },
+    {
+      "source": "Black hole",
+      "target": "Gravitational wave"
+    },
+    {
+      "source": "Black hole",
+      "target": "Light"
+    },
+    {
+      "source": "Black hole",
+      "target": "Milky Way"
+    },
+    {
+      "source": "Black hole",
+      "target": "Pulsar"
+    },
+    {
+      "source": "Black hole",
+      "target": "Quasar"
+    },
+    {
+      "source": "Black hole",
+      "target": "Supermassive black hole"
+    },
+    {
+      "source": "Black hole",
+      "target": "Supernova"
+    },
+    {
+      "source": "Black hole",
+      "target": "Wormhole"
+    },
+    {
+      "source": "Brownian motion",
+      "target": "Black hole"
+    },
+    {
+      "source": "Brownian motion",
+      "target": "Gravitational wave"
+    },
+    {
+      "source": "Brownian motion",
+      "target": "Supermassive black hole"
+    },
+    {
+      "source": "Dolly (sheep)",
+      "target": "Black hole"
+    },
+    {
+      "source": "Dolly (sheep)",
+      "target": "Gravitational wave"
+    },
+    {
+      "source": "Doppler effect",
+      "target": "Gravitational wave"
+    },
+    {
+      "source": "Doppler effect",
+      "target": "Wavelength"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "68–95–99.7 rule"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Black hole"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Boson"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Brownian motion"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Chronology of the universe"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Dolly (sheep)"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Doppler effect"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Force"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Light"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Liu Cixin"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Milky Way"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Names of large numbers"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Oxford"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Paul Dirac"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Photon"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Pulsar"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Quasar"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Supermassive black hole"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Supernova"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "University of North Carolina at Chapel Hill"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Watt"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Wavelength"
+    },
+    {
+      "source": "Gravitational wave",
+      "target": "Wormhole"
+    },
+    {
+      "source": "Photon",
+      "target": "Boson"
+    },
+    {
+      "source": "Photon",
+      "target": "Doppler effect"
+    },
+    {
+      "source": "Photon",
+      "target": "Light"
+    },
+    {
+      "source": "Photon",
+      "target": "Paul Dirac"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

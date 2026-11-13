@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Renaissance",
+  "seedId": "Renaissance",
+  "nodes": [
+    {
+      "id": "2022 Russian invasion of Ukraine",
+      "title": "2022 Russian invasion of Ukraine",
+      "url": "https://en.wikipedia.org/wiki/2022_Russian_invasion_of_Ukraine",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07017438214670114,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Americas",
+      "title": "Americas",
+      "url": "https://en.wikipedia.org/wiki/Americas",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07017438214670114,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Amerigo Vespucci",
+      "title": "Amerigo Vespucci",
+      "url": "https://en.wikipedia.org/wiki/Amerigo_Vespucci",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Aristotle",
+      "title": "Aristotle",
+      "url": "https://en.wikipedia.org/wiki/Aristotle",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Bubonic plague",
+      "title": "Bubonic plague",
+      "url": "https://en.wikipedia.org/wiki/Bubonic_plague",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Catholic Church",
+      "title": "Catholic Church",
+      "url": "https://en.wikipedia.org/wiki/Catholic_Church",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.10241647490737778,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Cradle of civilization",
+      "title": "Cradle of civilization",
+      "url": "https://en.wikipedia.org/wiki/Cradle_of_civilization",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Early Netherlandish painting",
+      "title": "Early Netherlandish painting",
+      "url": "https://en.wikipedia.org/wiki/Early_Netherlandish_painting",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Egyptian hieroglyphs",
+      "title": "Egyptian hieroglyphs",
+      "url": "https://en.wikipedia.org/wiki/Egyptian_hieroglyphs",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "European Union",
+      "title": "European Union",
+      "url": "https://en.wikipedia.org/wiki/European_Union",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "House of Medici",
+      "title": "House of Medici",
+      "url": "https://en.wikipedia.org/wiki/House_of_Medici",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "House of Tudor",
+      "title": "House of Tudor",
+      "url": "https://en.wikipedia.org/wiki/House_of_Tudor",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Michelangelo",
+      "title": "Michelangelo",
+      "url": "https://en.wikipedia.org/wiki/Michelangelo",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Music",
+      "title": "Music",
+      "url": "https://en.wikipedia.org/wiki/Music",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Napoleonic Wars",
+      "title": "Napoleonic Wars",
+      "url": "https://en.wikipedia.org/wiki/Napoleonic_Wars",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "NATO",
+      "title": "NATO",
+      "url": "https://en.wikipedia.org/wiki/NATO",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Niccolò Machiavelli",
+      "title": "Niccolò Machiavelli",
+      "url": "https://en.wikipedia.org/wiki/Niccol%C3%B2_Machiavelli",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ottoman Empire",
+      "title": "Ottoman Empire",
+      "url": "https://en.wikipedia.org/wiki/Ottoman_Empire",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Renaissance",
+      "title": "Renaissance",
+      "url": "https://en.wikipedia.org/wiki/Renaissance",
+      "depth": 0,
+      "inDegree": 0,
+      "outDegree": 22,
+      "pagerank": 0.036521262464753554,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Russian Revolution",
+      "title": "Russian Revolution",
+      "url": "https://en.wikipedia.org/wiki/Russian_Revolution",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Simón Bolívar",
+      "title": "Simón Bolívar",
+      "url": "https://en.wikipedia.org/wiki/Sim%C3%B3n_Bol%C3%ADvar",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Switzerland",
+      "title": "Switzerland",
+      "url": "https://en.wikipedia.org/wiki/Switzerland",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "University of California, Berkeley",
+      "title": "University of California, Berkeley",
+      "url": "https://en.wikipedia.org/wiki/University_of_California%2C_Berkeley",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03793228938602452,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Amerigo Vespucci",
+      "target": "Americas"
+    },
+    {
+      "source": "Aristotle",
+      "target": "Catholic Church"
+    },
+    {
+      "source": "Music",
+      "target": "Catholic Church"
+    },
+    {
+      "source": "Renaissance",
+      "target": "2022 Russian invasion of Ukraine"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Americas"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Amerigo Vespucci"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Aristotle"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Bubonic plague"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Catholic Church"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Cradle of civilization"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Early Netherlandish painting"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Egyptian hieroglyphs"
+    },
+    {
+      "source": "Renaissance",
+      "target": "European Union"
+    },
+    {
+      "source": "Renaissance",
+      "target": "House of Medici"
+    },
+    {
+      "source": "Renaissance",
+      "target": "House of Tudor"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Michelangelo"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Music"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Napoleonic Wars"
+    },
+    {
+      "source": "Renaissance",
+      "target": "NATO"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Niccolò Machiavelli"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Ottoman Empire"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Russian Revolution"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Simón Bolívar"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Switzerland"
+    },
+    {
+      "source": "Renaissance",
+      "target": "University of California, Berkeley"
+    },
+    {
+      "source": "Russian Revolution",
+      "target": "2022 Russian invasion of Ukraine"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

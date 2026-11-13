@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Quantum mechanics",
+  "seedId": "Quantum mechanics",
+  "nodes": [
+    {
+      "id": "Abdus Salam",
+      "title": "Abdus Salam",
+      "url": "https://en.wikipedia.org/wiki/Abdus_Salam",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Absolute zero",
+      "title": "Absolute zero",
+      "url": "https://en.wikipedia.org/wiki/Absolute_zero",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Brian Cox (physicist)",
+      "title": "Brian Cox (physicist)",
+      "url": "https://en.wikipedia.org/wiki/Brian_Cox_(physicist)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Brussels",
+      "title": "Brussels",
+      "url": "https://en.wikipedia.org/wiki/Brussels",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Complex number",
+      "title": "Complex number",
+      "url": "https://en.wikipedia.org/wiki/Complex_number",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 4,
+      "pagerank": 0.05551395831731373,
+      "betweenness": 0.045238095238095244,
+      "communityId": 1
+    },
+    {
+      "id": "Dirac delta function",
+      "title": "Dirac delta function",
+      "url": "https://en.wikipedia.org/wiki/Dirac_delta_function",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Energy",
+      "title": "Energy",
+      "url": "https://en.wikipedia.org/wiki/Energy",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.047235555138742544,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Fourier transform",
+      "title": "Fourier transform",
+      "url": "https://en.wikipedia.org/wiki/Fourier_transform",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.050753749573290485,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Gravity",
+      "title": "Gravity",
+      "url": "https://en.wikipedia.org/wiki/Gravity",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Heuristic",
+      "title": "Heuristic",
+      "url": "https://en.wikipedia.org/wiki/Heuristic",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Hilbert space",
+      "title": "Hilbert space",
+      "url": "https://en.wikipedia.org/wiki/Hilbert_space",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06731055593043286,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Leonhard Euler",
+      "title": "Leonhard Euler",
+      "url": "https://en.wikipedia.org/wiki/Leonhard_Euler",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.059032152751861675,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Light",
+      "title": "Light",
+      "url": "https://en.wikipedia.org/wiki/Light",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.047235555138742544,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Light-emitting diode",
+      "title": "Light-emitting diode",
+      "url": "https://en.wikipedia.org/wiki/Light-emitting_diode",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Linear algebra",
+      "title": "Linear algebra",
+      "url": "https://en.wikipedia.org/wiki/Linear_algebra",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Momentum",
+      "title": "Momentum",
+      "url": "https://en.wikipedia.org/wiki/Momentum",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum computing",
+      "title": "Quantum computing",
+      "url": "https://en.wikipedia.org/wiki/Quantum_computing",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum entanglement",
+      "title": "Quantum entanglement",
+      "url": "https://en.wikipedia.org/wiki/Quantum_entanglement",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum mechanics",
+      "title": "Quantum mechanics",
+      "url": "https://en.wikipedia.org/wiki/Quantum_mechanics",
+      "depth": 0,
+      "inDegree": 3,
+      "outDegree": 21,
+      "pagerank": 0.08856119374704569,
+      "betweenness": 0.16666666666666669,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum superposition",
+      "title": "Quantum superposition",
+      "url": "https://en.wikipedia.org/wiki/Quantum_superposition",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quark",
+      "title": "Quark",
+      "url": "https://en.wikipedia.org/wiki/Quark",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Trigonometry",
+      "title": "Trigonometry",
+      "url": "https://en.wikipedia.org/wiki/Trigonometry",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.038957151960171355,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Absolute zero",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "Complex number",
+      "target": "Fourier transform"
+    },
+    {
+      "source": "Complex number",
+      "target": "Hilbert space"
+    },
+    {
+      "source": "Complex number",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "Complex number",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "Linear algebra",
+      "target": "Complex number"
+    },
+    {
+      "source": "Linear algebra",
+      "target": "Hilbert space"
+    },
+    {
+      "source": "Momentum",
+      "target": "Energy"
+    },
+    {
+      "source": "Momentum",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "Momentum",
+      "target": "Light"
+    },
+    {
+      "source": "Momentum",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Abdus Salam"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Absolute zero"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Brian Cox (physicist)"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Brussels"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Complex number"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Dirac delta function"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Energy"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Fourier transform"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Gravity"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Heuristic"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Hilbert space"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Light"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Light-emitting diode"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Linear algebra"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Momentum"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Quantum computing"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Quantum entanglement"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Quantum superposition"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Quark"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Trigonometry"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

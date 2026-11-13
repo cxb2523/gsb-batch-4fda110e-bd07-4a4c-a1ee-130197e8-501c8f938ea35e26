@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Neuroscience",
+  "seedId": "Neuroscience",
+  "nodes": [
+    {
+      "id": "Abiogenesis",
+      "title": "Abiogenesis",
+      "url": "https://en.wikipedia.org/wiki/Abiogenesis",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.046957036284133336,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Academic discipline",
+      "title": "Academic discipline",
+      "url": "https://en.wikipedia.org/wiki/Academic_discipline",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Action potential",
+      "title": "Action potential",
+      "url": "https://en.wikipedia.org/wiki/Action_potential",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "ALS",
+      "title": "ALS",
+      "url": "https://en.wikipedia.org/wiki/ALS",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07202410933920672,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Andreas Vesalius",
+      "title": "Andreas Vesalius",
+      "url": "https://en.wikipedia.org/wiki/Andreas_Vesalius",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Behavior",
+      "title": "Behavior",
+      "url": "https://en.wikipedia.org/wiki/Behavior",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04720509138465037,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Cerebellum",
+      "title": "Cerebellum",
+      "url": "https://en.wikipedia.org/wiki/Cerebellum",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Cerebral cortex",
+      "title": "Cerebral cortex",
+      "url": "https://en.wikipedia.org/wiki/Cerebral_cortex",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Cerebrum",
+      "title": "Cerebrum",
+      "url": "https://en.wikipedia.org/wiki/Cerebrum",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Cognition",
+      "title": "Cognition",
+      "url": "https://en.wikipedia.org/wiki/Cognition",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04720509138465038,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Developmental psychology",
+      "title": "Developmental psychology",
+      "url": "https://en.wikipedia.org/wiki/Developmental_psychology",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Fungus",
+      "title": "Fungus",
+      "url": "https://en.wikipedia.org/wiki/Fungus",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.046957036284133336,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Galen",
+      "title": "Galen",
+      "url": "https://en.wikipedia.org/wiki/Galen",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Genetics",
+      "title": "Genetics",
+      "url": "https://en.wikipedia.org/wiki/Genetics",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 5,
+      "pagerank": 0.04720509138465038,
+      "betweenness": 0.03896103896103896,
+      "communityId": 2
+    },
+    {
+      "id": "Massachusetts Institute of Technology",
+      "title": "Massachusetts Institute of Technology",
+      "url": "https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Neuron",
+      "title": "Neuron",
+      "url": "https://en.wikipedia.org/wiki/Neuron",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Neuroplasticity",
+      "title": "Neuroplasticity",
+      "url": "https://en.wikipedia.org/wiki/Neuroplasticity",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04720509138465038,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Neuroscience",
+      "title": "Neuroscience",
+      "url": "https://en.wikipedia.org/wiki/Neuroscience",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 22,
+      "pagerank": 0.04521026978828104,
+      "betweenness": 0.06493506493506493,
+      "communityId": 0
+    },
+    {
+      "id": "Optogenetics",
+      "title": "Optogenetics",
+      "url": "https://en.wikipedia.org/wiki/Optogenetics",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Organelle",
+      "title": "Organelle",
+      "url": "https://en.wikipedia.org/wiki/Organelle",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.046957036284133336,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Ornithology",
+      "title": "Ornithology",
+      "url": "https://en.wikipedia.org/wiki/Ornithology",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.046957036284133336,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Otorhinolaryngology",
+      "title": "Otorhinolaryngology",
+      "url": "https://en.wikipedia.org/wiki/Otorhinolaryngology",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Stroke",
+      "title": "Stroke",
+      "url": "https://en.wikipedia.org/wiki/Stroke",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03893208539979826,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Developmental psychology",
+      "target": "Behavior"
+    },
+    {
+      "source": "Developmental psychology",
+      "target": "Cognition"
+    },
+    {
+      "source": "Developmental psychology",
+      "target": "Genetics"
+    },
+    {
+      "source": "Developmental psychology",
+      "target": "Neuroplasticity"
+    },
+    {
+      "source": "Genetics",
+      "target": "Abiogenesis"
+    },
+    {
+      "source": "Genetics",
+      "target": "Fungus"
+    },
+    {
+      "source": "Genetics",
+      "target": "Neuroscience"
+    },
+    {
+      "source": "Genetics",
+      "target": "Organelle"
+    },
+    {
+      "source": "Genetics",
+      "target": "Ornithology"
+    },
+    {
+      "source": "Massachusetts Institute of Technology",
+      "target": "ALS"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Abiogenesis"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Academic discipline"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Action potential"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "ALS"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Andreas Vesalius"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Behavior"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Cerebellum"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Cerebral cortex"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Cerebrum"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Cognition"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Developmental psychology"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Fungus"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Galen"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Genetics"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Massachusetts Institute of Technology"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Neuron"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Neuroplasticity"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Optogenetics"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Organelle"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Ornithology"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Otorhinolaryngology"
+    },
+    {
+      "source": "Neuroscience",
+      "target": "Stroke"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

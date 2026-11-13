@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Artificial neural network",
+  "seedId": "Neural network (machine learning)",
+  "nodes": [
+    {
+      "id": "15.ai",
+      "title": "15.ai",
+      "url": "https://en.wikipedia.org/wiki/15.ai",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI agent",
+      "title": "AI agent",
+      "url": "https://en.wikipedia.org/wiki/AI_agent",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI alignment",
+      "title": "AI alignment",
+      "url": "https://en.wikipedia.org/wiki/AI_alignment",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI boom",
+      "title": "AI boom",
+      "url": "https://en.wikipedia.org/wiki/AI_boom",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI bubble",
+      "title": "AI bubble",
+      "url": "https://en.wikipedia.org/wiki/AI_bubble",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI-induced psychosis",
+      "title": "AI-induced psychosis",
+      "url": "https://en.wikipedia.org/wiki/AI-induced_psychosis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Alphabet Inc.",
+      "title": "Alphabet Inc.",
+      "url": "https://en.wikipedia.org/wiki/Alphabet_Inc.",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Amazon (company)",
+      "title": "Amazon (company)",
+      "url": "https://en.wikipedia.org/wiki/Amazon_(company)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Andrej Karpathy",
+      "title": "Andrej Karpathy",
+      "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Android (operating system)",
+      "title": "Android (operating system)",
+      "url": "https://en.wikipedia.org/wiki/Android_(operating_system)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Carl Friedrich Gauss",
+      "title": "Carl Friedrich Gauss",
+      "url": "https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "DARPA",
+      "title": "DARPA",
+      "url": "https://en.wikipedia.org/wiki/DARPA",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Deepfake",
+      "title": "Deepfake",
+      "url": "https://en.wikipedia.org/wiki/Deepfake",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07216972076767314,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Demis Hassabis",
+      "title": "Demis Hassabis",
+      "url": "https://en.wikipedia.org/wiki/Demis_Hassabis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Game theory",
+      "title": "Game theory",
+      "url": "https://en.wikipedia.org/wiki/Game_theory",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Gemini (language model)",
+      "title": "Gemini (language model)",
+      "url": "https://en.wikipedia.org/wiki/Gemini_(language_model)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ilya Sutskever",
+      "title": "Ilya Sutskever",
+      "url": "https://en.wikipedia.org/wiki/Ilya_Sutskever",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "John von Neumann",
+      "title": "John von Neumann",
+      "url": "https://en.wikipedia.org/wiki/John_von_Neumann",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Neural network (machine learning)",
+      "title": "Neural network (machine learning)",
+      "url": "https://en.wikipedia.org/wiki/Neural_network_(machine_learning)",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 23,
+      "pagerank": 0.0695977297624853,
+      "betweenness": 0.043478260869565216,
+      "communityId": 0
+    },
+    {
+      "id": "Retrieval-augmented generation",
+      "title": "Retrieval-augmented generation",
+      "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Soviet Union",
+      "title": "Soviet Union",
+      "url": "https://en.wikipedia.org/wiki/Soviet_Union",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Yann LeCun",
+      "title": "Yann LeCun",
+      "url": "https://en.wikipedia.org/wiki/Yann_LeCun",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Yoshua Bengio",
+      "title": "Yoshua Bengio",
+      "url": "https://en.wikipedia.org/wiki/Yoshua_Bengio",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "YouTube",
+      "title": "YouTube",
+      "url": "https://en.wikipedia.org/wiki/YouTube",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03901057043044735,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Game theory",
+      "target": "Neural network (machine learning)"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "15.ai"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "AI agent"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "AI alignment"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "AI boom"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "AI bubble"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "AI-induced psychosis"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Alphabet Inc."
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Amazon (company)"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Andrej Karpathy"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Android (operating system)"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Carl Friedrich Gauss"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "DARPA"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Deepfake"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Demis Hassabis"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Game theory"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Gemini (language model)"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Ilya Sutskever"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "John von Neumann"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Retrieval-augmented generation"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Soviet Union"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Yann LeCun"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "Yoshua Bengio"
+    },
+    {
+      "source": "Neural network (machine learning)",
+      "target": "YouTube"
+    },
+    {
+      "source": "Soviet Union",
+      "target": "Deepfake"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

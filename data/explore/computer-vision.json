@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Computer vision",
+  "seedId": "Computer vision",
+  "nodes": [
+    {
+      "id": "15.ai",
+      "title": "15.ai",
+      "url": "https://en.wikipedia.org/wiki/15.ai",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI-induced psychosis",
+      "title": "AI-induced psychosis",
+      "url": "https://en.wikipedia.org/wiki/AI-induced_psychosis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Andrej Karpathy",
+      "title": "Andrej Karpathy",
+      "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Andrew Ng",
+      "title": "Andrew Ng",
+      "url": "https://en.wikipedia.org/wiki/Andrew_Ng",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Artificial general intelligence",
+      "title": "Artificial general intelligence",
+      "url": "https://en.wikipedia.org/wiki/Artificial_general_intelligence",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Branches of science",
+      "title": "Branches of science",
+      "url": "https://en.wikipedia.org/wiki/Branches_of_science",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Computer vision",
+      "title": "Computer vision",
+      "url": "https://en.wikipedia.org/wiki/Computer_vision",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 22,
+      "pagerank": 0.09779300860702314,
+      "betweenness": 0.08874458874458875,
+      "communityId": 0
+    },
+    {
+      "id": "Daniel Kokotajlo",
+      "title": "Daniel Kokotajlo",
+      "url": "https://en.wikipedia.org/wiki/Daniel_Kokotajlo",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Deep learning",
+      "title": "Deep learning",
+      "url": "https://en.wikipedia.org/wiki/Deep_learning",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Deepfake",
+      "title": "Deepfake",
+      "url": "https://en.wikipedia.org/wiki/Deepfake",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Demis Hassabis",
+      "title": "Demis Hassabis",
+      "url": "https://en.wikipedia.org/wiki/Demis_Hassabis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Geometry",
+      "title": "Geometry",
+      "url": "https://en.wikipedia.org/wiki/Geometry",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google Gemini",
+      "title": "Google Gemini",
+      "url": "https://en.wikipedia.org/wiki/Google_Gemini",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Integrated circuit",
+      "title": "Integrated circuit",
+      "url": "https://en.wikipedia.org/wiki/Integrated_circuit",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 1,
+      "pagerank": 0.0730450378025981,
+      "betweenness": 0.045454545454545456,
+      "communityId": 1
+    },
+    {
+      "id": "Light",
+      "title": "Light",
+      "url": "https://en.wikipedia.org/wiki/Light",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Magnetic resonance imaging",
+      "title": "Magnetic resonance imaging",
+      "url": "https://en.wikipedia.org/wiki/Magnetic_resonance_imaging",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Reinforcement learning",
+      "title": "Reinforcement learning",
+      "url": "https://en.wikipedia.org/wiki/Reinforcement_learning",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Removal of Sam Altman from OpenAI",
+      "title": "Removal of Sam Altman from OpenAI",
+      "url": "https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Retrieval-augmented generation",
+      "title": "Retrieval-augmented generation",
+      "url": "https://en.wikipedia.org/wiki/Retrieval-augmented_generation",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Unmanned aerial vehicle",
+      "title": "Unmanned aerial vehicle",
+      "url": "https://en.wikipedia.org/wiki/Unmanned_aerial_vehicle",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Video",
+      "title": "Video",
+      "url": "https://en.wikipedia.org/wiki/Video",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Yann LeCun",
+      "title": "Yann LeCun",
+      "url": "https://en.wikipedia.org/wiki/Yann_LeCun",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Yoshua Bengio",
+      "title": "Yoshua Bengio",
+      "url": "https://en.wikipedia.org/wiki/Yoshua_Bengio",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03948390255192277,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Computer vision",
+      "target": "15.ai"
+    },
+    {
+      "source": "Computer vision",
+      "target": "AI-induced psychosis"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Andrej Karpathy"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Andrew Ng"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Artificial general intelligence"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Branches of science"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Daniel Kokotajlo"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Deep learning"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Deepfake"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Demis Hassabis"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Geometry"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Google Gemini"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Integrated circuit"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Light"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Magnetic resonance imaging"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Reinforcement learning"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Removal of Sam Altman from OpenAI"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Retrieval-augmented generation"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Unmanned aerial vehicle"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Video"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Yann LeCun"
+    },
+    {
+      "source": "Computer vision",
+      "target": "Yoshua Bengio"
+    },
+    {
+      "source": "Integrated circuit",
+      "target": "Computer vision"
+    },
+    {
+      "source": "Magnetic resonance imaging",
+      "target": "Integrated circuit"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

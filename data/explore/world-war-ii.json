@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "World War II",
+  "seedId": "World War II",
+  "nodes": [
+    {
+      "id": "Adolf Hitler",
+      "title": "Adolf Hitler",
+      "url": "https://en.wikipedia.org/wiki/Adolf_Hitler",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07492364664569856,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Auschwitz concentration camp",
+      "title": "Auschwitz concentration camp",
+      "url": "https://en.wikipedia.org/wiki/Auschwitz_concentration_camp",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Austria-Hungary",
+      "title": "Austria-Hungary",
+      "url": "https://en.wikipedia.org/wiki/Austria-Hungary",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06301883211429907,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Axis powers",
+      "title": "Axis powers",
+      "url": "https://en.wikipedia.org/wiki/Axis_powers",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.049105464597870116,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Battle of France",
+      "title": "Battle of France",
+      "url": "https://en.wikipedia.org/wiki/Battle_of_France",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054412771431689586,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Battle of Iwo Jima",
+      "title": "Battle of Iwo Jima",
+      "url": "https://en.wikipedia.org/wiki/Battle_of_Iwo_Jima",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Beijing",
+      "title": "Beijing",
+      "url": "https://en.wikipedia.org/wiki/Beijing",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Benito Mussolini",
+      "title": "Benito Mussolini",
+      "url": "https://en.wikipedia.org/wiki/Benito_Mussolini",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "British Empire",
+      "title": "British Empire",
+      "url": "https://en.wikipedia.org/wiki/British_Empire",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 3,
+      "pagerank": 0.049105464597870116,
+      "betweenness": 0.004761904761904762,
+      "communityId": 1
+    },
+    {
+      "id": "Buddhism",
+      "title": "Buddhism",
+      "url": "https://en.wikipedia.org/wiki/Buddhism",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Central Powers",
+      "title": "Central Powers",
+      "url": "https://en.wikipedia.org/wiki/Central_Powers",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Death of Adolf Hitler",
+      "title": "Death of Adolf Hitler",
+      "url": "https://en.wikipedia.org/wiki/Death_of_Adolf_Hitler",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "European Union",
+      "title": "European Union",
+      "url": "https://en.wikipedia.org/wiki/European_Union",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Franklin D. Roosevelt",
+      "title": "Franklin D. Roosevelt",
+      "url": "https://en.wikipedia.org/wiki/Franklin_D._Roosevelt",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054412771431689586,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Karl Dönitz",
+      "title": "Karl Dönitz",
+      "url": "https://en.wikipedia.org/wiki/Karl_D%C3%B6nitz",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ottoman Empire",
+      "title": "Ottoman Empire",
+      "url": "https://en.wikipedia.org/wiki/Ottoman_Empire",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.049105464597870116,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Second Sino-Japanese War",
+      "title": "Second Sino-Japanese War",
+      "url": "https://en.wikipedia.org/wiki/Second_Sino-Japanese_War",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "The New York Times",
+      "title": "The New York Times",
+      "url": "https://en.wikipedia.org/wiki/The_New_York_Times",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Vichy France",
+      "title": "Vichy France",
+      "url": "https://en.wikipedia.org/wiki/Vichy_France",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Winston Churchill",
+      "title": "Winston Churchill",
+      "url": "https://en.wikipedia.org/wiki/Winston_Churchill",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Winter War",
+      "title": "Winter War",
+      "url": "https://en.wikipedia.org/wiki/Winter_War",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040499403915260634,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "World War II",
+      "title": "World War II",
+      "url": "https://en.wikipedia.org/wiki/World_War_II",
+      "depth": 0,
+      "inDegree": 0,
+      "outDegree": 21,
+      "pagerank": 0.03892392976936403,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Auschwitz concentration camp",
+      "target": "Adolf Hitler"
+    },
+    {
+      "source": "British Empire",
+      "target": "Austria-Hungary"
+    },
+    {
+      "source": "British Empire",
+      "target": "Battle of France"
+    },
+    {
+      "source": "British Empire",
+      "target": "Franklin D. Roosevelt"
+    },
+    {
+      "source": "Central Powers",
+      "target": "Austria-Hungary"
+    },
+    {
+      "source": "Central Powers",
+      "target": "Axis powers"
+    },
+    {
+      "source": "Central Powers",
+      "target": "British Empire"
+    },
+    {
+      "source": "Central Powers",
+      "target": "Ottoman Empire"
+    },
+    {
+      "source": "World War II",
+      "target": "Adolf Hitler"
+    },
+    {
+      "source": "World War II",
+      "target": "Auschwitz concentration camp"
+    },
+    {
+      "source": "World War II",
+      "target": "Austria-Hungary"
+    },
+    {
+      "source": "World War II",
+      "target": "Axis powers"
+    },
+    {
+      "source": "World War II",
+      "target": "Battle of France"
+    },
+    {
+      "source": "World War II",
+      "target": "Battle of Iwo Jima"
+    },
+    {
+      "source": "World War II",
+      "target": "Beijing"
+    },
+    {
+      "source": "World War II",
+      "target": "Benito Mussolini"
+    },
+    {
+      "source": "World War II",
+      "target": "British Empire"
+    },
+    {
+      "source": "World War II",
+      "target": "Buddhism"
+    },
+    {
+      "source": "World War II",
+      "target": "Central Powers"
+    },
+    {
+      "source": "World War II",
+      "target": "Death of Adolf Hitler"
+    },
+    {
+      "source": "World War II",
+      "target": "European Union"
+    },
+    {
+      "source": "World War II",
+      "target": "Franklin D. Roosevelt"
+    },
+    {
+      "source": "World War II",
+      "target": "Karl Dönitz"
+    },
+    {
+      "source": "World War II",
+      "target": "Ottoman Empire"
+    },
+    {
+      "source": "World War II",
+      "target": "Second Sino-Japanese War"
+    },
+    {
+      "source": "World War II",
+      "target": "The New York Times"
+    },
+    {
+      "source": "World War II",
+      "target": "Vichy France"
+    },
+    {
+      "source": "World War II",
+      "target": "Winston Churchill"
+    },
+    {
+      "source": "World War II",
+      "target": "Winter War"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

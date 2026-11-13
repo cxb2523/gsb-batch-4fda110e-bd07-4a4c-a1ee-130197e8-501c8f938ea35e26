@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Artificial intelligence",
+  "seedId": "Artificial intelligence",
+  "nodes": [
+    {
+      "id": "15.ai",
+      "title": "15.ai",
+      "url": "https://en.wikipedia.org/wiki/15.ai",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "2001: A Space Odyssey",
+      "title": "2001: A Space Odyssey",
+      "url": "https://en.wikipedia.org/wiki/2001%3A_A_Space_Odyssey",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "2024 Indian general election",
+      "title": "2024 Indian general election",
+      "url": "https://en.wikipedia.org/wiki/2024_Indian_general_election",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Aliens (film)",
+      "title": "Aliens (film)",
+      "url": "https://en.wikipedia.org/wiki/Aliens_(film)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Aristotle",
+      "title": "Aristotle",
+      "url": "https://en.wikipedia.org/wiki/Aristotle",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.10047769638961543,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Artificial intelligence",
+      "title": "Artificial intelligence",
+      "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 20,
+      "pagerank": 0.060370793026299205,
+      "betweenness": 0.04736842105263158,
+      "communityId": 0
+    },
+    {
+      "id": "Claude (AI)",
+      "title": "Claude (AI)",
+      "url": "https://en.wikipedia.org/wiki/Claude_(AI)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Eliezer Yudkowsky",
+      "title": "Eliezer Yudkowsky",
+      "url": "https://en.wikipedia.org/wiki/Eliezer_Yudkowsky",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Existential risk from artificial intelligence",
+      "title": "Existential risk from artificial intelligence",
+      "url": "https://en.wikipedia.org/wiki/Existential_risk_from_artificial_intelligence",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ford Motor Company",
+      "title": "Ford Motor Company",
+      "url": "https://en.wikipedia.org/wiki/Ford_Motor_Company",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Galileo Galilei",
+      "title": "Galileo Galilei",
+      "url": "https://en.wikipedia.org/wiki/Galileo_Galilei",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google",
+      "title": "Google",
+      "url": "https://en.wikipedia.org/wiki/Google",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google Gemini",
+      "title": "Google Gemini",
+      "url": "https://en.wikipedia.org/wiki/Google_Gemini",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google Search",
+      "title": "Google Search",
+      "url": "https://en.wikipedia.org/wiki/Google_Search",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google Translate",
+      "title": "Google Translate",
+      "url": "https://en.wikipedia.org/wiki/Google_Translate",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Henry Kissinger",
+      "title": "Henry Kissinger",
+      "url": "https://en.wikipedia.org/wiki/Henry_Kissinger",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Mathematics",
+      "title": "Mathematics",
+      "url": "https://en.wikipedia.org/wiki/Mathematics",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "René Descartes",
+      "title": "René Descartes",
+      "url": "https://en.wikipedia.org/wiki/Ren%C3%A9_Descartes",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Search engine",
+      "title": "Search engine",
+      "url": "https://en.wikipedia.org/wiki/Search_engine",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Stephen Hawking",
+      "title": "Stephen Hawking",
+      "url": "https://en.wikipedia.org/wiki/Stephen_Hawking",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "YouTube",
+      "title": "YouTube",
+      "url": "https://en.wikipedia.org/wiki/YouTube",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044165868978109764,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Artificial intelligence",
+      "target": "15.ai"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "2001: A Space Odyssey"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "2024 Indian general election"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Aliens (film)"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Aristotle"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Claude (AI)"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Eliezer Yudkowsky"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Existential risk from artificial intelligence"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Ford Motor Company"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Galileo Galilei"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Google"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Google Gemini"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Google Search"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Google Translate"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Henry Kissinger"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Mathematics"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "René Descartes"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Search engine"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "Stephen Hawking"
+    },
+    {
+      "source": "Artificial intelligence",
+      "target": "YouTube"
+    },
+    {
+      "source": "Mathematics",
+      "target": "Aristotle"
+    },
+    {
+      "source": "René Descartes",
+      "target": "Aristotle"
+    },
+    {
+      "source": "René Descartes",
+      "target": "Artificial intelligence"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

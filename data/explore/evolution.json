@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Evolution",
+  "seedId": "Evolution",
+  "nodes": [
+    {
+      "id": "Abiogenesis",
+      "title": "Abiogenesis",
+      "url": "https://en.wikipedia.org/wiki/Abiogenesis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Antibiotic",
+      "title": "Antibiotic",
+      "url": "https://en.wikipedia.org/wiki/Antibiotic",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ape",
+      "title": "Ape",
+      "url": "https://en.wikipedia.org/wiki/Ape",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Appendix (anatomy)",
+      "title": "Appendix (anatomy)",
+      "url": "https://en.wikipedia.org/wiki/Appendix_(anatomy)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Bird",
+      "title": "Bird",
+      "url": "https://en.wikipedia.org/wiki/Bird",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 1,
+      "pagerank": 0.0574778146006004,
+      "betweenness": 0.045238095238095244,
+      "communityId": 1
+    },
+    {
+      "id": "Cell (biology)",
+      "title": "Cell (biology)",
+      "url": "https://en.wikipedia.org/wiki/Cell_(biology)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Citric acid",
+      "title": "Citric acid",
+      "url": "https://en.wikipedia.org/wiki/Citric_acid",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Climate change",
+      "title": "Climate change",
+      "url": "https://en.wikipedia.org/wiki/Climate_change",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.0574778146006004,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Coccyx",
+      "title": "Coccyx",
+      "url": "https://en.wikipedia.org/wiki/Coccyx",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "David Hume",
+      "title": "David Hume",
+      "url": "https://en.wikipedia.org/wiki/David_Hume",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Evolution",
+      "title": "Evolution",
+      "url": "https://en.wikipedia.org/wiki/Evolution",
+      "depth": 0,
+      "inDegree": 2,
+      "outDegree": 21,
+      "pagerank": 0.11867248648291766,
+      "betweenness": 0.1380952380952381,
+      "communityId": 0
+    },
+    {
+      "id": "Hoboken, New Jersey",
+      "title": "Hoboken, New Jersey",
+      "url": "https://en.wikipedia.org/wiki/Hoboken%2C_New_Jersey",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Holocene extinction",
+      "title": "Holocene extinction",
+      "url": "https://en.wikipedia.org/wiki/Holocene_extinction",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "James Watson",
+      "title": "James Watson",
+      "url": "https://en.wikipedia.org/wiki/James_Watson",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Mammal",
+      "title": "Mammal",
+      "url": "https://en.wikipedia.org/wiki/Mammal",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Medication",
+      "title": "Medication",
+      "url": "https://en.wikipedia.org/wiki/Medication",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Permian–Triassic extinction event",
+      "title": "Permian–Triassic extinction event",
+      "url": "https://en.wikipedia.org/wiki/Permian%E2%80%93Triassic_extinction_event",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Prokaryote",
+      "title": "Prokaryote",
+      "url": "https://en.wikipedia.org/wiki/Prokaryote",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Protein",
+      "title": "Protein",
+      "url": "https://en.wikipedia.org/wiki/Protein",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Proterozoic",
+      "title": "Proterozoic",
+      "url": "https://en.wikipedia.org/wiki/Proterozoic",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tufts University",
+      "title": "Tufts University",
+      "url": "https://en.wikipedia.org/wiki/Tufts_University",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tyrannosaurus",
+      "title": "Tyrannosaurus",
+      "url": "https://en.wikipedia.org/wiki/Tyrannosaurus",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.04033536233241483,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Antibiotic",
+      "target": "Evolution"
+    },
+    {
+      "source": "Bird",
+      "target": "Evolution"
+    },
+    {
+      "source": "Evolution",
+      "target": "Abiogenesis"
+    },
+    {
+      "source": "Evolution",
+      "target": "Antibiotic"
+    },
+    {
+      "source": "Evolution",
+      "target": "Ape"
+    },
+    {
+      "source": "Evolution",
+      "target": "Appendix (anatomy)"
+    },
+    {
+      "source": "Evolution",
+      "target": "Bird"
+    },
+    {
+      "source": "Evolution",
+      "target": "Cell (biology)"
+    },
+    {
+      "source": "Evolution",
+      "target": "Citric acid"
+    },
+    {
+      "source": "Evolution",
+      "target": "Climate change"
+    },
+    {
+      "source": "Evolution",
+      "target": "Coccyx"
+    },
+    {
+      "source": "Evolution",
+      "target": "David Hume"
+    },
+    {
+      "source": "Evolution",
+      "target": "Hoboken, New Jersey"
+    },
+    {
+      "source": "Evolution",
+      "target": "Holocene extinction"
+    },
+    {
+      "source": "Evolution",
+      "target": "James Watson"
+    },
+    {
+      "source": "Evolution",
+      "target": "Mammal"
+    },
+    {
+      "source": "Evolution",
+      "target": "Medication"
+    },
+    {
+      "source": "Evolution",
+      "target": "Permian–Triassic extinction event"
+    },
+    {
+      "source": "Evolution",
+      "target": "Prokaryote"
+    },
+    {
+      "source": "Evolution",
+      "target": "Protein"
+    },
+    {
+      "source": "Evolution",
+      "target": "Proterozoic"
+    },
+    {
+      "source": "Evolution",
+      "target": "Tufts University"
+    },
+    {
+      "source": "Evolution",
+      "target": "Tyrannosaurus"
+    },
+    {
+      "source": "Holocene extinction",
+      "target": "Bird"
+    },
+    {
+      "source": "Holocene extinction",
+      "target": "Climate change"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

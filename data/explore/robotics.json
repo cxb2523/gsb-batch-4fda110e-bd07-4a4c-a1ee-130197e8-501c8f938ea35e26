@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Robotics",
+  "seedId": "Robotics",
+  "nodes": [
+    {
+      "id": "3D printing",
+      "title": "3D printing",
+      "url": "https://en.wikipedia.org/wiki/3D_printing",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "ABB",
+      "title": "ABB",
+      "url": "https://en.wikipedia.org/wiki/ABB",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Artificial general intelligence",
+      "title": "Artificial general intelligence",
+      "url": "https://en.wikipedia.org/wiki/Artificial_general_intelligence",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "BBC News",
+      "title": "BBC News",
+      "url": "https://en.wikipedia.org/wiki/BBC_News",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.0745535730568138,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Delft University of Technology",
+      "title": "Delft University of Technology",
+      "url": "https://en.wikipedia.org/wiki/Delft_University_of_Technology",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Doctorate",
+      "title": "Doctorate",
+      "url": "https://en.wikipedia.org/wiki/Doctorate",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Drag (physics)",
+      "title": "Drag (physics)",
+      "url": "https://en.wikipedia.org/wiki/Drag_(physics)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Exoskeleton (human)",
+      "title": "Exoskeleton (human)",
+      "url": "https://en.wikipedia.org/wiki/Exoskeleton_(human)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Field of view",
+      "title": "Field of view",
+      "url": "https://en.wikipedia.org/wiki/Field_of_view",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Gasoline",
+      "title": "Gasoline",
+      "url": "https://en.wikipedia.org/wiki/Gasoline",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Honda",
+      "title": "Honda",
+      "url": "https://en.wikipedia.org/wiki/Honda",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Horse gait",
+      "title": "Horse gait",
+      "url": "https://en.wikipedia.org/wiki/Horse_gait",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "John C. Miller",
+      "title": "John C. Miller",
+      "url": "https://en.wikipedia.org/wiki/John_C._Miller",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Momentum",
+      "title": "Momentum",
+      "url": "https://en.wikipedia.org/wiki/Momentum",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Monkey",
+      "title": "Monkey",
+      "url": "https://en.wikipedia.org/wiki/Monkey",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Moore's law",
+      "title": "Moore's law",
+      "url": "https://en.wikipedia.org/wiki/Moore's_law",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Piezoelectricity",
+      "title": "Piezoelectricity",
+      "url": "https://en.wikipedia.org/wiki/Piezoelectricity",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Reinforcement learning",
+      "title": "Reinforcement learning",
+      "url": "https://en.wikipedia.org/wiki/Reinforcement_learning",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Robot",
+      "title": "Robot",
+      "url": "https://en.wikipedia.org/wiki/Robot",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Robotics",
+      "title": "Robotics",
+      "url": "https://en.wikipedia.org/wiki/Robotics",
+      "depth": 0,
+      "inDegree": 0,
+      "outDegree": 23,
+      "pagerank": 0.03886301518822114,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Tesla, Inc.",
+      "title": "Tesla, Inc.",
+      "url": "https://en.wikipedia.org/wiki/Tesla%2C_Inc.",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "The Boston Globe",
+      "title": "The Boston Globe",
+      "url": "https://en.wikipedia.org/wiki/The_Boston_Globe",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "The Bronx",
+      "title": "The Bronx",
+      "url": "https://en.wikipedia.org/wiki/The_Bronx",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Unmanned aerial vehicle",
+      "title": "Unmanned aerial vehicle",
+      "url": "https://en.wikipedia.org/wiki/Unmanned_aerial_vehicle",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.040299245988862,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Robotics",
+      "target": "3D printing"
+    },
+    {
+      "source": "Robotics",
+      "target": "ABB"
+    },
+    {
+      "source": "Robotics",
+      "target": "Artificial general intelligence"
+    },
+    {
+      "source": "Robotics",
+      "target": "BBC News"
+    },
+    {
+      "source": "Robotics",
+      "target": "Delft University of Technology"
+    },
+    {
+      "source": "Robotics",
+      "target": "Doctorate"
+    },
+    {
+      "source": "Robotics",
+      "target": "Drag (physics)"
+    },
+    {
+      "source": "Robotics",
+      "target": "Exoskeleton (human)"
+    },
+    {
+      "source": "Robotics",
+      "target": "Field of view"
+    },
+    {
+      "source": "Robotics",
+      "target": "Gasoline"
+    },
+    {
+      "source": "Robotics",
+      "target": "Honda"
+    },
+    {
+      "source": "Robotics",
+      "target": "Horse gait"
+    },
+    {
+      "source": "Robotics",
+      "target": "John C. Miller"
+    },
+    {
+      "source": "Robotics",
+      "target": "Momentum"
+    },
+    {
+      "source": "Robotics",
+      "target": "Monkey"
+    },
+    {
+      "source": "Robotics",
+      "target": "Moore's law"
+    },
+    {
+      "source": "Robotics",
+      "target": "Piezoelectricity"
+    },
+    {
+      "source": "Robotics",
+      "target": "Reinforcement learning"
+    },
+    {
+      "source": "Robotics",
+      "target": "Robot"
+    },
+    {
+      "source": "Robotics",
+      "target": "Tesla, Inc."
+    },
+    {
+      "source": "Robotics",
+      "target": "The Boston Globe"
+    },
+    {
+      "source": "Robotics",
+      "target": "The Bronx"
+    },
+    {
+      "source": "Robotics",
+      "target": "Unmanned aerial vehicle"
+    },
+    {
+      "source": "The Boston Globe",
+      "target": "BBC News"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

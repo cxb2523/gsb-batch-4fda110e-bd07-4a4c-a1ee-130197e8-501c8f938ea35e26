@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Machine learning",
+  "seedId": "Machine learning",
+  "nodes": [
+    {
+      "id": "15.ai",
+      "title": "15.ai",
+      "url": "https://en.wikipedia.org/wiki/15.ai",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04575613575475856,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "2008 financial crisis",
+      "title": "2008 financial crisis",
+      "url": "https://en.wikipedia.org/wiki/2008_financial_crisis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "AI-induced psychosis",
+      "title": "AI-induced psychosis",
+      "url": "https://en.wikipedia.org/wiki/AI-induced_psychosis",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04575613575475856,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Amazon Web Services",
+      "title": "Amazon Web Services",
+      "url": "https://en.wikipedia.org/wiki/Amazon_Web_Services",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.06981384470754998,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Andrej Karpathy",
+      "title": "Andrej Karpathy",
+      "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04575613575475856,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Anthropomorphism",
+      "title": "Anthropomorphism",
+      "url": "https://en.wikipedia.org/wiki/Anthropomorphism",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Bovine spongiform encephalopathy",
+      "title": "Bovine spongiform encephalopathy",
+      "url": "https://en.wikipedia.org/wiki/Bovine_spongiform_encephalopathy",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Daniel Kokotajlo",
+      "title": "Daniel Kokotajlo",
+      "url": "https://en.wikipedia.org/wiki/Daniel_Kokotajlo",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04575613575475856,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Go (game)",
+      "title": "Go (game)",
+      "url": "https://en.wikipedia.org/wiki/Go_(game)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google",
+      "title": "Google",
+      "url": "https://en.wikipedia.org/wiki/Google",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Google Gemini",
+      "title": "Google Gemini",
+      "url": "https://en.wikipedia.org/wiki/Google_Gemini",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Ilya Sutskever",
+      "title": "Ilya Sutskever",
+      "url": "https://en.wikipedia.org/wiki/Ilya_Sutskever",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "John von Neumann",
+      "title": "John von Neumann",
+      "url": "https://en.wikipedia.org/wiki/John_von_Neumann",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "List of search engines",
+      "title": "List of search engines",
+      "url": "https://en.wikipedia.org/wiki/List_of_search_engines",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Machine learning",
+      "title": "Machine learning",
+      "url": "https://en.wikipedia.org/wiki/Machine_learning",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 23,
+      "pagerank": 0.051858949769315446,
+      "betweenness": 0.04150197628458498,
+      "communityId": 0
+    },
+    {
+      "id": "Matrix (mathematics)",
+      "title": "Matrix (mathematics)",
+      "url": "https://en.wikipedia.org/wiki/Matrix_(mathematics)",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05377537207235569,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Navier–Stokes priority controversy",
+      "title": "Navier–Stokes priority controversy",
+      "url": "https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_priority_controversy",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Netflix",
+      "title": "Netflix",
+      "url": "https://en.wikipedia.org/wiki/Netflix",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Operating system",
+      "title": "Operating system",
+      "url": "https://en.wikipedia.org/wiki/Operating_system",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Principal component analysis",
+      "title": "Principal component analysis",
+      "url": "https://en.wikipedia.org/wiki/Principal_component_analysis",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Removal of Sam Altman from OpenAI",
+      "title": "Removal of Sam Altman from OpenAI",
+      "url": "https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Titanic",
+      "title": "Titanic",
+      "url": "https://en.wikipedia.org/wiki/Titanic",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Yann LeCun",
+      "title": "Yann LeCun",
+      "url": "https://en.wikipedia.org/wiki/Yann_LeCun",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Yoshua Bengio",
+      "title": "Yoshua Bengio",
+      "url": "https://en.wikipedia.org/wiki/Yoshua_Bengio",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03773689943716142,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "John von Neumann",
+      "target": "15.ai"
+    },
+    {
+      "source": "John von Neumann",
+      "target": "AI-induced psychosis"
+    },
+    {
+      "source": "John von Neumann",
+      "target": "Andrej Karpathy"
+    },
+    {
+      "source": "John von Neumann",
+      "target": "Daniel Kokotajlo"
+    },
+    {
+      "source": "Machine learning",
+      "target": "15.ai"
+    },
+    {
+      "source": "Machine learning",
+      "target": "2008 financial crisis"
+    },
+    {
+      "source": "Machine learning",
+      "target": "AI-induced psychosis"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Amazon Web Services"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Andrej Karpathy"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Anthropomorphism"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Bovine spongiform encephalopathy"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Daniel Kokotajlo"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Go (game)"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Google"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Google Gemini"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Ilya Sutskever"
+    },
+    {
+      "source": "Machine learning",
+      "target": "John von Neumann"
+    },
+    {
+      "source": "Machine learning",
+      "target": "List of search engines"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Matrix (mathematics)"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Navier–Stokes priority controversy"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Netflix"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Operating system"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Principal component analysis"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Removal of Sam Altman from OpenAI"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Titanic"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Yann LeCun"
+    },
+    {
+      "source": "Machine learning",
+      "target": "Yoshua Bengio"
+    },
+    {
+      "source": "Netflix",
+      "target": "Amazon Web Services"
+    },
+    {
+      "source": "Principal component analysis",
+      "target": "Machine learning"
+    },
+    {
+      "source": "Principal component analysis",
+      "target": "Matrix (mathematics)"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

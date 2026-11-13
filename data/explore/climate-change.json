@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Climate change",
+  "seedId": "Climate change",
+  "nodes": [
+    {
+      "id": "Atlantic Ocean",
+      "title": "Atlantic Ocean",
+      "url": "https://en.wikipedia.org/wiki/Atlantic_Ocean",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 2,
+      "pagerank": 0.04480525436668663,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Atmosphere of Earth",
+      "title": "Atmosphere of Earth",
+      "url": "https://en.wikipedia.org/wiki/Atmosphere_of_Earth",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Australia",
+      "title": "Australia",
+      "url": "https://en.wikipedia.org/wiki/Australia",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Australia (continent)",
+      "title": "Australia (continent)",
+      "url": "https://en.wikipedia.org/wiki/Australia_(continent)",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06384763518653985,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Austria",
+      "title": "Austria",
+      "url": "https://en.wikipedia.org/wiki/Austria",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04480525436668663,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Automotive industry",
+      "title": "Automotive industry",
+      "url": "https://en.wikipedia.org/wiki/Automotive_industry",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Barnacle",
+      "title": "Barnacle",
+      "url": "https://en.wikipedia.org/wiki/Barnacle",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "BBC",
+      "title": "BBC",
+      "url": "https://en.wikipedia.org/wiki/BBC",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06048040253191295,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "BBC News",
+      "title": "BBC News",
+      "url": "https://en.wikipedia.org/wiki/BBC_News",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04480525436668663,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Climate change",
+      "title": "Climate change",
+      "url": "https://en.wikipedia.org/wiki/Climate_change",
+      "depth": 0,
+      "inDegree": 2,
+      "outDegree": 23,
+      "pagerank": 0.05832488742526577,
+      "betweenness": 0.10869565217391304,
+      "communityId": 0
+    },
+    {
+      "id": "Coal",
+      "title": "Coal",
+      "url": "https://en.wikipedia.org/wiki/Coal",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "El Niño–Southern Oscillation",
+      "title": "El Niño–Southern Oscillation",
+      "url": "https://en.wikipedia.org/wiki/El_Ni%C3%B1o%E2%80%93Southern_Oscillation",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Europe",
+      "title": "Europe",
+      "url": "https://en.wikipedia.org/wiki/Europe",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 6,
+      "pagerank": 0.055925099205207,
+      "betweenness": 0.04150197628458498,
+      "communityId": 1
+    },
+    {
+      "id": "European Commission",
+      "title": "European Commission",
+      "url": "https://en.wikipedia.org/wiki/European_Commission",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "European Parliament",
+      "title": "European Parliament",
+      "url": "https://en.wikipedia.org/wiki/European_Parliament",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Geologic time scale",
+      "title": "Geologic time scale",
+      "url": "https://en.wikipedia.org/wiki/Geologic_time_scale",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Humidity",
+      "title": "Humidity",
+      "url": "https://en.wikipedia.org/wiki/Humidity",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Lithuania",
+      "title": "Lithuania",
+      "url": "https://en.wikipedia.org/wiki/Lithuania",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Pacific Ocean",
+      "title": "Pacific Ocean",
+      "url": "https://en.wikipedia.org/wiki/Pacific_Ocean",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Slovakia",
+      "title": "Slovakia",
+      "url": "https://en.wikipedia.org/wiki/Slovakia",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Taiwan",
+      "title": "Taiwan",
+      "url": "https://en.wikipedia.org/wiki/Taiwan",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Thailand",
+      "title": "Thailand",
+      "url": "https://en.wikipedia.org/wiki/Thailand",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Vietnam",
+      "title": "Vietnam",
+      "url": "https://en.wikipedia.org/wiki/Vietnam",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Volcano",
+      "title": "Volcano",
+      "url": "https://en.wikipedia.org/wiki/Volcano",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.036882718385353765,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Atlantic Ocean",
+      "target": "Australia (continent)"
+    },
+    {
+      "source": "Atlantic Ocean",
+      "target": "Europe"
+    },
+    {
+      "source": "Climate change",
+      "target": "Atlantic Ocean"
+    },
+    {
+      "source": "Climate change",
+      "target": "Atmosphere of Earth"
+    },
+    {
+      "source": "Climate change",
+      "target": "Australia"
+    },
+    {
+      "source": "Climate change",
+      "target": "Australia (continent)"
+    },
+    {
+      "source": "Climate change",
+      "target": "Austria"
+    },
+    {
+      "source": "Climate change",
+      "target": "Automotive industry"
+    },
+    {
+      "source": "Climate change",
+      "target": "Barnacle"
+    },
+    {
+      "source": "Climate change",
+      "target": "BBC"
+    },
+    {
+      "source": "Climate change",
+      "target": "BBC News"
+    },
+    {
+      "source": "Climate change",
+      "target": "Coal"
+    },
+    {
+      "source": "Climate change",
+      "target": "El Niño–Southern Oscillation"
+    },
+    {
+      "source": "Climate change",
+      "target": "Europe"
+    },
+    {
+      "source": "Climate change",
+      "target": "European Commission"
+    },
+    {
+      "source": "Climate change",
+      "target": "European Parliament"
+    },
+    {
+      "source": "Climate change",
+      "target": "Geologic time scale"
+    },
+    {
+      "source": "Climate change",
+      "target": "Humidity"
+    },
+    {
+      "source": "Climate change",
+      "target": "Lithuania"
+    },
+    {
+      "source": "Climate change",
+      "target": "Pacific Ocean"
+    },
+    {
+      "source": "Climate change",
+      "target": "Slovakia"
+    },
+    {
+      "source": "Climate change",
+      "target": "Taiwan"
+    },
+    {
+      "source": "Climate change",
+      "target": "Thailand"
+    },
+    {
+      "source": "Climate change",
+      "target": "Vietnam"
+    },
+    {
+      "source": "Climate change",
+      "target": "Volcano"
+    },
+    {
+      "source": "Coal",
+      "target": "BBC"
+    },
+    {
+      "source": "Coal",
+      "target": "Climate change"
+    },
+    {
+      "source": "Europe",
+      "target": "Atlantic Ocean"
+    },
+    {
+      "source": "Europe",
+      "target": "Australia (continent)"
+    },
+    {
+      "source": "Europe",
+      "target": "Austria"
+    },
+    {
+      "source": "Europe",
+      "target": "BBC"
+    },
+    {
+      "source": "Europe",
+      "target": "BBC News"
+    },
+    {
+      "source": "Europe",
+      "target": "Climate change"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

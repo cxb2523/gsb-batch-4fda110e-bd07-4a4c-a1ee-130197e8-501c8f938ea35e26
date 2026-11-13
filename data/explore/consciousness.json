@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Consciousness",
+  "seedId": "Consciousness",
+  "nodes": [
+    {
+      "id": "Abstract and concrete",
+      "title": "Abstract and concrete",
+      "url": "https://en.wikipedia.org/wiki/Abstract_and_concrete",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.09805417862033447,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Ada Lovelace",
+      "title": "Ada Lovelace",
+      "url": "https://en.wikipedia.org/wiki/Ada_Lovelace",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Afterlife",
+      "title": "Afterlife",
+      "url": "https://en.wikipedia.org/wiki/Afterlife",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Awareness",
+      "title": "Awareness",
+      "url": "https://en.wikipedia.org/wiki/Awareness",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Baruch Spinoza",
+      "title": "Baruch Spinoza",
+      "url": "https://en.wikipedia.org/wiki/Baruch_Spinoza",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 1,
+      "pagerank": 0.07051562550353008,
+      "betweenness": 0.0021645021645021645,
+      "communityId": 1
+    },
+    {
+      "id": "Bat",
+      "title": "Bat",
+      "url": "https://en.wikipedia.org/wiki/Bat",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Cognition",
+      "title": "Cognition",
+      "url": "https://en.wikipedia.org/wiki/Cognition",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Consciousness",
+      "title": "Consciousness",
+      "url": "https://en.wikipedia.org/wiki/Consciousness",
+      "depth": 0,
+      "inDegree": 0,
+      "outDegree": 22,
+      "pagerank": 0.0366987225469193,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Denis Diderot",
+      "title": "Denis Diderot",
+      "url": "https://en.wikipedia.org/wiki/Denis_Diderot",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Dimethyltryptamine",
+      "title": "Dimethyltryptamine",
+      "url": "https://en.wikipedia.org/wiki/Dimethyltryptamine",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Hard problem of consciousness",
+      "title": "Hard problem of consciousness",
+      "url": "https://en.wikipedia.org/wiki/Hard_problem_of_consciousness",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Hominidae",
+      "title": "Hominidae",
+      "url": "https://en.wikipedia.org/wiki/Hominidae",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Homunculus",
+      "title": "Homunculus",
+      "url": "https://en.wikipedia.org/wiki/Homunculus",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Karl Popper",
+      "title": "Karl Popper",
+      "url": "https://en.wikipedia.org/wiki/Karl_Popper",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Metacognition",
+      "title": "Metacognition",
+      "url": "https://en.wikipedia.org/wiki/Metacognition",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Metaphor",
+      "title": "Metaphor",
+      "url": "https://en.wikipedia.org/wiki/Metaphor",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Metaphysics",
+      "title": "Metaphysics",
+      "url": "https://en.wikipedia.org/wiki/Metaphysics",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07051562550353008,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Oak",
+      "title": "Oak",
+      "url": "https://en.wikipedia.org/wiki/Oak",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Oxford English Dictionary",
+      "title": "Oxford English Dictionary",
+      "url": "https://en.wikipedia.org/wiki/Oxford_English_Dictionary",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Sam Harris",
+      "title": "Sam Harris",
+      "url": "https://en.wikipedia.org/wiki/Sam_Harris",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Samuel Johnson",
+      "title": "Samuel Johnson",
+      "url": "https://en.wikipedia.org/wiki/Samuel_Johnson",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Science",
+      "title": "Science",
+      "url": "https://en.wikipedia.org/wiki/Science",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Stroke",
+      "title": "Stroke",
+      "url": "https://en.wikipedia.org/wiki/Stroke",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Ada Lovelace",
+      "target": "Metaphysics"
+    },
+    {
+      "source": "Afterlife",
+      "target": "Baruch Spinoza"
+    },
+    {
+      "source": "Baruch Spinoza",
+      "target": "Abstract and concrete"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Abstract and concrete"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Ada Lovelace"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Afterlife"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Awareness"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Baruch Spinoza"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Bat"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Cognition"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Denis Diderot"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Dimethyltryptamine"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Hard problem of consciousness"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Hominidae"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Homunculus"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Karl Popper"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Metacognition"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Metaphor"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Metaphysics"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Oak"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Oxford English Dictionary"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Sam Harris"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Samuel Johnson"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Science"
+    },
+    {
+      "source": "Consciousness",
+      "target": "Stroke"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

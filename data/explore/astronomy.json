@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Astronomy",
+  "seedId": "Astronomy",
+  "nodes": [
+    {
+      "id": "Aryabhata",
+      "title": "Aryabhata",
+      "url": "https://en.wikipedia.org/wiki/Aryabhata",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Asteroid belt",
+      "title": "Asteroid belt",
+      "url": "https://en.wikipedia.org/wiki/Asteroid_belt",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Astrolabe",
+      "title": "Astrolabe",
+      "url": "https://en.wikipedia.org/wiki/Astrolabe",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054316124536651515,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Astronomy",
+      "title": "Astronomy",
+      "url": "https://en.wikipedia.org/wiki/Astronomy",
+      "depth": 0,
+      "inDegree": 0,
+      "outDegree": 22,
+      "pagerank": 0.0366987225469193,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Atmosphere of Earth",
+      "title": "Atmosphere of Earth",
+      "url": "https://en.wikipedia.org/wiki/Atmosphere_of_Earth",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "California Institute of Technology",
+      "title": "California Institute of Technology",
+      "url": "https://en.wikipedia.org/wiki/California_Institute_of_Technology",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Callisto (moon)",
+      "title": "Callisto (moon)",
+      "url": "https://en.wikipedia.org/wiki/Callisto_(moon)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Catholic Church",
+      "title": "Catholic Church",
+      "url": "https://en.wikipedia.org/wiki/Catholic_Church",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05431612453665152,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Dark energy",
+      "title": "Dark energy",
+      "url": "https://en.wikipedia.org/wiki/Dark_energy",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Dark matter",
+      "title": "Dark matter",
+      "url": "https://en.wikipedia.org/wiki/Dark_matter",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Extraterrestrial life",
+      "title": "Extraterrestrial life",
+      "url": "https://en.wikipedia.org/wiki/Extraterrestrial_life",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Georges Lemaître",
+      "title": "Georges Lemaître",
+      "url": "https://en.wikipedia.org/wiki/Georges_Lema%C3%AEtre",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "IAU designated constellations",
+      "title": "IAU designated constellations",
+      "url": "https://en.wikipedia.org/wiki/IAU_designated_constellations",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Infrared",
+      "title": "Infrared",
+      "url": "https://en.wikipedia.org/wiki/Infrared",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 1,
+      "pagerank": 0.07051562550353008,
+      "betweenness": 0.0021645021645021645,
+      "communityId": 1
+    },
+    {
+      "id": "Leonhard Euler",
+      "title": "Leonhard Euler",
+      "url": "https://en.wikipedia.org/wiki/Leonhard_Euler",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Life",
+      "title": "Life",
+      "url": "https://en.wikipedia.org/wiki/Life",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Light",
+      "title": "Light",
+      "url": "https://en.wikipedia.org/wiki/Light",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.09805417862033447,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Lithium",
+      "title": "Lithium",
+      "url": "https://en.wikipedia.org/wiki/Lithium",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Local Group",
+      "title": "Local Group",
+      "url": "https://en.wikipedia.org/wiki/Local_Group",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Moons of Jupiter",
+      "title": "Moons of Jupiter",
+      "url": "https://en.wikipedia.org/wiki/Moons_of_Jupiter",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Nuclear fusion",
+      "title": "Nuclear fusion",
+      "url": "https://en.wikipedia.org/wiki/Nuclear_fusion",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Renaissance",
+      "title": "Renaissance",
+      "url": "https://en.wikipedia.org/wiki/Renaissance",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Three-body problem",
+      "title": "Three-body problem",
+      "url": "https://en.wikipedia.org/wiki/Three-body_problem",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03811662356977295,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Astronomy",
+      "target": "Aryabhata"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Asteroid belt"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Astrolabe"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Atmosphere of Earth"
+    },
+    {
+      "source": "Astronomy",
+      "target": "California Institute of Technology"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Callisto (moon)"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Catholic Church"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Dark energy"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Dark matter"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Extraterrestrial life"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Georges Lemaître"
+    },
+    {
+      "source": "Astronomy",
+      "target": "IAU designated constellations"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Infrared"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Life"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Light"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Lithium"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Local Group"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Moons of Jupiter"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Nuclear fusion"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Renaissance"
+    },
+    {
+      "source": "Astronomy",
+      "target": "Three-body problem"
+    },
+    {
+      "source": "Infrared",
+      "target": "Light"
+    },
+    {
+      "source": "Lithium",
+      "target": "Infrared"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Astrolabe"
+    },
+    {
+      "source": "Renaissance",
+      "target": "Catholic Church"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

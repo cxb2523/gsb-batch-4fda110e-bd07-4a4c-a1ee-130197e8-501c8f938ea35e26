@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Quantum computing",
+  "seedId": "Quantum computing",
+  "nodes": [
+    {
+      "id": "Cellular automaton",
+      "title": "Cellular automaton",
+      "url": "https://en.wikipedia.org/wiki/Cellular_automaton",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04978602076001547,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Central processing unit",
+      "title": "Central processing unit",
+      "url": "https://en.wikipedia.org/wiki/Central_processing_unit",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 5,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "China",
+      "title": "China",
+      "url": "https://en.wikipedia.org/wiki/China",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Computer",
+      "title": "Computer",
+      "url": "https://en.wikipedia.org/wiki/Computer",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04978602076001547,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Copenhagen interpretation",
+      "title": "Copenhagen interpretation",
+      "url": "https://en.wikipedia.org/wiki/Copenhagen_interpretation",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 4,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "CPU cache",
+      "title": "CPU cache",
+      "url": "https://en.wikipedia.org/wiki/CPU_cache",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04978602076001547,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Dirac equation",
+      "title": "Dirac equation",
+      "url": "https://en.wikipedia.org/wiki/Dirac_equation",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05159448145204341,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Dot product",
+      "title": "Dot product",
+      "url": "https://en.wikipedia.org/wiki/Dot_product",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04978602076001547,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Finite-state machine",
+      "title": "Finite-state machine",
+      "url": "https://en.wikipedia.org/wiki/Finite-state_machine",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04978602076001547,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Holographic principle",
+      "title": "Holographic principle",
+      "url": "https://en.wikipedia.org/wiki/Holographic_principle",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Kelvin",
+      "title": "Kelvin",
+      "url": "https://en.wikipedia.org/wiki/Kelvin",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07872139183246255,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "New York City",
+      "title": "New York City",
+      "url": "https://en.wikipedia.org/wiki/New_York_City",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Philadelphia",
+      "title": "Philadelphia",
+      "url": "https://en.wikipedia.org/wiki/Philadelphia",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Photon",
+      "title": "Photon",
+      "url": "https://en.wikipedia.org/wiki/Photon",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05159448145204341,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Physicist",
+      "title": "Physicist",
+      "url": "https://en.wikipedia.org/wiki/Physicist",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum computing",
+      "title": "Quantum computing",
+      "url": "https://en.wikipedia.org/wiki/Quantum_computing",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 20,
+      "pagerank": 0.04949110210038983,
+      "betweenness": 0.042105263157894736,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum mechanics",
+      "title": "Quantum mechanics",
+      "url": "https://en.wikipedia.org/wiki/Quantum_mechanics",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.05159448145204341,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Rare-earth element",
+      "title": "Rare-earth element",
+      "url": "https://en.wikipedia.org/wiki/Rare-earth_element",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Single instruction, multiple data",
+      "title": "Single instruction, multiple data",
+      "url": "https://en.wikipedia.org/wiki/Single_instruction%2C_multiple_data",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Vector (mathematics and physics)",
+      "title": "Vector (mathematics and physics)",
+      "url": "https://en.wikipedia.org/wiki/Vector_(mathematics_and_physics)",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Vector space",
+      "title": "Vector space",
+      "url": "https://en.wikipedia.org/wiki/Vector_space",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.042552177991903695,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Central processing unit",
+      "target": "Cellular automaton"
+    },
+    {
+      "source": "Central processing unit",
+      "target": "Computer"
+    },
+    {
+      "source": "Central processing unit",
+      "target": "CPU cache"
+    },
+    {
+      "source": "Central processing unit",
+      "target": "Dot product"
+    },
+    {
+      "source": "Central processing unit",
+      "target": "Finite-state machine"
+    },
+    {
+      "source": "Copenhagen interpretation",
+      "target": "Dirac equation"
+    },
+    {
+      "source": "Copenhagen interpretation",
+      "target": "Photon"
+    },
+    {
+      "source": "Copenhagen interpretation",
+      "target": "Quantum computing"
+    },
+    {
+      "source": "Copenhagen interpretation",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "Holographic principle",
+      "target": "Kelvin"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Cellular automaton"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Central processing unit"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "China"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Computer"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Copenhagen interpretation"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "CPU cache"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Dirac equation"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Dot product"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Finite-state machine"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Holographic principle"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Kelvin"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "New York City"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Philadelphia"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Photon"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Physicist"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Rare-earth element"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Single instruction, multiple data"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Vector (mathematics and physics)"
+    },
+    {
+      "source": "Quantum computing",
+      "target": "Vector space"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

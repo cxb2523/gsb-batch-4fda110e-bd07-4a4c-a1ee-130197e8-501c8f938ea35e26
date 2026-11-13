@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Space exploration",
+  "seedId": "Space exploration",
+  "nodes": [
+    {
+      "id": "Abiogenesis",
+      "title": "Abiogenesis",
+      "url": "https://en.wikipedia.org/wiki/Abiogenesis",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.06298471814450057,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Artemis program",
+      "title": "Artemis program",
+      "url": "https://en.wikipedia.org/wiki/Artemis_program",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Arthur C. Clarke",
+      "title": "Arthur C. Clarke",
+      "url": "https://en.wikipedia.org/wiki/Arthur_C._Clarke",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Associated Press",
+      "title": "Associated Press",
+      "url": "https://en.wikipedia.org/wiki/Associated_Press",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.06298471814450057,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Buzz Aldrin",
+      "title": "Buzz Aldrin",
+      "url": "https://en.wikipedia.org/wiki/Buzz_Aldrin",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Earth",
+      "title": "Earth",
+      "url": "https://en.wikipedia.org/wiki/Earth",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Extraterrestrial life",
+      "title": "Extraterrestrial life",
+      "url": "https://en.wikipedia.org/wiki/Extraterrestrial_life",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Imperialism",
+      "title": "Imperialism",
+      "url": "https://en.wikipedia.org/wiki/Imperialism",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "India",
+      "title": "India",
+      "url": "https://en.wikipedia.org/wiki/India",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "ISRO",
+      "title": "ISRO",
+      "url": "https://en.wikipedia.org/wiki/ISRO",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Jupiter",
+      "title": "Jupiter",
+      "url": "https://en.wikipedia.org/wiki/Jupiter",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Moons of Jupiter",
+      "title": "Moons of Jupiter",
+      "url": "https://en.wikipedia.org/wiki/Moons_of_Jupiter",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Moons of Saturn",
+      "title": "Moons of Saturn",
+      "url": "https://en.wikipedia.org/wiki/Moons_of_Saturn",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "New Horizons",
+      "title": "New Horizons",
+      "url": "https://en.wikipedia.org/wiki/New_Horizons",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Rings of Saturn",
+      "title": "Rings of Saturn",
+      "url": "https://en.wikipedia.org/wiki/Rings_of_Saturn",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Space exploration",
+      "title": "Space exploration",
+      "url": "https://en.wikipedia.org/wiki/Space_exploration",
+      "depth": 0,
+      "inDegree": 1,
+      "outDegree": 20,
+      "pagerank": 0.07843643145180179,
+      "betweenness": 0.049999999999999996,
+      "communityId": 0
+    },
+    {
+      "id": "SpaceX",
+      "title": "SpaceX",
+      "url": "https://en.wikipedia.org/wiki/SpaceX",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "The Atlantic",
+      "title": "The Atlantic",
+      "url": "https://en.wikipedia.org/wiki/The_Atlantic",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "The New York Times",
+      "title": "The New York Times",
+      "url": "https://en.wikipedia.org/wiki/The_New_York_Times",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "V-2 rocket",
+      "title": "V-2 rocket",
+      "url": "https://en.wikipedia.org/wiki/V-2_rocket",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Valentina Tereshkova",
+      "title": "Valentina Tereshkova",
+      "url": "https://en.wikipedia.org/wiki/Valentina_Tereshkova",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.044199674014399816,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Earth",
+      "target": "Abiogenesis"
+    },
+    {
+      "source": "Earth",
+      "target": "Associated Press"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Abiogenesis"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Artemis program"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Arthur C. Clarke"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Associated Press"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Buzz Aldrin"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Earth"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Extraterrestrial life"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Imperialism"
+    },
+    {
+      "source": "Space exploration",
+      "target": "India"
+    },
+    {
+      "source": "Space exploration",
+      "target": "ISRO"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Jupiter"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Moons of Jupiter"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Moons of Saturn"
+    },
+    {
+      "source": "Space exploration",
+      "target": "New Horizons"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Rings of Saturn"
+    },
+    {
+      "source": "Space exploration",
+      "target": "SpaceX"
+    },
+    {
+      "source": "Space exploration",
+      "target": "The Atlantic"
+    },
+    {
+      "source": "Space exploration",
+      "target": "The New York Times"
+    },
+    {
+      "source": "Space exploration",
+      "target": "V-2 rocket"
+    },
+    {
+      "source": "Space exploration",
+      "target": "Valentina Tereshkova"
+    },
+    {
+      "source": "V-2 rocket",
+      "target": "Space exploration"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "General relativity",
+  "seedId": "General relativity",
+  "nodes": [
+    {
+      "id": "BBC",
+      "title": "BBC",
+      "url": "https://en.wikipedia.org/wiki/BBC",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.07121317804774269,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Carl Friedrich Gauss",
+      "title": "Carl Friedrich Gauss",
+      "url": "https://en.wikipedia.org/wiki/Carl_Friedrich_Gauss",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 4
+    },
+    {
+      "id": "Carlo Rovelli",
+      "title": "Carlo Rovelli",
+      "url": "https://en.wikipedia.org/wiki/Carlo_Rovelli",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Cosmic microwave background",
+      "title": "Cosmic microwave background",
+      "url": "https://en.wikipedia.org/wiki/Cosmic_microwave_background",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Einstein family",
+      "title": "Einstein family",
+      "url": "https://en.wikipedia.org/wiki/Einstein_family",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Event horizon",
+      "title": "Event horizon",
+      "url": "https://en.wikipedia.org/wiki/Event_horizon",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "General relativity",
+      "title": "General relativity",
+      "url": "https://en.wikipedia.org/wiki/General_relativity",
+      "depth": 0,
+      "inDegree": 4,
+      "outDegree": 20,
+      "pagerank": 0.11015778234972161,
+      "betweenness": 0.18947368421052632,
+      "communityId": 0
+    },
+    {
+      "id": "Geometry",
+      "title": "Geometry",
+      "url": "https://en.wikipedia.org/wiki/Geometry",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054853341007806714,
+      "betweenness": 0,
+      "communityId": 4
+    },
+    {
+      "id": "Global Positioning System",
+      "title": "Global Positioning System",
+      "url": "https://en.wikipedia.org/wiki/Global_Positioning_System",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 1,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Gravitational constant",
+      "title": "Gravitational constant",
+      "url": "https://en.wikipedia.org/wiki/Gravitational_constant",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Heuristic",
+      "title": "Heuristic",
+      "url": "https://en.wikipedia.org/wiki/Heuristic",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04940006199449472,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "J. Robert Oppenheimer",
+      "title": "J. Robert Oppenheimer",
+      "url": "https://en.wikipedia.org/wiki/J._Robert_Oppenheimer",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054853341007806714,
+      "betweenness": 0,
+      "communityId": 2
+    },
+    {
+      "id": "Leonhard Euler",
+      "title": "Leonhard Euler",
+      "url": "https://en.wikipedia.org/wiki/Leonhard_Euler",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.06575989903443069,
+      "betweenness": 0,
+      "communityId": 4
+    },
+    {
+      "id": "Mileva Marić",
+      "title": "Mileva Marić",
+      "url": "https://en.wikipedia.org/wiki/Mileva_Mari%C4%87",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.054853341007806714,
+      "betweenness": 0,
+      "communityId": 3
+    },
+    {
+      "id": "Milky Way",
+      "title": "Milky Way",
+      "url": "https://en.wikipedia.org/wiki/Milky_Way",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Pulsar",
+      "title": "Pulsar",
+      "url": "https://en.wikipedia.org/wiki/Pulsar",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quantum mechanics",
+      "title": "Quantum mechanics",
+      "url": "https://en.wikipedia.org/wiki/Quantum_mechanics",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 3,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Quasar",
+      "title": "Quasar",
+      "url": "https://en.wikipedia.org/wiki/Quasar",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Supermassive black hole",
+      "title": "Supermassive black hole",
+      "url": "https://en.wikipedia.org/wiki/Supermassive_black_hole",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Supernova",
+      "title": "Supernova",
+      "url": "https://en.wikipedia.org/wiki/Supernova",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Wormhole",
+      "title": "Wormhole",
+      "url": "https://en.wikipedia.org/wiki/Wormhole",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.03849350396787073,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Carl Friedrich Gauss",
+      "target": "Geometry"
+    },
+    {
+      "source": "Carl Friedrich Gauss",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "Carlo Rovelli",
+      "target": "BBC"
+    },
+    {
+      "source": "Einstein family",
+      "target": "General relativity"
+    },
+    {
+      "source": "Einstein family",
+      "target": "Mileva Marić"
+    },
+    {
+      "source": "Event horizon",
+      "target": "General relativity"
+    },
+    {
+      "source": "Event horizon",
+      "target": "J. Robert Oppenheimer"
+    },
+    {
+      "source": "General relativity",
+      "target": "BBC"
+    },
+    {
+      "source": "General relativity",
+      "target": "Carl Friedrich Gauss"
+    },
+    {
+      "source": "General relativity",
+      "target": "Carlo Rovelli"
+    },
+    {
+      "source": "General relativity",
+      "target": "Cosmic microwave background"
+    },
+    {
+      "source": "General relativity",
+      "target": "Einstein family"
+    },
+    {
+      "source": "General relativity",
+      "target": "Event horizon"
+    },
+    {
+      "source": "General relativity",
+      "target": "Geometry"
+    },
+    {
+      "source": "General relativity",
+      "target": "Global Positioning System"
+    },
+    {
+      "source": "General relativity",
+      "target": "Gravitational constant"
+    },
+    {
+      "source": "General relativity",
+      "target": "Heuristic"
+    },
+    {
+      "source": "General relativity",
+      "target": "J. Robert Oppenheimer"
+    },
+    {
+      "source": "General relativity",
+      "target": "Leonhard Euler"
+    },
+    {
+      "source": "General relativity",
+      "target": "Mileva Marić"
+    },
+    {
+      "source": "General relativity",
+      "target": "Milky Way"
+    },
+    {
+      "source": "General relativity",
+      "target": "Pulsar"
+    },
+    {
+      "source": "General relativity",
+      "target": "Quantum mechanics"
+    },
+    {
+      "source": "General relativity",
+      "target": "Quasar"
+    },
+    {
+      "source": "General relativity",
+      "target": "Supermassive black hole"
+    },
+    {
+      "source": "General relativity",
+      "target": "Supernova"
+    },
+    {
+      "source": "General relativity",
+      "target": "Wormhole"
+    },
+    {
+      "source": "Global Positioning System",
+      "target": "General relativity"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "General relativity"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Heuristic"
+    },
+    {
+      "source": "Quantum mechanics",
+      "target": "Leonhard Euler"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}

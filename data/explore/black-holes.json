@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 1,
+  "seedTitle": "Black hole",
+  "seedId": "Black hole",
+  "nodes": [
+    {
+      "id": "Albert Einstein",
+      "title": "Albert Einstein",
+      "url": "https://en.wikipedia.org/wiki/Albert_Einstein",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 4,
+      "pagerank": 0.04834198954310942,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Alcubierre drive",
+      "title": "Alcubierre drive",
+      "url": "https://en.wikipedia.org/wiki/Alcubierre_drive",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.058614867662172485,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Big Bang",
+      "title": "Big Bang",
+      "url": "https://en.wikipedia.org/wiki/Big_Bang",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04834198954310942,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Black hole",
+      "title": "Black hole",
+      "url": "https://en.wikipedia.org/wiki/Black_hole",
+      "depth": 0,
+      "inDegree": 3,
+      "outDegree": 20,
+      "pagerank": 0.07334589305927704,
+      "betweenness": 0.11973684210526316,
+      "communityId": 0
+    },
+    {
+      "id": "Chronology of the universe",
+      "title": "Chronology of the universe",
+      "url": "https://en.wikipedia.org/wiki/Chronology_of_the_universe",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "CNN",
+      "title": "CNN",
+      "url": "https://en.wikipedia.org/wiki/CNN",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Entropy",
+      "title": "Entropy",
+      "url": "https://en.wikipedia.org/wiki/Entropy",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04834198954310942,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "General relativity",
+      "title": "General relativity",
+      "url": "https://en.wikipedia.org/wiki/General_relativity",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 7,
+      "pagerank": 0.05226826391129197,
+      "betweenness": 0.003947368421052632,
+      "communityId": 1
+    },
+    {
+      "id": "J. Robert Oppenheimer",
+      "title": "J. Robert Oppenheimer",
+      "url": "https://en.wikipedia.org/wiki/J._Robert_Oppenheimer",
+      "depth": 1,
+      "inDegree": 3,
+      "outDegree": 0,
+      "pagerank": 0.058614867662172485,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Laws of thermodynamics",
+      "title": "Laws of thermodynamics",
+      "url": "https://en.wikipedia.org/wiki/Laws_of_thermodynamics",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.04834198954310942,
+      "betweenness": 0,
+      "communityId": 1
+    },
+    {
+      "id": "Mass–energy equivalence",
+      "title": "Mass–energy equivalence",
+      "url": "https://en.wikipedia.org/wiki/Mass%E2%80%93energy_equivalence",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "NASA",
+      "title": "NASA",
+      "url": "https://en.wikipedia.org/wiki/NASA",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Neutron star",
+      "title": "Neutron star",
+      "url": "https://en.wikipedia.org/wiki/Neutron_star",
+      "depth": 1,
+      "inDegree": 2,
+      "outDegree": 0,
+      "pagerank": 0.059843520025901764,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Stephen Hawking",
+      "title": "Stephen Hawking",
+      "url": "https://en.wikipedia.org/wiki/Stephen_Hawking",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "String theory",
+      "title": "String theory",
+      "url": "https://en.wikipedia.org/wiki/String_theory",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Supermassive black hole",
+      "title": "Supermassive black hole",
+      "url": "https://en.wikipedia.org/wiki/Supermassive_black_hole",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Time dilation",
+      "title": "Time dilation",
+      "url": "https://en.wikipedia.org/wiki/Time_dilation",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "White dwarf",
+      "title": "White dwarf",
+      "url": "https://en.wikipedia.org/wiki/White_dwarf",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 2,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "White hole",
+      "title": "White hole",
+      "url": "https://en.wikipedia.org/wiki/White_hole",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "Wormhole",
+      "title": "Wormhole",
+      "url": "https://en.wikipedia.org/wiki/Wormhole",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    },
+    {
+      "id": "X-ray",
+      "title": "X-ray",
+      "url": "https://en.wikipedia.org/wiki/X-ray",
+      "depth": 1,
+      "inDegree": 1,
+      "outDegree": 0,
+      "pagerank": 0.041995385792228904,
+      "betweenness": 0,
+      "communityId": 0
+    }
+  ],
+  "edges": [
+    {
+      "source": "Albert Einstein",
+      "target": "Alcubierre drive"
+    },
+    {
+      "source": "Albert Einstein",
+      "target": "Black hole"
+    },
+    {
+      "source": "Albert Einstein",
+      "target": "General relativity"
+    },
+    {
+      "source": "Albert Einstein",
+      "target": "J. Robert Oppenheimer"
+    },
+    {
+      "source": "Black hole",
+      "target": "Albert Einstein"
+    },
+    {
+      "source": "Black hole",
+      "target": "Alcubierre drive"
+    },
+    {
+      "source": "Black hole",
+      "target": "Big Bang"
+    },
+    {
+      "source": "Black hole",
+      "target": "Chronology of the universe"
+    },
+    {
+      "source": "Black hole",
+      "target": "CNN"
+    },
+    {
+      "source": "Black hole",
+      "target": "Entropy"
+    },
+    {
+      "source": "Black hole",
+      "target": "General relativity"
+    },
+    {
+      "source": "Black hole",
+      "target": "J. Robert Oppenheimer"
+    },
+    {
+      "source": "Black hole",
+      "target": "Laws of thermodynamics"
+    },
+    {
+      "source": "Black hole",
+      "target": "Mass–energy equivalence"
+    },
+    {
+      "source": "Black hole",
+      "target": "NASA"
+    },
+    {
+      "source": "Black hole",
+      "target": "Neutron star"
+    },
+    {
+      "source": "Black hole",
+      "target": "Stephen Hawking"
+    },
+    {
+      "source": "Black hole",
+      "target": "String theory"
+    },
+    {
+      "source": "Black hole",
+      "target": "Supermassive black hole"
+    },
+    {
+      "source": "Black hole",
+      "target": "Time dilation"
+    },
+    {
+      "source": "Black hole",
+      "target": "White dwarf"
+    },
+    {
+      "source": "Black hole",
+      "target": "White hole"
+    },
+    {
+      "source": "Black hole",
+      "target": "Wormhole"
+    },
+    {
+      "source": "Black hole",
+      "target": "X-ray"
+    },
+    {
+      "source": "General relativity",
+      "target": "Albert Einstein"
+    },
+    {
+      "source": "General relativity",
+      "target": "Alcubierre drive"
+    },
+    {
+      "source": "General relativity",
+      "target": "Big Bang"
+    },
+    {
+      "source": "General relativity",
+      "target": "Black hole"
+    },
+    {
+      "source": "General relativity",
+      "target": "Entropy"
+    },
+    {
+      "source": "General relativity",
+      "target": "J. Robert Oppenheimer"
+    },
+    {
+      "source": "General relativity",
+      "target": "Laws of thermodynamics"
+    },
+    {
+      "source": "White dwarf",
+      "target": "Black hole"
+    },
+    {
+      "source": "White dwarf",
+      "target": "Neutron star"
+    }
+  ],
+  "partial": false,
+  "failedTitles": []
+}
