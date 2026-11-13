@@ -159,7 +159,9 @@ class Reddrix:
         self.__max_comments_depth = max_comments_depth
         self.__max_comments_per_post = max_comments_per_post
         self.__max_top_comments_per_post = max_top_comments_per_post
-        self.__seen_comment_ids = set()
+        # post_id -> {"total": int, "top": int, "seen": set[str]}
+        # Kept per post so that paginated sub-tasks of the same post share one
+        # deduplication set and one pair of counters.
         self.__posts_comments_counts = {}
         self.results_count = 0
         
@@ -725,12 +727,64 @@ class Reddrix:
                 else:
                     return data
     
+    def __comment_state(self, post_id: str) -> dict:
+        """Returns the shared per-post comment state (counters and dedupe set)."""
+        state = self.__posts_comments_counts.get(post_id)
+        if state is None:
+            state = {"total": 0, "top": 0, "seen": set()}
+            self.__posts_comments_counts[post_id] = state
+        return state
+
+    def __claim_comment(self, post_id: str, comment: Tag, depth_offset: int=0) -> int | None:
+        """Deduplicates a comment and reserves its slot in the per-post limits.
+
+        Returns the comment's real depth in the post tree if it was claimed,
+        otherwise None. The raw `depth` attribute of the tag is left untouched,
+        so nested pagination links can still compute offsets from it.
+
+        This method is intentionally synchronous: pagination sub-tasks share the
+        event loop and only interleave at awaits, so checking and incrementing the
+        counters before the first await makes the limits hold under concurrency.
+        """
+        if post_id is None:
+            return None
+
+        state = self.__comment_state(post_id)
+        thing_id = comment["thingid"]
+        depth = int(comment["depth"]) + depth_offset
+
+        # Depth filtering always uses the comment's real depth in the post tree.
+        # It happens before dedupe on purpose: the same comment can be reachable
+        # through several pagination paths with different relative depths, and
+        # one path reporting it too deep must not hide it from a path where the
+        # real location is within the limit.
+        if depth > self.__max_comments_depth:
+            return None
+
+        # Dedupe by thingid, scoped to the post, so a comment re-served by a
+        # paginated page is emitted only once and keeps its first depth.
+        if thing_id in state["seen"]:
+            return None
+
+        if state["total"] >= self.__max_comments_per_post:
+            return None
+
+        if depth == 0 and state["top"] >= self.__max_top_comments_per_post:
+            return None
+
+        state["seen"].add(thing_id)
+        state["total"] += 1
+        if depth == 0:
+            state["top"] += 1
+
+        return depth
+
     async def __fetch_post(self, url: str, cursor: str=None, initial_page: bool=False, depth_offset: int=0, post_id: str=None) -> None:
         """Fetches the post details (for the initial page) and comments."""
         
         if "/comments/" in url and initial_page:
             post_id = url.split("/comments/")[-1].split("/")[0]
-            self.__posts_comments_counts[post_id] = {"total": 0, "top": 0}
+            self.__comment_state(post_id)
             url = url.split("/comments/")[0] + "/comments/" + "/".join(quote(unquote(item)) for item in url.split("/comments/")[-1].split("/"))
         
         if self.is_running:
@@ -767,29 +821,14 @@ class Reddrix:
                 return
             
             for comment in comments:
-                if self.__posts_comments_counts[post_id]["total"] >= self.__max_comments_per_post:
-                    break
-                
-                if comment["thingid"] not in self.__seen_comment_ids:
-                    self.__seen_comment_ids.add(comment["thingid"])
-                    comment["depth"] = str(int(comment["depth"]) + depth_offset)
-                else:
-                    continue
-                
-                if int(comment["depth"]) > self.__max_comments_depth:
-                    continue
-                
-                if int(comment["depth"]) <= self.__max_comments_depth:
-                    if int(comment["depth"]) == 0:
-                        if self.__posts_comments_counts[post_id]["total"] < self.__max_comments_per_post and self.__posts_comments_counts[post_id]["top"] < self.__max_top_comments_per_post:
-                            await self.__items_queue.put(comment)
-                            self.__posts_comments_counts[post_id]["total"] += 1
-                            self.__posts_comments_counts[post_id]["top"] += 1
-                    else:
-                        if self.__posts_comments_counts[post_id]["total"] < self.__max_comments_per_post:
-                            await self.__items_queue.put(comment)
-                            self.__posts_comments_counts[post_id]["total"] += 1
-            
+                # Claiming is synchronous, so the per-post counters and the
+                # dedupe set stay consistent even when multiple pagination
+                # sub-tasks reach these lines concurrently.
+                depth = self.__claim_comment(post_id, comment, depth_offset)
+                if depth is not None:
+                    comment["depth"] = str(depth)
+                    await self.__items_queue.put(comment)
+
             children_comments_elements = soup.select('#comment-children > faceplate-partial[slot="children"]')
             children_comments_urls_and_cursors: list[tuple[str]] = []
             
@@ -801,25 +840,27 @@ class Reddrix:
             
             
             for item in children_comments_urls_and_cursors:
-                more.append(asyncio.create_task(self.__fetch_post(url=item[0], cursor=item[1], post_id=post_id)))
-            
+                more.append(asyncio.create_task(self.__fetch_post(url=item[0], cursor=item[1], depth_offset=depth_offset, post_id=post_id)))
+
             # Simulating single-thread comment pages visits
             single_thread_children_els = soup.select('div.fold-more:not(.hidden) a.more-comments-link')
             for el in single_thread_children_els:
                 parent_comment = el.find_parent("shreddit-comment")
-                depth_offset_ = int(parent_comment["depth"])
+                # The parent's depth is relative to this page, so add the page's
+                # own offset to keep offsets cumulative across nested pages.
+                depth_offset_ = depth_offset + int(parent_comment["depth"])
                 children_url = "https://www.reddit.com" + unescape(el.get("href"))
                 more.append(asyncio.create_task(self.__fetch_post(children_url, depth_offset=depth_offset_, post_id=post_id)))
-            
-            
+
+
             # Simulating the automatic scroll more comments loading
             automatic_more_comments_element = soup.select_one("#top-level-more-comments-partial")  
             if automatic_more_comments_element:
                 cursor_el = automatic_more_comments_element.select_one('input[name="cursor"]')
                 cursor_val = cursor_el["value"]
                 automatic_more_comments_url = "https://www.reddit.com" + unescape(automatic_more_comments_element.get("src"))
-                more.append(asyncio.create_task(self.__fetch_post(automatic_more_comments_url, cursor=cursor_val, post_id=post_id)))
-            
+                more.append(asyncio.create_task(self.__fetch_post(automatic_more_comments_url, cursor=cursor_val, depth_offset=depth_offset, post_id=post_id)))
+
             # Simulating the manual more comments button if needed
             faceplate_partials_elements = soup.select('faceplate-partial.more-comments-partial[loading="action"]')
             if faceplate_partials_elements:
@@ -831,7 +872,7 @@ class Reddrix:
                 manual_more_comments_url = "https://www.reddit.com" + unescape(manual_more_comments_element.get("src"))
                 cursor_el = manual_more_comments_element.select_one('input[name="cursor"]')
                 cursor_val = cursor_el["value"]
-                more.append(asyncio.create_task(self.__fetch_post(manual_more_comments_url, cursor=cursor_val, post_id=post_id)))
+                more.append(asyncio.create_task(self.__fetch_post(manual_more_comments_url, cursor=cursor_val, depth_offset=depth_offset, post_id=post_id)))
             
             # Waiting for all comments to finish for the post
             if more:

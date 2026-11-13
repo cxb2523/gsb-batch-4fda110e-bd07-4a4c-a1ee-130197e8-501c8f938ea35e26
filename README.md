@@ -75,6 +75,15 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 ```
 
+## Running the Tests
+
+The comment pagination tests are fully offline: they build their own Reddit-shaped HTML (`shreddit-post`, `shreddit-comment` and pagination partials) and replace the network calls with fakes.
+
+```bash
+pip install pytest
+pytest
+```
+
 ## Quickstart
 
 **Using Async Context Manager:**
