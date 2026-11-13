@@ -1,6 +1,7 @@
 import ast
 import glob
 import os
+import shutil
 
 import toml
 
@@ -485,6 +486,14 @@ with open("playwright-python/playwright/_impl/_browser_context.py") as f:
     browser_context_source = f.read()
     browser_context_tree = ast.parse(browser_context_source)
 
+    # Import the stable injection-route status constants and state container.
+    browser_context_tree.body.insert(
+        1,
+        ast.parse(
+            "from playwright._impl._inject_route_state import InjectRouteState, InjectRouteStatus"
+        ).body[0],
+    )
+
     for node in ast.walk(browser_context_tree):
         if isinstance(node, ast.ClassDef) and node.name == "BrowserContext":
             for class_node in node.body:
@@ -514,11 +523,45 @@ if not has_listeners:
                     targets=[ast.Name(id='route_injecting', ctx=ast.Store())],
                     value=ast.Constant(value=False))
             )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_status', ctx=ast.Store())],
+                    value=ast.Attribute(
+                        value=ast.Name(id='InjectRouteStatus', ctx=ast.Load()),
+                        attr='NOT_INSTALLED',
+                        ctx=ast.Load(),
+                    ),
+                )
+            )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_error', ctx=ast.Store())],
+                    value=ast.Constant(value=None),
+                )
+            )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_future', ctx=ast.Store())],
+                    value=ast.Constant(value=None),
+                )
+            )
 
             node.body.append(
                 ast.parse("""\
 async def install_inject_route(self) -> None:
     from patchright._impl._impl_to_api_mapping import ImplToApiMapping
+
+    # Already installed: return success without mounting another route.
+    if self._inject_route_status == InjectRouteStatus.INSTALLED:
+        return
+
+    # An installation attempt is already running (possibly concurrently):
+    # await its result instead of starting a second one, so concurrent
+    # calls can never produce more than one route on the same object.
+    if self._inject_route_future is not None:
+        await self._inject_route_future
+        return
+
     mapping = ImplToApiMapping()
 
     async def route_handler(route: Route) -> None:
@@ -530,22 +573,57 @@ async def install_inject_route(self) -> None:
             except:
                 await route.fallback()
 
-    if not self.route_injecting:
-        if self._connection._is_sync:
-            self._routes.insert(
-                0,
-                RouteHandler(
-                    self._options.get("baseURL"),
-                    "**/*",
-                    mapping.wrap_handler(route_handler),
-                    False,
-                    None,
-                ),
-            )
+    self._inject_route_status = InjectRouteStatus.INSTALLING
+    self._inject_route_error = None
+    self._inject_route_future = asyncio.get_running_loop().create_future()
+    try:
+        # Mount the route directly (sync and async API alike) so a failure
+        # of _update_interception_patterns() can be rolled back: the handler
+        # is removed again, leaving no partial route behind and allowing a
+        # clean retry on the next install_inject_route() call.
+        route_handler_entry = RouteHandler(
+            self._options.get("baseURL"),
+            "**/*",
+            mapping.wrap_handler(route_handler),
+            False,
+            None,
+        )
+        self._routes.insert(0, route_handler_entry)
+        try:
             await self._update_interception_patterns()
-        else:
-            await self.route("**/*", mapping.wrap_handler(route_handler))
-        self.route_injecting = True""").body[0])
+        except BaseException:
+            self._routes.remove(route_handler_entry)
+            raise
+        self.route_injecting = True
+        self._inject_route_status = InjectRouteStatus.INSTALLED
+        self._inject_route_future.set_result(None)
+    except BaseException as exc:
+        # Keep the failure reason so get_inject_route_state() can report it.
+        # The state stays FAILED so the next install_inject_route() call retries.
+        self._inject_route_status = InjectRouteStatus.FAILED
+        self._inject_route_error = str(exc) or repr(exc)
+        if not self._inject_route_future.done():
+            self._inject_route_future.set_exception(exc)
+            # Mark the exception as retrieved so an un-awaited attempt
+            # (e.g. a single failing caller) does not emit a warning;
+            # concurrent callers awaiting the future still receive it.
+            self._inject_route_future.exception()
+        raise
+    finally:
+        self._inject_route_future = None
+
+async def get_inject_route_state(self) -> InjectRouteState:
+    return InjectRouteState(
+        status=self._inject_route_status,
+        error=self._inject_route_error,
+    )""").body[0])
+            node.body.append(
+                ast.parse("""\
+async def get_inject_route_state(self) -> InjectRouteState:
+    return InjectRouteState(
+        status=self._inject_route_status,
+        error=self._inject_route_error,
+    )""").body[0])
 
     patch_file("playwright-python/playwright/_impl/_browser_context.py", browser_context_tree)
 
@@ -553,6 +631,14 @@ async def install_inject_route(self) -> None:
 with open("playwright-python/playwright/_impl/_page.py") as f:
     page_source = f.read()
     page_tree = ast.parse(page_source)
+
+    # Import the stable injection-route status constants and state container.
+    page_tree.body.insert(
+        1,
+        ast.parse(
+            "from playwright._impl._inject_route_state import InjectRouteState, InjectRouteStatus"
+        ).body[0],
+    )
 
     for node in ast.walk(page_tree):
         if isinstance(node, ast.ClassDef) and node.name == "Page":
@@ -572,13 +658,68 @@ return self._video""").body
                     targets=[ast.Name(id='route_injecting', ctx=ast.Store())],
                     value=ast.Constant(value=False))
             )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_status', ctx=ast.Store())],
+                    value=ast.Attribute(
+                        value=ast.Name(id='InjectRouteStatus', ctx=ast.Load()),
+                        attr='NOT_INSTALLED',
+                        ctx=ast.Load(),
+                    ),
+                )
+            )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_error', ctx=ast.Store())],
+                    value=ast.Constant(value=None),
+                )
+            )
+            node.body.append(
+                ast.Assign(
+                    targets=[ast.Name(id='_inject_route_future', ctx=ast.Store())],
+                    value=ast.Constant(value=None),
+                )
+            )
 
             node.body.append(
                 ast.parse("""\
 async def install_inject_route(self) -> None:
     from patchright._impl._impl_to_api_mapping import ImplToApiMapping
+
+    # Already installed: return success without mounting another route.
+    if self._inject_route_status == InjectRouteStatus.INSTALLED:
+        return
+
+    # The owning context already covers this page with its injection route.
+    # Mark the page as installed as well, but do not mount a second route.
+    if self._browser_context._inject_route_status == InjectRouteStatus.INSTALLED:
+        self.route_injecting = True
+        self._inject_route_status = InjectRouteStatus.INSTALLED
+        return
+
+    # The context is installing right now: wait for that attempt instead of
+    # racing it with a page-level route. If it ends up installed, reuse it;
+    # if it failed, fall through and let the page install its own route.
+    context_future = self._browser_context._inject_route_future
+    if context_future is not None:
+        try:
+            await context_future
+        except BaseException:
+            pass
+        if self._browser_context._inject_route_status == InjectRouteStatus.INSTALLED:
+            self.route_injecting = True
+            self._inject_route_status = InjectRouteStatus.INSTALLED
+            return
+
+    # An installation attempt is already running (possibly concurrently):
+    # await its result instead of starting a second one, so concurrent
+    # calls can never produce more than one route on the same object.
+    if self._inject_route_future is not None:
+        await self._inject_route_future
+        return
+
     mapping = ImplToApiMapping()
-    
+
     async def route_handler(route: Route) -> None:
             try:
                 if route.request.resource_type == "document" and route.request.url.startswith("http"):
@@ -588,22 +729,57 @@ async def install_inject_route(self) -> None:
             except:
                 await route.fallback()
 
-    if not self.route_injecting and not self.context.route_injecting:
-        if self._connection._is_sync:
-            self._routes.insert(
-                0,
-                RouteHandler(
-                    self._browser_context._options.get("baseURL"),
-                    "**/*",
-                    mapping.wrap_handler(route_handler),
-                    False,
-                    None,
-                ),
-            )
+    self._inject_route_status = InjectRouteStatus.INSTALLING
+    self._inject_route_error = None
+    self._inject_route_future = asyncio.get_running_loop().create_future()
+    try:
+        # Mount the route directly (sync and async API alike) so a failure
+        # of _update_interception_patterns() can be rolled back: the handler
+        # is removed again, leaving no partial route behind and allowing a
+        # clean retry on the next install_inject_route() call.
+        route_handler_entry = RouteHandler(
+            self._browser_context._options.get("baseURL"),
+            "**/*",
+            mapping.wrap_handler(route_handler),
+            False,
+            None,
+        )
+        self._routes.insert(0, route_handler_entry)
+        try:
             await self._update_interception_patterns()
-        else:
-            await self.route("**/*", mapping.wrap_handler(route_handler))
-        self.route_injecting = True""").body[0])
+        except BaseException:
+            self._routes.remove(route_handler_entry)
+            raise
+        self.route_injecting = True
+        self._inject_route_status = InjectRouteStatus.INSTALLED
+        self._inject_route_future.set_result(None)
+    except BaseException as exc:
+        # Keep the failure reason so get_inject_route_state() can report it.
+        # The state stays FAILED so the next install_inject_route() call retries.
+        self._inject_route_status = InjectRouteStatus.FAILED
+        self._inject_route_error = str(exc) or repr(exc)
+        if not self._inject_route_future.done():
+            self._inject_route_future.set_exception(exc)
+            # Mark the exception as retrieved so an un-awaited attempt
+            # (e.g. a single failing caller) does not emit a warning;
+            # concurrent callers awaiting the future still receive it.
+            self._inject_route_future.exception()
+        raise
+    finally:
+        self._inject_route_future = None
+
+async def get_inject_route_state(self) -> InjectRouteState:
+    return InjectRouteState(
+        status=self._inject_route_status,
+        error=self._inject_route_error,
+    )""").body[0])
+            node.body.append(
+                ast.parse("""\
+async def get_inject_route_state(self) -> InjectRouteState:
+    return InjectRouteState(
+        status=self._inject_route_status,
+        error=self._inject_route_error,
+    )""").body[0])
 
         if isinstance(node, ast.AsyncFunctionDef) and node.name in ["evaluate", "evaluate_handle"]:
             node.args.kwonlyargs.append(ast.arg(
@@ -668,7 +844,28 @@ with open("playwright-python/playwright/async_api/_generated.py") as f:
     async_generated_source = f.read()
     async_generated_tree = ast.parse(async_generated_source)
 
+    # Import the state container returned by the public query methods.
+    async_generated_tree.body.insert(
+        1,
+        ast.parse(
+            "from playwright._impl._inject_route_state import InjectRouteState as InjectRouteStateImpl"
+        ).body[0],
+    )
+
     for class_node in ast.walk(async_generated_tree):
+        if isinstance(class_node, ast.ClassDef) and class_node.name in ["Page", "BrowserContext"]:
+            class_node.body.append(
+                ast.parse("""\
+async def install_inject_route(self) -> None:
+    await self._impl_obj.install_inject_route()""").body[0]
+            )
+            class_node.body.append(
+                ast.parse("""\
+async def get_inject_route_state(self) -> "InjectRouteStateImpl":
+    return mapping.from_maybe_impl(
+        await self._impl_obj.get_inject_route_state()
+    )""").body[0]
+            )
         if isinstance(class_node, ast.ClassDef) and class_node.name in ["Page", "Frame", "Worker", "Locator", "JSHandle"]:
             for node in class_node.body:
                 if isinstance(node, ast.AsyncFunctionDef) and (node.name in ["evaluate", "evaluate_handle"] or (class_node.name == "Locator" and node.name == "evaluate_all")):  # , "evaluate_all"
@@ -739,7 +936,28 @@ with open("playwright-python/playwright/sync_api/_generated.py") as f:
     async_generated_source = f.read()
     async_generated_tree = ast.parse(async_generated_source)
 
+    # Import the state container returned by the public query methods.
+    async_generated_tree.body.insert(
+        1,
+        ast.parse(
+            "from playwright._impl._inject_route_state import InjectRouteState as InjectRouteStateImpl"
+        ).body[0],
+    )
+
     for class_node in ast.walk(async_generated_tree):
+        if isinstance(class_node, ast.ClassDef) and class_node.name in ["Page", "BrowserContext"]:
+            class_node.body.append(
+                ast.parse("""\
+def install_inject_route(self) -> None:
+    self._sync(self._impl_obj.install_inject_route())""").body[0]
+            )
+            class_node.body.append(
+                ast.parse("""\
+def get_inject_route_state(self) -> "InjectRouteStateImpl":
+    return mapping.from_maybe_impl(
+        self._sync(self._impl_obj.get_inject_route_state())
+    )""").body[0]
+            )
         if isinstance(class_node, ast.ClassDef) and class_node.name in ["Page", "Frame", "Worker", "Locator", "JSHandle"]:
             for node in class_node.body:
                 if isinstance(node, ast.FunctionDef) and (node.name in ["evaluate", "evaluate_handle"] or (class_node.name == "Locator" and node.name == "evaluate_all")): # , "evaluate_all"
@@ -835,6 +1053,23 @@ for python_file in glob.glob("playwright-python/playwright/**.py") + glob.glob("
 
 # Rename the Package Folder to Patchright
 os.rename("playwright-python/playwright", "playwright-python/patchright")
+
+# Add the injection-route state module (status constants + state container)
+shutil.copyfile(
+    "patchright_assets/_inject_route_state.py",
+    "playwright-python/patchright/_impl/_inject_route_state.py",
+)
+
+# Re-export the injection-route status API from the public package namespaces
+for api_init_file in [
+    "playwright-python/patchright/async_api/__init__.py",
+    "playwright-python/patchright/sync_api/__init__.py",
+]:
+    with open(api_init_file, "a", encoding="utf-8") as f:
+        f.write(
+            "\nfrom patchright._impl._inject_route_state import "
+            "InjectRouteState, InjectRouteStatus\n"
+        )
 
 # Write the Projects README to the README which is used in the release
 with open("README.md", 'r', encoding='utf-8') as src:

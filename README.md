@@ -291,6 +291,35 @@ Locator.evaluate_all(
 )
 ```
 
+#### **Injection-Route Installation State** <sub>`BrowserContext`, `Page` (async & sync API)</sub>
+Patchright mounts an internal route (`install_inject_route()`) that attaches the injection script to document requests. Its installation state is now queryable and retryable through two public methods available on both `BrowserContext` and `Page`, with matching names in the async and sync APIs:
+
+```py
+# async
+await context.install_inject_route()          # install entry point (idempotent)
+state = await context.get_inject_route_state()
+# sync
+context.install_inject_route()
+state = context.get_inject_route_state()
+```
+
+`get_inject_route_state()` returns an `InjectRouteState(status, error)`. The `status` is one of the stable, assertion-comparable string constants exposed as `InjectRouteStatus`:
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `InjectRouteStatus.NOT_INSTALLED` | `"not_installed"` | The injection route has never been installed on this object. |
+| `InjectRouteStatus.INSTALLING` | `"installing"` | An installation attempt is currently in progress. |
+| `InjectRouteStatus.INSTALLED` | `"installed"` | The route was mounted successfully. |
+| `InjectRouteStatus.FAILED` | `"failed"` | The last attempt failed; `state.error` holds the failure reason as a string. |
+
+The constants are plain strings, so they compare directly, e.g. `assert state.status == InjectRouteStatus.INSTALLED` or `assert state.status == "installed"`.
+
+Retry and deduplication rules:
+- Calling `install_inject_route()` again after a failure starts a fresh attempt; a successful retry clears the stored error.
+- When the route is already `INSTALLED`, the call returns immediately as success and never mounts a second route.
+- Concurrent calls on the same object while an attempt is `INSTALLING` share that single attempt (via an internal future), so at most one route is ever mounted per object; if the attempt fails, every concurrent caller receives the error.
+- On `Page`, an already-installed context-level route is detected and the page does not add its own route.
+
 
 ---
 
