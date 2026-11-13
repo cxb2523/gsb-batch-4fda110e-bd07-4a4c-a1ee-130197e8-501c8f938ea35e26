@@ -1,0 +1,41 @@
+# lean-browser-use
+
+> Cut browser use cost by about 25% in Claude Code: fresh runner subagent, bulk reads, three guards and a token meter. One npx command
+
+Install: `npx lean-browser-use`
+
+Two measured runs cost 3.15% and 25.26% less with the package at list API prices, about 14.02% less pooled. About 25% cheaper is the rounded best of those two runs on one setup. Savings vary with model, task and session size; measure your own transcripts. A browser step re-reads about 3x fewer tokens per browser step. Everything run 1 read totalled 2,657,290 tokens in the plain arm and 2,846,792 in the runner arm: about 7% higher overall. Model, task and session size affect cost. The rough token break-even of about 16 browser steps is an estimate.
+
+## Docs
+
+- [Dollar costs, browser-step savings, whole-run totals, estimated break-even, and reproduction](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/benchmark.md)
+
+- [Installation, flags, health checks, and removal](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/install.md)
+- [How routing, packets, verification, and cleanup work](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/how-it-works.md)
+- [Guard rules, registration, and payload checks](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/guards.md)
+- [Cleanup steps for the runner and main session, with tab and process checks, evidence handoff, leases, hooks and the stop gate that blocks a turn left with run tabs open](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/cleanup.md#cleanup-steps)
+- [How to measure main and runner browser context](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/measure.md)
+
+## Reference
+
+- [Skill entrypoint and task routing](https://github.com/aunysillyme/lean-browser-use/blob/main/skills/lean-browser-use/SKILL.md)
+- [Route table with a complete subagent-only path](https://github.com/aunysillyme/lean-browser-use/blob/main/skills/lean-browser-use/references/route-by-job.md)
+- [Profile selection and logged-in tab handoff](https://github.com/aunysillyme/lean-browser-use/blob/main/skills/lean-browser-use/references/logged-in-run.md)
+- [Runner execution and evidence contract](https://github.com/aunysillyme/lean-browser-use/blob/main/agents/aun-browser-runner.md)
+- [Browser read packet template](https://github.com/aunysillyme/lean-browser-use/blob/main/briefs/browser-read.md)
+- [Cheap-helper read packet template](https://github.com/aunysillyme/lean-browser-use/blob/main/briefs/helper-read.md)
+- [Repository commands and tested rules](https://github.com/aunysillyme/lean-browser-use/blob/main/AGENTS.md)
+- [Package measurements and reproduction commands](https://github.com/aunysillyme/lean-browser-use/blob/main/proof/results.json)
+- [Public concept names and provenance](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/PROVENANCE.md)
+
+## Reader and search companions
+
+- [Compile-once reader setup and command contract](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/reader.md)
+- [SearXNG setup and link discovery](https://github.com/aunysillyme/lean-browser-use/blob/main/docs/search.md)
+- [Upstream contributions and licenses](https://github.com/aunysillyme/lean-browser-use/blob/main/CREDITS.md)
+- [Contribution workflow and useful changes](https://github.com/aunysillyme/lean-browser-use/blob/main/CONTRIBUTING.md)
+
+## Part of a set
+
+- [lean-browser-use: Cut browser use cost by about 25% in Claude Code: fresh runner subagent, bulk reads, three guards and a token meter. One npx command](https://github.com/aunysillyme/lean-browser-use/blob/main/README.md)
+- [lean-computer-use: Background Mac computer control for AI agents: desk tools, a fresh runner subagent, retry guards and a transcript token meter, installed with one command](https://github.com/aunysillyme/lean-computer-use)

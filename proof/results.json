@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "rows": [
+    {
+      "id": "runtime_dependencies",
+      "claim": "Runtime dependencies",
+      "value": 0,
+      "unit": "dependencies",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node scripts/proof.mjs"
+    },
+    {
+      "id": "tests_passing",
+      "claim": "Passing Node tests, including Python suite checks",
+      "value": 280,
+      "unit": "tests",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node --test --experimental-test-isolation=none test/budgets.test.mjs test/docs.test.mjs test/doctor.test.mjs test/gate.test.mjs test/guards.test.mjs test/install.test.mjs test/measure.test.mjs test/pack.test.mjs test/proof.test.mjs test/python.test.mjs test/redproof.test.mjs test/website-build.test.mjs test/website-check.test.mjs test/website-copy.test.mjs test/website-facts.test.mjs test/website-interactions.test.mjs"
+    },
+    {
+      "id": "tests_failing",
+      "claim": "Failing Node tests at measurement time",
+      "value": 0,
+      "unit": "tests",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node --test --experimental-test-isolation=none test/budgets.test.mjs test/docs.test.mjs test/doctor.test.mjs test/gate.test.mjs test/guards.test.mjs test/install.test.mjs test/measure.test.mjs test/pack.test.mjs test/proof.test.mjs test/python.test.mjs test/redproof.test.mjs test/website-build.test.mjs test/website-check.test.mjs test/website-copy.test.mjs test/website-facts.test.mjs test/website-interactions.test.mjs"
+    },
+    {
+      "id": "guard_rules",
+      "claim": "Blocking guard rules verified by the suite",
+      "value": 7,
+      "unit": "rules",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node --test --experimental-test-isolation=none test/budgets.test.mjs test/docs.test.mjs test/doctor.test.mjs test/gate.test.mjs test/guards.test.mjs test/install.test.mjs test/measure.test.mjs test/pack.test.mjs test/proof.test.mjs test/python.test.mjs test/redproof.test.mjs test/website-build.test.mjs test/website-check.test.mjs test/website-copy.test.mjs test/website-facts.test.mjs test/website-interactions.test.mjs"
+    },
+    {
+      "id": "guard_ms_median",
+      "claim": "Median wall time per guard via its shim over 50 calls",
+      "value": {
+        "pick-guard": 42.269,
+        "retry-guard": 44.279,
+        "batch-nudge": 46.268
+      },
+      "unit": "ms",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node scripts/proof.mjs"
+    },
+    {
+      "id": "install_ms",
+      "claim": "Install wall time into a new temporary config directory",
+      "value": 62.026,
+      "unit": "ms",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "node scripts/proof.mjs"
+    },
+    {
+      "id": "tarball_bytes",
+      "claim": "Packed tarball size reported before this proof refresh",
+      "value": 94492,
+      "unit": "bytes",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "npm pack --dry-run --json"
+    },
+    {
+      "id": "tarball_files",
+      "claim": "Files in the packed tarball",
+      "value": 82,
+      "unit": "files",
+      "measured": "2026-10-25",
+      "expires": "2027-01-25",
+      "how": "npm pack --dry-run --json"
+    },
+    {
+      "id": "paired_step_tokens_plain",
+      "claim": "Plain session median input-context tokens per browser step",
+      "value": 188487,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_step_tokens_runner",
+      "claim": "Runner median input-context tokens per browser step",
+      "value": 59725,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_step_ratio",
+      "claim": "Plain-to-runner median browser-step token ratio",
+      "value": 3.16,
+      "unit": "ratio",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_task_tokens_plain",
+      "claim": "Plain arm total browser-step tokens",
+      "value": 1506374,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_task_tokens_runner_arm",
+      "claim": "Runner arm total browser-step tokens",
+      "value": 725151,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_task_ratio",
+      "claim": "Plain-to-runner arm total browser-step tokens ratio",
+      "value": 2.08,
+      "unit": "ratio",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_run_tokens_plain",
+      "claim": "Plain arm whole-run input-context tokens",
+      "value": 2657290,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_run_tokens_runner_arm",
+      "claim": "Runner arm whole-run input-context tokens",
+      "value": 2846792,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_run_ratio",
+      "claim": "Plain-to-runner whole-run input-context token ratio",
+      "value": 0.93,
+      "unit": "ratio",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_break_even_steps",
+      "claim": "Estimated break-even browser steps (an estimate from two data points; no run longer than 9 browser steps was measured)",
+      "value": 15.54,
+      "unit": "steps",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_run_tokens_plain",
+      "claim": "Small task (one page, 4 browser steps), native Claude in Chrome: whole-run input-context tokens",
+      "value": 1133195,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_run_tokens_runner_arm",
+      "claim": "Small task (one page), with the package, main session plus runner: whole-run input-context tokens",
+      "value": 1241361,
+      "unit": "tokens",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_run_ratio",
+      "claim": "Small task: plain-to-package whole-run input-context token ratio",
+      "value": 0.91,
+      "unit": "ratio",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_step_ratio",
+      "claim": "Small task: plain median browser step to runner median browser step token ratio",
+      "value": 3.26,
+      "unit": "ratio",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_cost_usd_plain",
+      "claim": "Run 1 plain arm dollar cost at list API prices",
+      "value": 0.5975,
+      "unit": "usd",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_cost_usd_runner_arm",
+      "claim": "Run 1 runner arm dollar cost at list API prices",
+      "value": 0.5787,
+      "unit": "usd",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_cost_usd_plain",
+      "claim": "Run 2 plain arm dollar cost at list API prices",
+      "value": 0.5779,
+      "unit": "usd",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_small_cost_usd_runner_arm",
+      "claim": "Run 2 runner arm dollar cost at list API prices",
+      "value": 0.4319,
+      "unit": "usd",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_cost_best_saving_percent",
+      "claim": "Best dollar saving in two measured runs on one setup",
+      "value": 25.26,
+      "unit": "percent",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    },
+    {
+      "id": "paired_cost_pooled_saving_percent",
+      "claim": "Pooled dollar saving across two measured runs on one setup",
+      "value": 14.02,
+      "unit": "percent",
+      "measured": "2026-10-25",
+      "how": "see docs/benchmark.md"
+    }
+  ]
+}

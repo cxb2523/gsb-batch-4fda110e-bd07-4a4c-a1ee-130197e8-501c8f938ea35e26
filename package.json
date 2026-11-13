@@ -1,0 +1,63 @@
+{
+  "name": "lean-browser-use",
+  "version": "0.1.4",
+  "description": "Cut browser use cost by about 25% in Claude Code: fresh runner subagent, bulk reads, three guards and a token meter. One npx command",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "lean-browser-use": "bin/lean-browser-use.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "agents",
+    "briefs",
+    "hooks",
+    "reader",
+    "searxng",
+    "proof",
+    "docs",
+    "!docs/trailer.gif",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "CREDITS.md",
+    "llms.txt"
+  ],
+  "scripts": {
+    "test": "node --test test/",
+    "check": "node scripts/check.mjs",
+    "proof": "node scripts/proof.mjs"
+  },
+  "repository": "git+https://github.com/aunysillyme/lean-browser-use.git",
+  "homepage": "https://github.com/aunysillyme/lean-browser-use#readme",
+  "bugs": {
+    "url": "https://github.com/aunysillyme/lean-browser-use/issues"
+  },
+  "funding": "https://github.com/sponsors/aunysillyme",
+  "keywords": [
+    "browser-use",
+    "browser-automation",
+    "claude-code",
+    "ai-agents",
+    "subagent",
+    "token-efficiency",
+    "mcp",
+    "claude-in-chrome",
+    "web-scraping",
+    "hooks",
+    "llm-cost",
+    "context-window",
+    "claude-code-hooks",
+    "claude-code-subagent",
+    "browser-agent",
+    "token-usage",
+    "agent-skill",
+    "crawl4ai",
+    "searxng"
+  ]
+}

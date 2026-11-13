@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "measured": "2026-10-25",
+  "conditions": {
+    "task": "Open https://news.ycombinator.com, read the titles and comment counts of the top 5 stories, then open https://example.com and read its h1. Both arms found that example.com has no h1 and reported the page title.",
+    "arms": {
+      "plain": "Browser work in the main session.",
+      "runner": "Same task through the lean-browser-use skill and fresh runner, with the package installed project-scoped in a scratch project."
+    },
+    "models": "Main session claude-sonnet-5-5 in both arms; runner subagent claude-haiku-5-5.",
+    "tools": "In-app Browser pane tools (mcp__Claude_Browser__*); lean-browser-use measure 0.1.0 over each arm transcripts.",
+    "method": "One paired run. Per-step values are median input-context tokens; task values sum input-context tokens across browser steps, including main-session browser steps in the runner arm. Whole-run context totals cover every call in each arm. Counts include fresh input, cache creation and cache read tokens; output is separate.",
+    "one_paired_run": true
+  },
+  "arms": {
+    "plain": {
+      "step_tokens": 188487,
+      "task_tokens": 1506374,
+      "browser_steps": {
+        "main": 8
+      },
+      "whole_run": {
+        "calls": 14,
+        "fresh_input": 28,
+        "cache_creation": 129118,
+        "cache_read": 2528144,
+        "context_total": 2657290,
+        "output": 2188
+      }
+    },
+    "runner": {
+      "step_tokens": 59725,
+      "task_tokens": 725151,
+      "browser_steps": {
+        "main": 1,
+        "runner": 9
+      },
+      "whole_run": {
+        "calls": 23,
+        "fresh_input": 46,
+        "cache_creation": 195388,
+        "cache_read": 2651358,
+        "context_total": 2846792,
+        "output": 5905,
+        "model_split": {
+          "main_claude_sonnet_5_5": {
+            "calls": 11,
+            "context_total": 2134331,
+            "output": 2968
+          },
+          "runner_claude_haiku_5_5": {
+            "calls": 12,
+            "context_total": 712461,
+            "output": 2937
+          }
+        }
+      }
+    }
+  },
+  "derived": {
+    "whole_run_ratio": 0.93,
+    "delta_percent": 7.13,
+    "break_even_browser_steps": 15.54,
+    "estimate": true
+  },
+  "small_task": {
+    "measured": "2026-10-25",
+    "task": "Open https://example.com, read the page title and the first sentence of the body, close the tab. Claude in Chrome tools in both tests, same Chrome profile, scratch folders under the same user config.",
+    "test_a_native": {
+      "calls": 6,
+      "context_total": 1133195,
+      "output": 734,
+      "browser_steps": {
+        "main": 4,
+        "median": 189084,
+        "total": 757290
+      },
+      "model": "claude-sonnet-5-5"
+    },
+    "test_b_package": {
+      "calls": 10,
+      "context_total": 1241361,
+      "output": 2846,
+      "main": {
+        "calls": 5,
+        "context_total": 956151,
+        "model": "claude-sonnet-5-5"
+      },
+      "runner": {
+        "calls": 5,
+        "context_total": 285210,
+        "model": "claude-haiku-5-5"
+      },
+      "browser_steps": {
+        "main": 1,
+        "runner": 4,
+        "runner_median": 58057,
+        "runner_total": 226289,
+        "main_step": 190532
+      }
+    },
+    "derived": {
+      "per_step_ratio": 3.26,
+      "whole_run_ratio": 0.91,
+      "whole_run_delta_percent": 9.55
+    }
+  },
+  "cost_usd": {
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "pricing_read": "2026-10-25",
+    "price_unit": "usd_per_million_tokens",
+    "prices": {
+      "claude-sonnet-5-5": {
+        "input": 2,
+        "cache_write_5m": 2.5,
+        "cache_read": 0.1,
+        "output": 10
+      },
+      "claude-haiku-5-5": {
+        "input": 0.1,
+        "cache_write_5m": 0.125,
+        "cache_read": 0.01,
+        "output": 0.5,
+        "max_prompt_tokens": 100000
+      }
+    },
+    "cache_write_assumed": "5m",
+    "method": "List API prices applied per model call, then summed by arm. Recorded arm totals and model splits are quoted to four decimal places; split rounding may differ from the arm total.",
+    "run1": {
+      "plain": {
+        "total": 0.5975,
+        "model_split": {
+          "claude-sonnet-5-5": 0.5975
+        }
+      },
+      "runner": {
+        "total": 0.5787,
+        "model_split": {
+          "claude-sonnet-5-5": 0.5629,
+          "claude-haiku-5-5": 0.0157
+        }
+      }
+    },
+    "run2": {
+      "plain": {
+        "total": 0.5779,
+        "model_split": {
+          "claude-sonnet-5-5": 0.5779
+        }
+      },
+      "runner": {
+        "total": 0.4319,
+        "model_split": {
+          "claude-sonnet-5-5": 0.4215,
+          "claude-haiku-5-5": 0.0104
+        }
+      }
+    },
+    "derived": {
+      "run1_percent": -3.15,
+      "run2_percent": -25.26,
+      "pooled_percent": -14.02,
+      "best_percent": 25.26
+    }
+  }
+}
