@@ -1,0 +1,242 @@
+# Spider Cloud Rust SDK
+
+The Spider Cloud Rust SDK offers a toolkit for straightforward website scraping, crawling at scale, and other utilities like extracting links and taking screenshots, enabling you to collect data formatted for compatibility with language models (LLMs). It features a user-friendly interface for seamless integration with the Spider Cloud API.
+
+## Installation
+
+To use the Spider Cloud Rust SDK, include the following in your `Cargo.toml`:
+
+```toml
+[dependencies]
+spider-client = "0.1"
+```
+
+## Usage
+
+1. Get an API key from [spider.cloud](https://spider.cloud)
+2. Set the API key as an environment variable named `SPIDER_API_KEY` or pass it as an argument when creating an instance of the `Spider` struct.
+
+Here's an example of how to use the SDK:
+
+```rust
+use serde_json::json;
+use std::env;
+
+#[tokio::main]
+async fn main() {
+    // Set the API key as an environment variable
+    env::set_var("SPIDER_API_KEY", "your_api_key");
+
+    // Initialize the Spider with your API key
+    let spider = Spider::new(None).expect("API key must be provided");
+
+    let url = "https://spider.cloud";
+
+    // Scrape a single URL
+    let scraped_data = spider.scrape_url(url, None, false, "application/json").await.expect("Failed to scrape the URL");
+
+    println!("Scraped Data: {:?}", scraped_data);
+
+    // Crawl a website
+    let crawler_params = RequestParams {
+        limit: Some(1),
+        proxy_enabled: Some(true),
+        metadata: Some(false),
+        request: Some(RequestType::Http),
+        ..Default::default()
+    };
+
+    let crawl_result = spider.crawl_url(url, Some(crawler_params), false, "application/json", None::<fn(serde_json::Value)>).await.expect("Failed to crawl the URL");
+
+    println!("Crawl Result: {:?}", crawl_result);
+}
+```
+
+### Scraping a URL
+
+To scrape data from a single URL:
+
+```rust
+let url = "https://example.com";
+let scraped_data = spider.scrape_url(url, None, false, "application/json").await.expect("Failed to scrape the URL");
+```
+
+### Crawling a Website
+
+To automate crawling a website:
+
+```rust
+let url = "https://example.com";
+let crawl_params = RequestParams {
+    limit: Some(200),
+    request: Some(RequestType::Smart),
+    ..Default::default()
+};
+let crawl_result = spider.crawl_url(url, Some(crawl_params), false, "application/json", None::<fn(serde_json::Value)>).await.expect("Failed to crawl the URL");
+```
+
+#### Crawl Streaming
+
+Stream crawl the website in chunks to scale with a callback:
+
+```rust
+fn handle_json(json_obj: serde_json::Value) {
+    println!("Received chunk: {:?}", json_obj);
+}
+
+let url = "https://example.com";
+let crawl_params = RequestParams {
+    limit: Some(200),
+    ..Default::default()
+};
+
+spider.crawl_url(
+    url,
+    Some(crawl_params),
+    true,
+    "application/json",
+    Some(handle_json)
+).await.expect("Failed to crawl the URL");
+```
+
+### Search
+
+Perform a search for websites to crawl or gather search results:
+
+```rust
+let query = "a sports website";
+let crawl_params = RequestParams {
+    request: Some(RequestType::Smart),
+    search_limit: Some(5),
+    limit: Some(5),
+    fetch_page_content: Some(true),
+    ..Default::default()
+};
+let crawl_result = spider.search(query, Some(crawl_params), false, "application/json").await.expect("Failed to perform search");
+```
+
+### Retrieving Links from a URL(s)
+
+Extract all links from a specified URL:
+
+```rust
+let url = "https://example.com";
+let links = spider.links(url, None, false, "application/json").await.expect("Failed to retrieve links from URL");
+```
+
+### Transform
+
+Transform HTML to markdown or text lightning fast:
+
+```rust
+let data = vec![json!({"html": "<html><body><h1>Hello world</h1></body></html>"})];
+let params = RequestParams {
+    readability: Some(false),
+    return_format: Some(ReturnFormat::Markdown),
+    ..Default::default()
+};
+let result = spider.transform(data, Some(params), false, "application/json").await.expect("Failed to transform HTML to markdown");
+println!("Transformed Data: {:?}", result);
+```
+
+### Taking Screenshots of a URL(s)
+
+Capture a screenshot of a given URL:
+
+```rust
+let url = "https://example.com";
+let screenshot = spider.screenshot(url, None, false, "application/json").await.expect("Failed to take screenshot of URL");
+```
+
+### Checking Available Credits
+
+You can check the remaining credits on your account:
+
+```rust
+let credits = spider.get_credits().await.expect("Failed to get credits");
+println!("Remaining Credits: {:?}", credits);
+```
+
+### AI
+
+Guide crawling, scraping, search, browser automation, and link extraction with natural language prompts using `ai_crawl`, `ai_scrape`, `ai_search`, `ai_browser`, and `ai_links`. Requires an active [AI Studio subscription](https://spider.cloud/ai/pricing), billed separately from credits:
+
+```rust
+let url = "https://example.com";
+let scraped = spider.ai_scrape(url, "Extract the page title and main heading", None, "application/json").await.expect("Failed to AI scrape the URL");
+
+let results = spider.ai_search("Find the top Rust web frameworks", None, "application/json").await.expect("Failed to AI search");
+```
+
+### Unlimited
+
+`unlimited_scrape`, `unlimited_crawl`, and `unlimited_links` take the same parameters and return the same responses as `scrape_url`, `crawl_url`, and `links`, but run on the [Unlimited plan](https://spider.cloud/pricing?plan=unlimited) — a flat monthly rate billed by concurrency seats instead of per-request credits. There is no queueing: when all seats are in flight the API returns an immediate `429` with a `Retry-After` header, so retry with backoff (the SDK retries with exponential backoff automatically). AI/LLM extraction params are rejected with a `400`. See the [Unlimited docs](https://spider.cloud/docs/api/unlimited):
+
+```rust
+let url = "https://example.com";
+let scraped = spider.unlimited_scrape(url, None, "application/json").await.expect("Failed to scrape the URL");
+
+let crawl_result = spider.unlimited_crawl(url, None, false, "application/json", None::<fn(serde_json::Value)>).await.expect("Failed to crawl the URL");
+```
+
+## Streaming
+
+If you need to use streaming, set the `stream` parameter to `true` and provide a callback function:
+
+```rust
+fn handle_json(json_obj: serde_json::Value) {
+    println!("Received chunk: {:?}", json_obj);
+}
+
+let url = "https://example.com";
+let crawler_params = RequestParams {
+    limit: Some(1),
+    proxy_enabled: Some(true),
+    metadata: Some(false),
+    request: Some(RequestType::Http),
+    ..Default::default()
+};
+
+spider.links(url, Some(crawler_params), true, "application/json").await.expect("Failed to retrieve links from URL");
+```
+
+## Content-Type
+
+The following Content-type headers are supported using the `content_type` parameter:
+
+- `application/json`
+- `text/csv`
+- `application/xml`
+- `application/jsonl`
+
+```rust
+let url = "https://example.com";
+
+let crawler_params = RequestParams {
+    limit: Some(1),
+    proxy_enabled: Some(true),
+    metadata: Some(false),
+    request: Some(RequestType::Http),
+    ..Default::default()
+};
+
+// Stream JSON lines back to the client
+spider.crawl_url(url, Some(crawler_params), true, "application/jsonl", None::<fn(serde_json::Value)>).await.expect("Failed to crawl the URL");
+```
+
+## Error Handling
+
+The SDK handles errors returned by the Spider Cloud API and raises appropriate exceptions. If an error occurs during a request, it will be propagated to the caller with a descriptive error message.
+
+## Features
+
+1. `csv` handling content-type responses.
+1. `xml` handling content-type responses.
+
+## Contributing
+
+Contributions to the Spider Cloud Rust SDK are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on the GitHub repository.
+
+## License
+
+The Spider Cloud Rust SDK is open-source and released under the [MIT License](https://opensource.org/licenses/MIT).
