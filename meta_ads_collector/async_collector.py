@@ -18,6 +18,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .async_client import AsyncMetaAdsClient
+from .conclusion import (
+    END_REASON_COMPLETED,
+    END_REASON_DUPLICATE_CURSOR,
+    END_REASON_EMPTY_PAGES_LIMIT,
+    END_REASON_MAX_RESULTS,
+    END_REASON_REQUEST_ERROR,
+    CollectionConclusion,
+)
 from .constants import (
     AD_TYPE_ALL,
     AD_TYPE_CREDIT,
@@ -153,6 +161,9 @@ class AsyncMetaAdsCollector:
             "end_time": None,
         }
 
+        # Verifiable outcome of the most recent search() run.
+        self.collection_conclusion: CollectionConclusion | None = None
+
     async def _delay(self) -> None:
         """Apply async rate limiting delay with jitter."""
         import asyncio
@@ -254,9 +265,14 @@ class AsyncMetaAdsCollector:
         seen_cursors: set[str] = set()
         consecutive_empty_pages = 0
         collected = 0
+        duplicates_skipped = 0
+        filtered_out = 0
         page_number = 0
         search_completed = False
         had_parse_errors = False
+        # Why the run ended.  Defaults to a request error so any uncaught
+        # exception path is treated as an incomplete, resumable run.
+        end_reason = END_REASON_REQUEST_ERROR
         search_start_time = time.monotonic()
 
         search_session_id = str(uuid.uuid4())
@@ -277,6 +293,7 @@ class AsyncMetaAdsCollector:
         try:
             while True:
                 if max_results is not None and collected >= max_results:
+                    end_reason = END_REASON_MAX_RESULTS
                     break
 
                 retry_count = 0
@@ -380,12 +397,15 @@ class AsyncMetaAdsCollector:
                     raise response_error
 
                 if response is None:
+                    end_reason = END_REASON_REQUEST_ERROR
                     break
 
                 ads_data = response.get("ads", [])
 
                 if not ads_data and not next_cursor:
                     search_completed = not had_parse_errors
+                    if search_completed:
+                        end_reason = END_REASON_COMPLETED
                     break
 
                 self.event_emitter.emit(PAGE_FETCHED, {
@@ -397,6 +417,7 @@ class AsyncMetaAdsCollector:
                 if not ads_data:
                     consecutive_empty_pages += 1
                     if consecutive_empty_pages > 25:
+                        end_reason = END_REASON_EMPTY_PAGES_LIMIT
                         empty_pages_error = MetaAdsError(
                             "Exceeded 25 consecutive empty pages with pagination cursors"
                         )
@@ -413,21 +434,20 @@ class AsyncMetaAdsCollector:
                 for ad_data in ads_data:
                     if max_results is not None and collected >= max_results:
                         limit_reached = True
+                        end_reason = END_REASON_MAX_RESULTS
                         break
 
                     try:
                         ad = Ad.from_graphql_response(ad_data)
 
                         if dedup_tracker is not None and dedup_tracker.has_seen(ad.id):
-                            self.stats["duplicates_skipped"] = (
-                                self.stats.get("duplicates_skipped", 0) + 1
-                            )
+                            duplicates_skipped += 1
+                            self.stats["duplicates_skipped"] = duplicates_skipped
                             continue
 
                         if filter_config is not None and not passes_filter(ad, filter_config):
-                            self.stats["filtered_out"] = (
-                                self.stats.get("filtered_out", 0) + 1
-                            )
+                            filtered_out += 1
+                            self.stats["filtered_out"] = filtered_out
                             continue
 
                     except Exception as e:
@@ -468,13 +488,17 @@ class AsyncMetaAdsCollector:
 
                 if not next_cursor:
                     search_completed = not had_parse_errors
+                    if search_completed:
+                        end_reason = END_REASON_COMPLETED
                     break
 
                 if max_results is not None and collected >= max_results:
                     # The cursor proves that results remain beyond this limit.
+                    end_reason = END_REASON_MAX_RESULTS
                     break
 
                 if next_cursor in seen_cursors:
+                    end_reason = END_REASON_DUPLICATE_CURSOR
                     repeated_cursor_error = MetaAdsError(
                         f"Repeated pagination cursor detected: {next_cursor!r}"
                     )
@@ -496,10 +520,26 @@ class AsyncMetaAdsCollector:
                 if search_completed:
                     dedup_tracker.update_collection_time()
                 dedup_tracker.save()
+
+            # Record a verifiable conclusion for this run.  Only a run that
+            # exhausted every page is considered complete.
+            self.collection_conclusion = CollectionConclusion(
+                ads_collected=collected,
+                duplicates_skipped=duplicates_skipped,
+                filtered_out=filtered_out,
+                pages_fetched=page_number,
+                completed=search_completed,
+                end_reason=end_reason,
+                errors=self.stats.get("errors", 0),
+                requests_made=self.stats.get("requests_made", 0),
+            )
+
             self.event_emitter.emit(COLLECTION_FINISHED, {
                 "total_ads": collected,
                 "total_pages": page_number,
                 "duration_seconds": duration,
+                "completed": search_completed,
+                "end_reason": end_reason,
             })
 
     async def collect(
@@ -628,6 +668,17 @@ class AsyncMetaAdsCollector:
             if duration > 0:
                 stats["ads_per_second"] = stats["ads_collected"] / duration
         return stats
+
+    def get_collection_conclusion(self) -> CollectionConclusion | None:
+        """Return the conclusion of the most recent :meth:`search` run.
+
+        Returns ``None`` if no search has been run yet.
+        """
+        return self.collection_conclusion
+
+    def get_last_collection_conclusion(self) -> CollectionConclusion | None:
+        """Alias for :meth:`get_collection_conclusion`."""
+        return self.collection_conclusion
 
     async def close(self) -> None:
         """Close the collector and cleanup resources."""

@@ -105,3 +105,54 @@ with DeduplicationTracker(mode="persistent", db_path="state.db") as tracker:
     tracker.mark_seen("12345")
     # Automatically saves and closes on exit
 ```
+
+## Collection conclusions (resumable runs)
+
+Every `search()` run records a verifiable
+`CollectionConclusion`, available through
+`collector.get_collection_conclusion()` (returns `None` before the first
+run). It carries more than the final ad count:
+
+| Field | Meaning |
+|---|---|
+| `ads_collected` | Ads produced (yielded) by this run |
+| `duplicates_skipped` | Ads skipped because the tracker had already seen them |
+| `filtered_out` | Ads removed by client-side filters |
+| `pages_fetched` | Successfully fetched response pages |
+| `completed` | `True` only when pagination was exhausted normally |
+| `end_reason` | Machine-readable end reason (`END_REASON_*` constant) |
+| `end_reason_label` | Human-readable label for the end reason |
+| `errors` / `requests_made` | Error count and attempted requests (including retries) |
+
+The five end reasons are:
+
+| Constant | Label | Complete? |
+|---|---|---|
+| `END_REASON_COMPLETED` | 完整结束 | yes |
+| `END_REASON_MAX_RESULTS` | 达到上限 | no |
+| `END_REASON_DUPLICATE_CURSOR` | 重复游标 | no, raises `MetaAdsError` |
+| `END_REASON_EMPTY_PAGES_LIMIT` | 连续空页超限 | no, raises `MetaAdsError` |
+| `END_REASON_REQUEST_ERROR` | 请求错误 | no |
+
+Only a `completed` run advances the `collection_runs` timestamp in the
+SQLite state database. A run that stops at `max_results`, raises on a
+repeated cursor or on more than 25 consecutive empty pages, or aborts on a
+request error leaves the last-collection time untouched, so the same query
+can be resumed later and already-seen ads are skipped automatically.
+
+```python
+from meta_ads_collector import (
+    MetaAdsCollector, DeduplicationTracker,
+    END_REASON_COMPLETED, END_REASON_MAX_RESULTS,
+)
+
+tracker = DeduplicationTracker(mode="persistent", db_path="state.db")
+with MetaAdsCollector() as collector:
+    ads = list(collector.search(query="crypto", dedup_tracker=tracker))
+
+conclusion = collector.get_collection_conclusion()
+print(conclusion.to_dict())
+if conclusion.end_reason == END_REASON_MAX_RESULTS:
+    print("Truncated by max_results; last-collection time was not advanced.")
+tracker.close()
+```

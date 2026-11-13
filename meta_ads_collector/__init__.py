@@ -2,6 +2,17 @@
 
 from .client import MetaAdsClient
 from .collector import MetaAdsCollector
+from .conclusion import (
+    ABNORMAL_END_REASONS,
+    ALL_END_REASONS,
+    END_REASON_COMPLETED,
+    END_REASON_DUPLICATE_CURSOR,
+    END_REASON_EMPTY_PAGES_LIMIT,
+    END_REASON_LABELS,
+    END_REASON_MAX_RESULTS,
+    END_REASON_REQUEST_ERROR,
+    CollectionConclusion,
+)
 from .dedup import DeduplicationTracker
 from .events import (
     AD_COLLECTED,
@@ -53,6 +64,16 @@ __all__ = [
     "FilterConfig",
     "passes_filter",
     "DeduplicationTracker",
+    # Collection conclusions
+    "CollectionConclusion",
+    "END_REASON_COMPLETED",
+    "END_REASON_MAX_RESULTS",
+    "END_REASON_DUPLICATE_CURSOR",
+    "END_REASON_EMPTY_PAGES_LIMIT",
+    "END_REASON_REQUEST_ERROR",
+    "END_REASON_LABELS",
+    "ABNORMAL_END_REASONS",
+    "ALL_END_REASONS",
     # Events
     "Event",
     "EventEmitter",

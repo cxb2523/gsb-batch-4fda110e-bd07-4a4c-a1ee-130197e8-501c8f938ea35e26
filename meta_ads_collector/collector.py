@@ -16,6 +16,14 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
 from .client import MetaAdsClient
+from .conclusion import (
+    END_REASON_COMPLETED,
+    END_REASON_DUPLICATE_CURSOR,
+    END_REASON_EMPTY_PAGES_LIMIT,
+    END_REASON_MAX_RESULTS,
+    END_REASON_REQUEST_ERROR,
+    CollectionConclusion,
+)
 from .constants import (
     AD_TYPE_ALL,
     AD_TYPE_CREDIT,
@@ -154,6 +162,10 @@ class MetaAdsCollector:
             "start_time": None,
             "end_time": None,
         }
+
+        # Verifiable outcome of the most recent search() run.
+        # Populated in the generator's finalisation block once the run ends.
+        self.collection_conclusion: Optional[CollectionConclusion] = None
 
     def search_pages(
         self,
@@ -362,9 +374,14 @@ class MetaAdsCollector:
         seen_cursors: set[str] = set()
         consecutive_empty_pages = 0
         collected = 0
+        duplicates_skipped = 0
+        filtered_out = 0
         page_number = 0
         search_completed = False
         had_parse_errors = False
+        # Why the run ended.  Defaults to a request error so any uncaught
+        # exception path is treated as an incomplete, resumable run.
+        end_reason = END_REASON_REQUEST_ERROR
         search_start_time = time.monotonic()
 
         # Generate consistent session_id and collation_token for the entire search
@@ -389,6 +406,7 @@ class MetaAdsCollector:
                 # Check if we've hit our limit
                 if max_results is not None and collected >= max_results:
                     logger.info(f"Reached max_results limit: {max_results}")
+                    end_reason = END_REASON_MAX_RESULTS
                     break
 
                 # Make the API request with retry logic
@@ -505,6 +523,7 @@ class MetaAdsCollector:
 
                 if response is None:
                     logger.error("No response received after retries")
+                    end_reason = END_REASON_REQUEST_ERROR
                     break
 
                 # Process results
@@ -513,6 +532,8 @@ class MetaAdsCollector:
                 if not ads_data and not next_cursor:
                     logger.info("No more results returned")
                     search_completed = not had_parse_errors
+                    if search_completed:
+                        end_reason = END_REASON_COMPLETED
                     break
 
                 self.event_emitter.emit(PAGE_FETCHED, {
@@ -524,6 +545,7 @@ class MetaAdsCollector:
                 if not ads_data:
                     consecutive_empty_pages += 1
                     if consecutive_empty_pages > 25:
+                        end_reason = END_REASON_EMPTY_PAGES_LIMIT
                         empty_pages_error = MetaAdsError(
                             "Exceeded 25 consecutive empty pages with pagination cursors"
                         )
@@ -540,6 +562,7 @@ class MetaAdsCollector:
                 for ad_data in ads_data:
                     if max_results is not None and collected >= max_results:
                         limit_reached = True
+                        end_reason = END_REASON_MAX_RESULTS
                         break
 
                     try:
@@ -547,16 +570,14 @@ class MetaAdsCollector:
 
                         # Skip already-seen ads
                         if dedup_tracker is not None and dedup_tracker.has_seen(ad.id):
-                            self.stats["duplicates_skipped"] = (
-                                self.stats.get("duplicates_skipped", 0) + 1
-                            )
+                            duplicates_skipped += 1
+                            self.stats["duplicates_skipped"] = duplicates_skipped
                             continue
 
                         # Apply client-side filters
                         if filter_config is not None and not passes_filter(ad, filter_config):
-                            self.stats["filtered_out"] = (
-                                self.stats.get("filtered_out", 0) + 1
-                            )
+                            filtered_out += 1
+                            self.stats["filtered_out"] = filtered_out
                             continue
 
                     except Exception as e:
@@ -600,13 +621,17 @@ class MetaAdsCollector:
                 if not next_cursor:
                     logger.info("No more pages available")
                     search_completed = not had_parse_errors
+                    if search_completed:
+                        end_reason = END_REASON_COMPLETED
                     break
 
                 if max_results is not None and collected >= max_results:
                     # The cursor proves that results remain beyond this limit.
+                    end_reason = END_REASON_MAX_RESULTS
                     break
 
                 if next_cursor in seen_cursors:
+                    end_reason = END_REASON_DUPLICATE_CURSOR
                     repeated_cursor_error = MetaAdsError(
                         f"Repeated pagination cursor detected: {next_cursor!r}"
                     )
@@ -632,11 +657,28 @@ class MetaAdsCollector:
                 if search_completed:
                     dedup_tracker.update_collection_time()
                 dedup_tracker.save()
+
+            # Record a verifiable conclusion for this run.  Only a run that
+            # exhausted every page is considered complete; limit cut-offs,
+            # abnormal endings and errors remain resumable.
+            self.collection_conclusion = CollectionConclusion(
+                ads_collected=collected,
+                duplicates_skipped=duplicates_skipped,
+                filtered_out=filtered_out,
+                pages_fetched=page_number,
+                completed=search_completed,
+                end_reason=end_reason,
+                errors=self.stats.get("errors", 0),
+                requests_made=self.stats.get("requests_made", 0),
+            )
+
             logger.info(f"Search completed: {collected} ads collected")
             self.event_emitter.emit(COLLECTION_FINISHED, {
                 "total_ads": collected,
                 "total_pages": page_number,
                 "duration_seconds": duration,
+                "completed": search_completed,
+                "end_reason": end_reason,
             })
 
     def stream(
@@ -1197,6 +1239,24 @@ class MetaAdsCollector:
                 stats["ads_per_second"] = stats["ads_collected"] / duration
 
         return stats
+
+    def get_collection_conclusion(self) -> Optional[CollectionConclusion]:
+        """Return the conclusion of the most recent :meth:`search` run.
+
+        The conclusion is recorded when a search run ends -- either by
+        exhausting pagination, by reaching ``max_results``, or by raising an
+        error.  Returns ``None`` if no search has been run yet.
+
+        The returned :class:`~meta_ads_collector.conclusion.CollectionConclusion`
+        exposes the produced/skipped/filtered counts, the number of pages
+        fetched, whether pagination was fully consumed, and a distinguishable
+        end reason (see the ``END_REASON_*`` constants).
+        """
+        return self.collection_conclusion
+
+    def get_last_collection_conclusion(self) -> Optional[CollectionConclusion]:
+        """Alias for :meth:`get_collection_conclusion`."""
+        return self.collection_conclusion
 
     def close(self) -> None:
         """Close the collector and cleanup resources."""

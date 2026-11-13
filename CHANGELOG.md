@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Every `search()` run (sync `MetaAdsCollector` and `AsyncMetaAdsCollector`) now records a queryable
+  `CollectionConclusion`, exposed via `get_collection_conclusion()`. It contains the ads produced,
+  duplicates skipped, filtered-out count, pages fetched, whether pagination was fully consumed
+  (`completed`), and a distinguishable end reason: `completed`, `max_results_reached`,
+  `duplicate_cursor`, `empty_pages_limit`, or `request_error` (with Chinese labels in
+  `END_REASON_LABELS`). Repeated cursors and more than 25 consecutive empty pages remain abnormal
+  endings that raise `MetaAdsError`, now identifiable from the conclusion.
+- Resumable collection: with a persistent (`SQLite`, `db_path`) `DeduplicationTracker`, rerunning the
+  same query skips already-seen ads and counts them in `duplicates_skipped`. The last collection time
+  in `collection_runs` is advanced only after pagination is fully exhausted; `max_results` cut-offs,
+  abnormal endings, request errors, and early iterator closes leave it untouched so the run stays resumable.
+
 ## [1.7.2] - 2026-11-10
 
 ### Changed
