@@ -227,7 +227,11 @@ def quality_error(res):
     body = str(res.text or '').strip()
     title = str(res.title or '').strip()
     joined = body + '\n' + title
-    if not joined.strip() or (not body and not res.images and not res.videos and not res.items):
+    # A WeChat text/picture message (item_show_type 0/8/10) carries its content
+    # as pictures; an album with no words is still a complete article.
+    picture_message = (res.platform == 'wechat' and res.extra.get('wechat_item_show_type') in (0, 8, 10)
+                       and bool(res.images))
+    if (not joined.strip() and not picture_message) or (not body and not res.images and not res.videos and not res.items):
         return '正文为空或关键字段全缺'
     if body in ('[deleted]', '[removed]'):
         return '内容已删除'
@@ -240,7 +244,7 @@ def quality_error(res):
         return '登录、验证、删除或错误页'
     if title.strip().lower() in ('login', 'log in', 'sign in', 'just a moment...', 'facebook - log in or sign up'):
         return '登录或挑战页'
-    if not body and not res.author and not res.stats and not res.items:
+    if not body and not res.author and not res.stats and not res.items and not picture_message:
         return '只有页面标题，缺少正文和身份信息'
     return ''
 

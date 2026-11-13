@@ -2,11 +2,13 @@
 
 测试数据全部是编的，只保留各平台返回的字段形状。
 """
+import argparse
 import json
 import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 TMP = tempfile.mkdtemp(prefix='sourceboard-test-')
@@ -224,6 +226,183 @@ class Guards(unittest.TestCase):
         table = json.loads((sbconfig.LIB / 'prices.json').read_text(encoding='utf-8'))['endpoints']
         for platform, route in search.ROUTES.items():
             self.assertTrue(any(route[0].startswith(k) for k in table), platform)
+
+
+class WeChatMessages(unittest.TestCase):
+    """公众号消息页（纯文字/图集）用自造页面数据解析，不联网。"""
+
+    ARTICLE_URL = 'https://mp.weixin.qq.com/s?__biz=demo&mid=1&idx=1'
+
+    def scrape(self, html):
+        import platforms.wechat as wechat
+
+        class Response:
+            def __init__(self, text):
+                self.text = text
+                self.url = self.URL
+                self.status_code = 200
+
+        Response.URL = self.ARTICLE_URL
+        res = core.Result('wechat', self.ARTICLE_URL)
+        with unittest.mock.patch.object(wechat, 'get_with_retry', lambda *a, **k: Response(html)):
+            wechat.scrape(res, argparse.Namespace(with_comments=False))
+        return res
+
+    def test_text_message(self):
+        # 自造页面数据：纯文字消息（item_show_type = 0），正文在 text_page_info。
+        html = '''<html><head><meta property="og:title" content="页面标题不该覆盖数据标题"></head>
+<body><script>
+window.cgiDataNew = {
+  "item_show_type": 0,
+  "title": "一条纯文字消息",
+  "nick_name": "示例公众号",
+  "create_timestamp": "1790000000",
+  "cdn_url": "https://mmbiz.qpic.cn/cover/abc.jpg",
+  "user_info": {"head_img": "https://mmbiz.qpic.cn/avatar/head.jpg"},
+  "text_page_info": {"content_noencode": "<p>正文第一段</p><p>正文第二段</p><img data-src=\\"https://mmbiz.qpic.cn/body/pic1.jpg\\">"}
+};
+</script></body></html>'''
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'success')
+        self.assertEqual(res.title, '一条纯文字消息')
+        self.assertEqual(res.author, '示例公众号')
+        self.assertTrue(res.published.startswith('2026-09-21'), res.published)
+        self.assertIn('正文第一段', res.text)
+        self.assertEqual(res.images, ['https://mmbiz.qpic.cn/body/pic1.jpg'])
+        self.assertEqual(res.extra['cover_url'], 'https://mmbiz.qpic.cn/cover/abc.jpg')
+        self.assertNotIn('https://mmbiz.qpic.cn/avatar/head.jpg', res.images)
+        self.assertEqual(res.extra['wechat_item_show_type'], 0)
+
+    def test_picture_message_merges_and_deduplicates_images(self):
+        # 自造图集消息（item_show_type = 8、10）：条目图片 + 正文图片合并去重，
+        # 非 qpic.cn 的地址、嵌套水印地址、头像都不收。
+        template = '''<html><head><meta property="og:title" content="图集标题"></head>
+<body><script>
+window.cgiDataNew = {
+  "item_show_type": %d,
+  "title": "周末图集",
+  "nick_name": "示例图集号",
+  "create_timestamp": 1789000000,
+  "user_info": {"head_img": "https://mmbiz.qpic.cn/avatar/head.jpg"},
+  "picture_page_info_list": [
+    {"cdn_url": "https://mmbiz.qpic.cn/album/one.jpg", "watermark_img": "https://mmbiz.qpic.cn/wm/one.jpg"},
+    {"cdn_url": "https://mmbiz.qpic.cn/album/two.jpg"},
+    {"cdn_url": "https://example.com/not-qpic.jpg"},
+    {"cdn_url": "//mmbiz.qpic.cn/album/scheme-relative.jpg"},
+    {"cdn_url": "https://mmbiz.qpic.cn/album/one.jpg"}
+  ],
+  "text_page_info": {"content_noencode": "<img data-src=\\"https://mmbiz.qpic.cn/album/two.jpg\\"><img data-src=\\"https://mmbiz.qpic.cn/album/three.jpg\\">"}
+};
+</script></body></html>'''
+        for kind in (8, 10):
+            res = self.scrape(template % kind)
+            self.assertEqual(res.capabilities['content']['status'], 'success', kind)
+            self.assertEqual(res.title, '周末图集', kind)
+            self.assertEqual(res.author, '示例图集号', kind)
+            self.assertTrue(res.published, res.published)
+            self.assertEqual(res.images, ['https://mmbiz.qpic.cn/album/one.jpg',
+                                          'https://mmbiz.qpic.cn/album/two.jpg',
+                                          'https://mmbiz.qpic.cn/album/three.jpg'], kind)
+            self.assertNotIn('https://example.com/not-qpic.jpg', res.images, kind)
+            self.assertNotIn('https://mmbiz.qpic.cn/wm/one.jpg', res.images, kind)
+            self.assertNotIn('https://mmbiz.qpic.cn/avatar/head.jpg', res.images, kind)
+            self.assertNotIn('//mmbiz.qpic.cn/album/scheme-relative.jpg', res.images, kind)
+            self.assertNotIn('cover_url', res.extra, kind)  # 没有封面字段时不拿头像或图集条目顶替
+            self.assertEqual(res.extra['wechat_item_show_type'], kind)
+
+    def test_truncated_page_data_is_a_parse_failure_not_an_exception(self):
+        # 页面数据在字符串中间被截断，没有 #js_content：按结构变化失败，不抛到外层。
+        html = ('<html><body><script>window.cgiDataNew = {"item_show_type": 8, '
+                '"title": "被截断的图集", "nick_name": "示例号", "picture_page_info_list": ['
+                '{"cdn_url": "https://mmbiz.qpic.cn/album/one.jpg"')
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'connector_failed')
+        note = res.capabilities['content']['note']
+        self.assertIn('截断', note)
+        self.assertIn('结构变化', note)
+        self.assertEqual(res.text, '')
+        self.assertEqual(res.images, [])
+
+    def test_too_deep_page_data_is_a_parse_failure_not_an_exception(self):
+        # 页面数据嵌套过深：按结构变化失败，不抛到外层。
+        deep = 'window.cgiDataNew = ' + '{' * 60 + '"a": 1' + '}' * 60
+        res = self.scrape('<html><body><script>' + deep + ';</script></body></html>')
+        self.assertEqual(res.capabilities['content']['status'], 'connector_failed')
+        self.assertIn('结构变化', res.capabilities['content']['note'])
+
+    def test_other_type_with_js_content_stays_an_article(self):
+        # item_show_type 不是 0/8/10，但页面有 #js_content：照常提取普通文章。
+        html = '''<html><head>
+<meta property="og:title" content="一条普通图文">
+<meta property="og:image" content="https://mmbiz.qpic.cn/cover/article.jpg">
+</head><body>
+<script>window.cgiDataNew = {"item_show_type": 1, "title": "页面数据标题"};</script>
+<div id="js_content"><p>普通文章正文</p><img data-src="https://mmbiz.qpic.cn/body/article.jpg"></div>
+<script>var nickname = htmlDecode("示例作者"); var ct = "1790000000";</script>
+</body></html>'''
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'success')
+        self.assertEqual(res.title, '一条普通图文')
+        self.assertEqual(res.author, '示例作者')
+        self.assertIn('普通文章正文', res.text)
+        self.assertEqual(res.extra['wechat_item_show_type'], 1)
+        self.assertEqual(res.images, ['https://mmbiz.qpic.cn/cover/article.jpg',
+                                      'https://mmbiz.qpic.cn/body/article.jpg'])
+
+    def test_other_type_with_page_data_body_without_js_content(self):
+        # 没有 #js_content，但页面数据里有 content_noencode：仍按普通文章提取。
+        html = '''<html><head><meta property="og:title" content="页面数据里的文章"></head>
+<body><script>window.cgiDataNew = {
+  "item_show_type": 1, "title": "页面标题", "nick_name": "示例作者",
+  "create_timestamp": 1790000000, "content_noencode": "<p>页面数据正文</p>"
+};</script></body></html>'''
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'success')
+        self.assertEqual(res.title, '页面标题')
+        self.assertEqual(res.author, '示例作者')
+        self.assertIn('页面数据正文', res.text)
+
+    def test_other_type_without_body_is_unsupported_and_records_type(self):
+        # item_show_type 不是 0/8/10，页面也没有正文：报不支持并记下类型。
+        html = '''<html><body><script>window.cgiDataNew = {
+  "item_show_type": 3, "title": "不支持的消息", "nick_name": "示例号"
+};</script></body></html>'''
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'connector_failed')
+        self.assertIn('暂不支持的类型', res.capabilities['content']['note'])
+        self.assertIn('item_show_type=3', res.capabilities['content']['note'])
+        self.assertEqual(res.extra.get('wechat_item_show_type'), 3)
+        self.assertEqual(res.images, [])
+
+    def test_picture_list_without_cgi_data(self):
+        # 老式图集页只有 window.picture_page_info_list；没有标题和正文也能拿到图片。
+        html = '''<script>
+window.picture_page_info_list = [
+  {"cdn_url": "https://mmbiz.qpic.cn/old/one.jpg"},
+  {"cdn_url": "https://mmbiz.qpic.cn/old/two.jpg"}
+];
+window.picture_page_info_list = computeGallery();  // 后续计算赋值不该被当成数据
+</script>'''
+        res = self.scrape(html)
+        self.assertEqual(res.capabilities['content']['status'], 'success')
+        self.assertEqual(res.images, ['https://mmbiz.qpic.cn/old/one.jpg', 'https://mmbiz.qpic.cn/old/two.jpg'])
+        self.assertEqual(res.extra['wechat_item_show_type'], 8)
+
+    def test_failure_reasons_name_captcha_deleted_and_encrypted(self):
+        # 失败原因要能分清：验证码、删除、加密块、结构变化；状态词仍用原有集合。
+        cases = {
+            'captcha': ('<div>环境异常，请完成验证</div>', '验证码'),
+            'deleted': ('<div>该内容已被发布者删除</div>', '删除'),
+            'encrypted': ('<script>window.cgiDataNew={"item_show_type":0,"title":"t",'
+                          '"text_page_info":{"content_noencode":"U2FsdGVk' + 'A' * 80 + '"}};</script>', '加密块'),
+            'truncated': ('<script>window.cgiDataNew={"item_show_type":8,"title":"t","nick_name":"n",'
+                          '"picture_page_info_list":[{"cdn_url":"https://mmbiz.qpic.cn/a.jpg"', '截断'),
+        }
+        for name, (html, marker) in cases.items():
+            res = self.scrape(html)
+            self.assertEqual(res.capabilities['content']['status'], 'connector_failed', name)
+            self.assertIn(marker, res.capabilities['content']['note'], name)
+            self.assertIn(res.capabilities['content']['status'], core.STATUSES, name)
 
 
 if __name__ == '__main__':

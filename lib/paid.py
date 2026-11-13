@@ -390,7 +390,9 @@ def normalize_detail(res, d):
             res.author = str(pick(v, 'nick_name', 'nickname', 'author') or '')
             res.published = ts(pick(v, 'create_timestamp', 'ori_create_time', 'create_time', 'publish_time'))
             cover = pick(v, 'cdn_url', 'cover', 'cover_url')
-            res.images = list(dict.fromkeys(([cover] if isinstance(cover, str) and cover.startswith('http') else []) + article_images(body)))
+            from platforms.wechat import qpic_image
+            cover = qpic_image(cover)
+            res.images = list(dict.fromkeys(([cover] if cover else []) + article_images(body)))
             return
         v = next((x for x in nodes if isinstance(x.get('content'), str) and any(k in x for k in ('title', 'nickname', 'author'))), None)
         v = v or next((x for x in nodes if any(k in x for k in ('content_html', 'html_content', 'content_text', 'article_content'))), {})
@@ -453,6 +455,7 @@ def detail(res):
             raise Fail(res.capabilities['content']['note'])
         kind = res.extra.get('wechat_item_show_type') if res.platform == 'wechat' else None
         if kind not in (None, 0, 8, 10):
+            incidents.unsupported_type('wechat', path, f'item_show_type={kind}')
             raise Fail(f'公众号暂不支持的类型：item_show_type={kind}')
         incidents.schema(res.platform, 'content', path, error+' '+str(d))
         raise Fail('quality_gate: ' + error)
