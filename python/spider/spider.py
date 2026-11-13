@@ -1,6 +1,8 @@
-import os, requests, logging, ijson, tenacity, time
-from typing import Any, Optional, Dict, TYPE_CHECKING
-from dataclasses import dataclass
+import os, requests, logging, json, tenacity, time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from typing import Any, List, Optional, Dict, TYPE_CHECKING
+from dataclasses import dataclass, field
 from requests.adapters import HTTPAdapter
 from spider.spider_types import (
     RequestParamsDict,
@@ -30,6 +32,79 @@ class RateLimitState:
             self.remaining = int(headers["RateLimit-Remaining"])
         if "RateLimit-Reset" in headers:
             self.reset_seconds = int(headers["RateLimit-Reset"])
+
+
+class RateLimitExhaustedError(requests.exceptions.RequestException):
+    """Raised when the client has exhausted its bounded 429 retries.
+
+    The exception is identifiable (``isinstance`` / ``except``) and carries the
+    details callers need to react downstream:
+
+    :ivar endpoint: The API endpoint (e.g. ``"crawl"``) that was rate limited.
+    :ivar attempts: Total number of request attempts made (initial + retries).
+    :ivar last_retry_after: The Retry-After value, in seconds, from the last
+        (still rate limited) response; this is the wait the client would use.
+    :ivar status_code: Always ``429`` for this error.
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        attempts: int,
+        last_retry_after: float,
+        message: Optional[str] = None,
+    ):
+        self.endpoint = endpoint
+        self.attempts = attempts
+        self.last_retry_after = last_retry_after
+        self.status_code = 429
+        self.message = message or (
+            f"Rate limited on {endpoint} after {attempts} attempts; "
+            f"last Retry-After was {last_retry_after:g}s."
+        )
+        super().__init__(self.message)
+
+
+@dataclass
+class StreamResult:
+    """Outcome of a streamed JSONL callback run.
+
+    Returned by :meth:`Spider.stream_reader` (and therefore by ``crawl_url`` /
+    ``unlimited_crawl`` when streaming with a callback) so callers can verify
+    what happened after the stream ends instead of relying on logs alone.
+
+    :ivar processed: Items parsed and delivered to the callback successfully.
+    :ivar failed: Items that could not be delivered because the JSON was
+        malformed or the callback raised.
+    :ivar errors: Human-readable description of each failure (and any stream
+        read error), for diagnostics.
+    """
+
+    processed: int = 0
+    failed: int = 0
+    errors: List[str] = field(default_factory=list)
+
+    @property
+    def total(self) -> int:
+        """Total number of items that were read from the stream."""
+        return self.processed + self.failed
+
+    @property
+    def ok(self) -> bool:
+        """True when every streamed item was delivered to the callback."""
+        return self.failed == 0
+
+    @property
+    def error_summary(self) -> str:
+        """A short summary of the failures, suitable for logs or exceptions."""
+        if not self.errors:
+            return ""
+        shown = self.errors[:3]
+        summary = "; ".join(shown)
+        remaining = len(self.errors) - len(shown)
+        if remaining > 0:
+            summary += f"; (+{remaining} more)"
+        return summary
 
 
 # AI Studio URLs and info
@@ -114,13 +189,29 @@ class RateLimiter:
                 time.sleep(wait_time)
 
 
+_RETRYABLE_REQUEST_EXCEPTION = tenacity.retry_if_exception_type(
+    requests.exceptions.RequestException
+) & tenacity.retry_if_not_exception_type(RateLimitExhaustedError)
+
+
 class Spider:
-    def __init__(self, api_key: Optional[str] = None, ai_studio_tier: str = "starter"):
+    #: Number of times a 429 response is retried client-side before giving up.
+    #: Total request attempts on exhaustion is this value + 1.
+    MAX_RATE_LIMIT_RETRIES = 3
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        ai_studio_tier: str = "starter",
+        max_rate_limit_retries: Optional[int] = None,
+    ):
         """
         Initialize the Spider with an API key.
 
         :param api_key: A string of the API key for Spider. Defaults to the SPIDER_API_KEY environment variable.
         :param ai_studio_tier: AI Studio subscription tier for rate limiting. Options: starter, lite, standard, custom.
+        :param max_rate_limit_retries: Optional override for how many times a 429
+            response is retried before raising RateLimitExhaustedError.
         :raises ValueError: If no API key is provided.
         """
         self.api_key = api_key or os.getenv("SPIDER_API_KEY")
@@ -128,6 +219,11 @@ class Spider:
             raise ValueError("No API key provided")
 
         self.rate_limit = RateLimitState()
+        if max_rate_limit_retries is None:
+            max_rate_limit_retries = self.MAX_RATE_LIMIT_RETRIES
+        if max_rate_limit_retries < 0:
+            raise ValueError("max_rate_limit_retries must be non-negative")
+        self.max_rate_limit_retries = max_rate_limit_retries
         self.ai_studio_tier = ai_studio_tier
         self._ai_rate_limiter = RateLimiter(
             AI_STUDIO_RATE_LIMITS.get(ai_studio_tier, 1)
@@ -151,7 +247,7 @@ class Spider:
     @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=1, max=60),
         stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+        retry=_RETRYABLE_REQUEST_EXCEPTION,
     )
     def api_post(
         self,
@@ -167,20 +263,16 @@ class Spider:
         :param data: The data (dictionary) to be sent in the POST request.
         :param stream: Boolean indicating if the response should be streamed.
         :return: The JSON response or the raw response stream if stream is True.
+        :raises RateLimitExhaustedError: When a 429 is still returned after
+            ``max_rate_limit_retries`` client-side retries.
         """
         headers = self._prepare_headers(content_type)
-        response = self._post_request(
-            f"https://api.spider.cloud/{endpoint}", data, headers, stream
+        response = self._request_with_rate_limit_retries(
+            endpoint,
+            lambda: self._post_request(
+                f"https://api.spider.cloud/{endpoint}", data, headers, stream
+            ),
         )
-
-        self.rate_limit.update_from_headers(response.headers)
-
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", "1"))
-            time.sleep(retry_after)
-            raise requests.exceptions.RequestException(
-                f"Rate limited on {endpoint}. Retrying after {retry_after}s."
-            )
 
         if stream:
             return response
@@ -192,7 +284,7 @@ class Spider:
     @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=1, max=60),
         stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception_type(requests.exceptions.RequestException),
+        retry=_RETRYABLE_REQUEST_EXCEPTION,
     )
     def api_get(
         self,
@@ -207,28 +299,98 @@ class Spider:
         :param endpoint: The API endpoint from which to retrieve data.
         :param params: Query parameters to attach to the URL.
         :return: The JSON decoded response.
+        :raises RateLimitExhaustedError: When a 429 is still returned after
+            ``max_rate_limit_retries`` client-side retries.
         """
         headers = self._prepare_headers(content_type)
-        response = self._get_request(
-            f"https://api.spider.cloud/{endpoint}",
-            headers=headers,
-            params=params,
-            stream=stream,
+        response = self._request_with_rate_limit_retries(
+            endpoint,
+            lambda: self._get_request(
+                f"https://api.spider.cloud/{endpoint}",
+                headers=headers,
+                params=params,
+                stream=stream,
+            ),
         )
-
-        self.rate_limit.update_from_headers(response.headers)
-
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", "1"))
-            time.sleep(retry_after)
-            raise requests.exceptions.RequestException(
-                f"Rate limited on {endpoint}. Retrying after {retry_after}s."
-            )
 
         if 200 <= response.status_code < 300:
             return response.json()
         else:
             self._handle_error(response, f"get from {endpoint}")
+
+    def _request_with_rate_limit_retries(self, endpoint: str, send):
+        """
+        Issue a request via ``send`` and retry a bounded number of times on 429.
+
+        Each response (including the 429 ones) updates ``self.rate_limit``. The
+        wait comes from the Retry-After header (1 second when missing or
+        unparseable). When retries are exhausted, raise RateLimitExhaustedError
+        carrying the endpoint, total attempts and last wait.
+
+        :param endpoint: The API endpoint, used for error reporting.
+        :param send: Zero-argument callable performing the HTTP request.
+        :return: The first response that is not a 429.
+        """
+        attempts = 0
+        last_retry_after = 0.0
+
+        while True:
+            attempts += 1
+            response = send()
+            self.rate_limit.update_from_headers(response.headers)
+
+            if response.status_code != 429:
+                return response
+
+            last_retry_after = self._parse_retry_after(response.headers)
+
+            if attempts > self.max_rate_limit_retries:
+                raise RateLimitExhaustedError(
+                    endpoint, attempts, last_retry_after
+                )
+
+            logging.warning(
+                "Rate limited on %s (attempt %d/%d); sleeping %gs before retry.",
+                endpoint,
+                attempts,
+                self.max_rate_limit_retries + 1,
+                last_retry_after,
+            )
+            # Release the abandoned response (important for streamed requests
+            # so the connection is returned to the pool before sleeping).
+            try:
+                response.close()
+            except Exception:
+                pass
+            time.sleep(last_retry_after)
+
+    @staticmethod
+    def _parse_retry_after(headers) -> float:
+        """Return Retry-After seconds, defaulting to 1 when absent or invalid.
+
+        Retry-After is either a number of seconds or an HTTP-date; both are
+        supported. Values in the past (or unparseable ones) mean "retry now"
+        for dates but 1 second for malformed values.
+        """
+        value = headers.get("Retry-After") if headers is not None else None
+        if value is None:
+            return 1.0
+        try:
+            seconds = float(value)
+        except (TypeError, ValueError):
+            seconds = None
+        if seconds is not None:
+            return max(seconds, 0.0)
+
+        # HTTP-date form, e.g. "Wed, 21 Oct 2015 07:28:00 GMT".
+        try:
+            retry_at = parsedate_to_datetime(str(value))
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            delay = (retry_at - datetime.now(timezone.utc)).total_seconds()
+            return max(delay, 0.0)
+        except (TypeError, ValueError, OverflowError):
+            return 1.0
 
     @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=1, max=60),
@@ -415,15 +577,115 @@ class Spider:
         """
         return self.api_get(f"data/{table}", params)
 
-    def stream_reader(self, response, callback):
+    def stream_reader(self, response, callback) -> StreamResult:
+        """
+        Read a JSONL response stream, invoking ``callback`` per parsed item.
+
+        A single malformed JSON line or a callback that raises does not abort
+        the stream: the failure is counted, recorded in the returned
+        StreamResult, and parsing continues with the next line. Successfully
+        parsed items are still delivered to the callback one by one, in the
+        order they arrive.
+
+        :param response: The streamed ``requests`` response.
+        :param callback: Callable invoked with each parsed JSON object.
+        :return: A StreamResult with processed/failed counts and error summary.
+        """
         response.raise_for_status()
 
+        result = StreamResult()
+
         try:
-            for json_obj in ijson.items(response.raw, "", multiple_values=True):
-                callback(json_obj)
+            for raw_line in self._iter_stream_lines(response):
+                if isinstance(raw_line, (bytes, bytearray)):
+                    line = raw_line.decode("utf-8", errors="replace")
+                else:
+                    line = raw_line
+
+                if not line.strip():
+                    continue
+
+                try:
+                    json_obj = json.loads(line)
+                except json.JSONDecodeError as e:
+                    result.failed += 1
+                    result.errors.append(
+                        f"JSON parse error: {e}; line: {line.strip()[:200]}"
+                    )
+                    logging.error(
+                        "Failed to parse streamed JSON line: %s", line.strip()[:200]
+                    )
+                    continue
+
+                try:
+                    callback(json_obj)
+                except Exception as e:
+                    result.failed += 1
+                    result.errors.append(
+                        f"Callback error: {type(e).__name__}: {e}; "
+                        f"item: {str(json_obj)[:200]}"
+                    )
+                    logging.error(
+                        "Callback raised while processing streamed item: %s",
+                        e,
+                        exc_info=True,
+                    )
+                    continue
+
+                result.processed += 1
 
         except Exception as e:
-            logging.error(f"An error occurred while parsing JSON: {e}")
+            # A transport/read failure ends the stream; surface it in the
+            # result instead of only logging it.
+            result.failed += 1
+            result.errors.append(f"Stream read error: {type(e).__name__}: {e}")
+            logging.error("Stream read failed: %s", e, exc_info=True)
+
+        if result.errors:
+            logging.warning(
+                "Stream finished with %d failed item(s): %s",
+                result.failed,
+                result.error_summary,
+            )
+
+        return result
+
+    @staticmethod
+    def _iter_stream_lines(response):
+        """Yield decoded lines from a streamed response, in arrival order.
+
+        Real ``requests`` responses expose ``raw`` (urllib3) which supports
+        ``readline``; the other paths keep compatibility with responses that
+        only provide ``iter_lines`` or ``iter_content`` (and with test doubles).
+        """
+        raw = getattr(response, "raw", None)
+        reader = getattr(raw, "readline", None)
+        if callable(reader):
+            first = reader()
+            if isinstance(first, (bytes, bytearray, str)):
+                line = first
+                while line:
+                    yield line
+                    line = reader()
+                return
+
+        iter_content = getattr(response, "iter_content", None)
+        if callable(iter_content):
+            buffer = ""
+            for chunk in iter_content(chunk_size=8192):
+                if isinstance(chunk, (bytes, bytearray)):
+                    chunk = chunk.decode("utf-8", errors="replace")
+                buffer += chunk
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)
+                    yield line
+            if buffer:
+                yield buffer
+            return
+
+        iter_lines = getattr(response, "iter_lines", None)
+        if callable(iter_lines):
+            yield from iter_lines(chunk_size=8192, decode_unicode=True)
 
     def _prepare_headers(self, content_type: str = "application/json"):
         return {

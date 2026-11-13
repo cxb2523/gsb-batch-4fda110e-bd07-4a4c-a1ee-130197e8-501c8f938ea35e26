@@ -1,11 +1,42 @@
-from typing import Optional, Dict, Any
+from typing import Any, Callable, Dict, List, Optional
 from spider_types import RequestParamsDict
 from spider_browser import SpiderBrowser
 
+class RateLimitState:
+    limit: int
+    remaining: int
+    reset_seconds: int
+    def update_from_headers(self, headers: Any) -> None: ...
+
+class RateLimitExhaustedError(Exception):
+    endpoint: str
+    attempts: int
+    last_retry_after: float
+    status_code: int
+    message: str
+
+class StreamResult:
+    processed: int
+    failed: int
+    errors: List[str]
+    @property
+    def total(self) -> int: ...
+    @property
+    def ok(self) -> bool: ...
+    @property
+    def error_summary(self) -> str: ...
+
 class Spider:
     api_key: str
+    rate_limit: RateLimitState
+    max_rate_limit_retries: int
 
-    def __init__(self, api_key: Optional[str] = None) -> None: ...
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        ai_studio_tier: str = "starter",
+        max_rate_limit_retries: Optional[int] = None,
+    ) -> None: ...
     def api_post(
         self,
         endpoint: str,
@@ -112,6 +143,9 @@ class Spider:
         stream: bool = False,
         content_type: str = "application/json",
     ) -> Any: ...
+    def stream_reader(
+        self, response: Any, callback: Callable[[Dict[str, Any]], None]
+    ) -> StreamResult: ...
     def browser(self, **options: Any) -> SpiderBrowser: ...
     def data_post(
         self, table: str, data: Optional[RequestParamsDict] = None
@@ -121,6 +155,13 @@ class Spider:
         table: str,
         params: Optional[RequestParamsDict] = None,
     ) -> Any: ...
+    def _request_with_rate_limit_retries(
+        self, endpoint: str, send: Callable[[], Any]
+    ) -> Any: ...
+    @staticmethod
+    def _parse_retry_after(headers: Any) -> float: ...
+    @staticmethod
+    def _iter_stream_lines(response: Any) -> Any: ...
     def _prepare_headers(
         self, content_type: str = "application/json"
     ) -> Dict[str, str]: ...

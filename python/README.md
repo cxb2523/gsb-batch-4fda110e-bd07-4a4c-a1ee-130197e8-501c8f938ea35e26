@@ -64,6 +64,8 @@ crawl_result = app.crawl_url(url, params=crawl_params)
 Stream crawl the website in chunks to scale.
 
 ```python
+    from spider import StreamResult
+
     def handle_json(json_obj: dict) -> None:
         assert json_obj["url"] is not None
 
@@ -71,12 +73,19 @@ Stream crawl the website in chunks to scale.
     crawl_params = {
         'limit': 200,
     }
-    response = app.crawl_url(
+    result: StreamResult = app.crawl_url(
         url,
         params=params,
         stream=True,
         callback=handle_json,
     )
+
+    # Every item was delivered to the callback.
+    print(result.processed, result.failed)
+    # A malformed JSON line or a callback exception does not stop the stream;
+    # it is counted in result.failed and described in result.error_summary.
+    if not result.ok:
+        print(result.error_summary)
 ```
 
 ### Search
@@ -269,6 +278,26 @@ links = app.crawl(url, crawler_params, True, "application/jsonl")
 ## Error Handling
 
 The SDK handles errors returned by the Spider Cloud API and raises appropriate exceptions. If an error occurs during a request, an exception will be raised with a descriptive error message.
+
+Rate limits (`429`) are retried client-side: the client honours the `Retry-After`
+header (1 second when absent) and keeps `app.rate_limit` up to date on every
+response. After a bounded number of retries it raises an identifiable
+`RateLimitExhaustedError`:
+
+```python
+from spider import RateLimitExhaustedError, Spider
+
+app = Spider(api_key='your_api_key', max_rate_limit_retries=3)  # default 3
+
+try:
+    app.scrape_url('https://example.com')
+except RateLimitExhaustedError as e:
+    print(e.endpoint)          # e.g. "crawl"
+    print(e.attempts)          # total attempts, including the initial one
+    print(e.last_retry_after)  # seconds from the last Retry-After header
+```
+
+Non-`429` errors follow the usual `_handle_error` behaviour unchanged.
 
 ## Contributing
 
