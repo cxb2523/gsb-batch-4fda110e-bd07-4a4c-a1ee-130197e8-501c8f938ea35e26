@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播数据舱 · B站直播全数据录制与分析</title>
+<!-- 静态资源带 ?v=N 防缓存版本号：改动对应文件后把 N 加一，浏览器才会加载新版本 -->
+<link rel="stylesheet" href="/styles.css?v=65">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fb7299'/%3E%3Cstop offset='1' stop-color='%236fa8c4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='48' height='48' rx='12' fill='url(%23g)'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='14.1' cy='24' r='3.7'/%3E%3Crect x='21.1' y='17.9' width='4' height='12.2' rx='2' fill-opacity='.9'/%3E%3Crect x='27.5' y='12.8' width='4' height='22.4' rx='2'/%3E%3Crect x='33.9' y='20.5' width='4' height='7' rx='2' fill-opacity='.72'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+/* 主题尽早生效，避免日间模式下先闪一屏深色 */
+(function () {
+  var saved = null;
+  try { saved = localStorage.getItem('ldd-theme'); } catch (e) {}
+  var theme = saved === 'light' || saved === 'dark'
+    ? saved
+    : (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.dataset.theme = theme;
+})();
+</script>
+</head>
+<body>
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <button class="sidebar-toggle" id="btnSidebarToggle" type="button"
+            title="收缩或展开侧边栏" aria-label="收缩或展开侧边栏">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="brand">
+      <div class="brand-logo" aria-label="直播数据舱">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="5.8" cy="12" r="2.3" fill="#fff"/>
+          <rect x="10.2" y="8.2" width="2.5" height="7.6" rx="1.25" fill="#fff" fill-opacity=".9"/>
+          <rect x="14.2" y="5" width="2.5" height="14" rx="1.25" fill="#fff"/>
+          <rect x="18.2" y="9.8" width="2.5" height="4.4" rx="1.25" fill="#fff" fill-opacity=".72"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">直播数据舱</div>
+        <div class="brand-sub">Live Data Deck</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        <span>仪表盘</span>
+      </a>
+      <a class="nav-item" data-view="stream">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM7 9h10v2H7V9zm6 5H7v-2h6v2zm4-6H7V6h10v2z"/></svg>
+        <span>实时弹幕</span>
+        <em class="nav-badge" id="streamBadge" hidden>0</em>
+      </a>
+      <a class="nav-item" data-view="rooms">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span>房间管理</span>
+      </a>
+      <a class="nav-item" data-view="files">
+        <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>
+        <span>录制文件</span>
+      </a>
+      <a class="nav-item" data-view="analysis">
+        <svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5V9.2zM10.6 5h2.8v14h-2.8V5zm5.6 8H19v6h-2.8v-6z"/></svg>
+        <span>数据分析</span>
+      </a>
+      <a class="nav-item" data-view="logs">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-10 12H6v-2h4v2zm6-4H6v-2h10v2zm2-4H6V6h12v2z"/></svg>
+        <span>运行日志</span>
+      </a>
+      <a class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94 0 .31.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        <span>设置</span>
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="ws-dot" id="wsDot" title="实时连接状态"></div>
+      <span id="wsText">连接中…</span>
+      <span class="version"
+            title="本工具为独立开源项目，与哔哩哔哩（B站/bilibili）无任何隶属、合作或背书关系">非官方 · v1.6.4</span>
+      <button class="foot-quit" id="btnShutdown" type="button"
+              title="停止所有录制并关闭后台服务">退出服务</button>
+    </div>
+  </aside>
+
+  <!-- 主区域 -->
+  <main class="main">
+    <!-- 顶栏 -->
+    <header class="topbar">
+      <h1 id="pageTitle">仪表盘</h1>
+      <div class="topbar-right">
+        <button class="theme-toggle" id="btnTheme" type="button" title="切换日间 / 夜间主题" aria-label="切换主题">
+          <svg class="ic-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zm0-5v3m0 14v3M2 12h3m14 0h3M4.2 4.2l2.1 2.1m11.4 11.4l2.1 2.1m0-15.6l-2.1 2.1M6.3 17.7l-2.1 2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </button>
+        <span class="global-pill" id="globalPill">
+          <i class="dot"></i><span id="globalPillText">未在录制</span>
+        </span>
+        <button class="btn btn-ghost" id="btnStopAll"
+                title="停止全部房间任务（弹幕录制与视频直录均停止）">■ 全部停止</button>
+        <button class="btn btn-primary" id="btnStartAll"
+                title="开始全部已启用房间的弹幕录制；视频按各房间视频勾选联动">● 全部开始</button>
+      </div>
+    </header>
+
+    <!-- 仪表盘 -->
+    <section class="view active" id="view-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">在录房间（弹幕）</div>
+          <div class="stat-value num" id="statRunning">0</div>
+          <div class="stat-foot"><span id="statLive" class="num">0</span> 个直播中 · <span id="statVideoRooms" class="num">0</span> 间在录视频</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">WS 连接</div>
+          <div class="stat-value num" id="statConnected">0</div>
+          <div class="stat-foot">弹幕服务器在线</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本次弹幕</div>
+          <div class="stat-value num" id="statDanmaku">0</div>
+          <div class="stat-foot"><span id="statSC" class="num">0</span> SC · <span id="statMod" class="num">0</span> 房管处置</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">实时速率</div>
+          <div class="stat-value num"><span id="statRate">0</span><small> 条/分</small></div>
+          <div class="stat-foot">全部房间合计</div>
+        </div>
+      </div>
+      <div class="section-head">
+        <h2>房间状态</h2>
+      </div>
+      <div id="roomGrid" class="room-groups"></div>
+      <div class="empty" id="dashboardEmpty" hidden>
+        <div class="empty-icon">📡</div>
+        <p>还没有录制目标</p>
+        <button class="btn btn-primary" data-goto="rooms">去添加直播间</button>
+      </div>
+    </section>
+
+    <!-- 实时弹幕 -->
+    <section class="view" id="view-stream">
+      <div class="toolbar">
+        <div class="mselect" id="streamRoomPick">
+          <button type="button" class="mselect-btn" id="streamRoomBtn"
+                  aria-haspopup="true" aria-expanded="false"
+                  title="选择要查看的直播间：不勾选任何房间 = 全部房间">
+            <span class="mselect-label" id="streamRoomLabel">全部房间</span>
+            <span class="mselect-caret">▾</span>
+          </button>
+          <div class="mselect-panel" id="streamRoomPanel" hidden>
+            <button type="button" class="mselect-allrow" id="streamRoomAllRow">
+              <span class="mselect-alltick">✓</span> 全部房间（不筛选）
+            </button>
+            <div class="mselect-list" id="streamRoomList"></div>
+            <div class="mselect-foot">
+              <button type="button" class="btn btn-sm" id="streamRoomAllBtn">全选</button>
+              <button type="button" class="btn btn-sm" id="streamRoomInvertBtn">反选</button>
+              <span class="mselect-tip">勾选多个房间可同时查看；全部不勾 = 全部房间</span>
+            </div>
+          </div>
+        </div>
+        <span id="streamKindFilters" class="chip-group"
+              title="事件类型筛选：在「全部房间」下修改将同步应用到所有房间">
+          <label class="chip-check"><input type="checkbox" value="danmaku" checked> 弹幕</label>
+          <label class="chip-check"><input type="checkbox" value="super_chat" checked> SC</label>
+          <label class="chip-check"><input type="checkbox" value="gift" checked> 礼物</label>
+          <label class="chip-check"><input type="checkbox" value="moderation" checked> 房管处置</label>
+        </span>
+        <span class="toolbar-hint" id="streamFilterHint">当前筛选对全部房间一起生效</span>
+        <span class="toolbar-spacer"></span>
+        <label class="chip-check"><input type="checkbox" id="streamPause"> 暂停滚动</label>
+        <button class="btn btn-sm" id="streamClear">清空</button>
+      </div>
+      <div class="stream-list" id="streamList">
+        <div class="stream-hint">等待弹幕到达… 弹幕将实时显示在这里（仅保留最近 500 条）</div>
+      </div>
+    </section>
+
+    <!-- 房间管理 -->
+    <section class="view" id="view-rooms">
+      <div class="panel">
+        <div class="panel-title">添加直播间</div>
+        <div class="onboard-card" id="onboardGuideCard" hidden>
+          <span class="onboard-card-badge">新手引导</span>
+          <div class="onboard-card-body">
+            <div class="onboard-card-title">第一次使用？三步开始录制</div>
+            <ol class="onboard-steps">
+              <li>在下方填入 B 站直播间号（直播间网址里那串数字），保存目录名可留空自动命名；</li>
+              <li>点「添加房间」，该房间的弹幕录制会自动开始；</li>
+              <li>之后在「仪表盘」看实时数据，在「录制文件」下载弹幕记录与单场战报。</li>
+            </ol>
+            <div class="onboard-card-tip">不确定填什么？也可以点上面的「从 B 站关注列表一键导入」批量添加。</div>
+          </div>
+        </div>
+        <button class="follow-entry" id="btnImportFollowing" type="button"
+                title="读取 B 站关注列表，查看哪些关注主播正在开播，勾选后批量加入录制（需先在设置页填写 SESSDATA）">
+          <span class="fe-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">
+              <path d="M12 21.4l-7.4-7.2a5.3 5.3 0 0 1 0-7.6 5.6 5.6 0 0 1 7.7 0 5.6 5.6 0 0 1 7.7 0 5.3 5.3 0 0 1 0 7.6L12 21.4z"/>
+            </svg>
+          </span>
+          <span class="fe-text">
+            <span class="fe-title">从 B 站关注列表一键导入</span>
+            <span class="fe-sub">自动读取关注的主播，正在开播一目了然，勾选即可批量加入录制</span>
+          </span>
+          <span class="fe-cta">
+            打开
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </span>
+        </button>
+        <div class="add-row">
+          <input class="input" id="addRoomId" type="number" min="1" placeholder="直播间号（URL 中的数字）">
+          <input class="input" id="addVup" type="text" placeholder="保存目录名 / 主播名（可留空自动命名）">
+          <label class="switch-line" title="启用后启动服务 / 点开始时自动连接弹幕服务器，录制弹幕、SC、礼物、人气等数据">
+            <span>弹幕启用</span>
+            <input type="checkbox" id="addEnabled" checked>
+          </label>
+          <label class="switch-line" title="为该房间单独开启视频直录（附加功能，默认关闭；还需设置页开启全局视频总开关）">
+            <span>视频</span>
+            <input type="checkbox" id="addRecordVideo">
+          </label>
+          <label class="switch-line" title="该房间开播时通过浏览器系统通知提醒（需本页面保持打开并允许通知权限）">
+            <span>开播提醒</span>
+            <input type="checkbox" id="addNotify">
+          </label>
+          <button class="btn btn-primary" id="btnAddRoom"
+                  title="添加房间；勾选「弹幕启用」立即开始弹幕录制，勾选「视频」后在全局开关开启时随开播直录，勾选「开播提醒」后开播弹系统通知">添加房间</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">录制目标 <span class="muted" id="roomCount"></span></div>
+        <div class="table-scroll">
+        <table class="table" style="min-width:1080px">
+          <thead><tr>
+            <th style="width:90px">状态</th><th style="width:130px">房间号</th>
+            <th>名称 / 目录</th>
+            <th style="width:90px" title="启用弹幕 WebSocket 数据录制（弹幕 / SC / 礼物 / 人气）">弹幕启用</th>
+            <th style="width:96px" title="该房间的独立视频直录开关；红灯=视频录制中，蓝灯=待录，黄灯=全局开关未开">视频</th>
+            <th style="width:96px" title="该房间开播时弹浏览器系统通知（需本页打开并允许通知权限）">开播提醒</th>
+            <th style="width:100px">弹幕数</th>
+            <th style="width:96px" title="该房间专属录制设置：SC/礼物/房管处置存档、隐私打码、画质、AI 自动解读">房间设置</th>
+            <th style="width:260px">操作</th>
+          </tr></thead>
+          <tbody id="roomTable"></tbody>
+        </table>
+        </div>
+        <div class="empty soft" id="roomsEmpty" hidden>
+          <p>暂无目标，请在上方添加</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 录制文件 -->
+    <section class="view" id="view-files">
+      <div class="tabs">
+        <button class="tab active" data-kind="records">弹幕记录</button>
+        <button class="tab" data-kind="weak">房管处置存档</button>
+        <button class="tab" data-kind="videos">视频录制</button>
+      </div>
+      <div class="panel" id="filesPanelRecords">
+      <div class="table-scroll">
+        <table class="table" style="min-width:720px">
+          <thead><tr>
+            <th>主播目录</th><th>文件</th><th style="width:110px">大小</th>
+            <th style="width:140px">最后修改</th><th style="width:250px">操作</th>
+          </tr></thead>
+          <tbody id="filesTable"></tbody>
+        </table>
+      </div>
+        <div class="empty soft" id="filesEmpty" hidden>
+          <p>暂无弹幕记录文件（真实开播后才会生成并保存）</p>
+        </div>
+      </div>
+      <div class="panel" id="filesPanelVideos" hidden>
+        <div class="video-toolbar">
+          <span class="muted" id="videoDirHint"></span>
+          <span class="toolbar-spacer"></span>
+          <span class="ffmpeg-pill" id="videoFfmpegPill"></span>
+          <button class="btn btn-sm" id="btnVideoReload" type="button">刷新</button>
+        </div>
+        <div class="table-scroll">
+        <table class="table" style="min-width:800px">
+          <thead><tr>
+            <th style="width:130px">主播</th><th>场次</th>
+            <th style="width:100px">大小</th><th style="width:90px">时长</th>
+            <th style="width:150px">开播时间</th><th style="width:270px">操作</th>
+          </tr></thead>
+          <tbody id="videosTable"></tbody>
+        </table>
+        </div>
+        <div class="empty soft" id="videosEmpty" hidden>
+          <div class="empty-icon">🎥</div>
+          <p>暂无视频场次</p>
+          <p class="muted">在「房间管理」为房间勾选「视频」，并在「设置」开启全局视频开关后，开播即自动直录 FLV</p>
+        </div>
+        <div id="videoOrphans" hidden style="margin-top:14px">
+          <div class="panel-title" style="font-size:13px">散片（无法归入任何场次的视频残段）</div>
+          <div class="hint">多因录制进程异常中断产生。能按文件名自动归回场次的残段不会列在这里
+            （场次行会带「中断恢复」标记）；确认无用后可删除，不影响任何场次。</div>
+          <div class="table-scroll">
+          <table class="table">
+            <thead><tr>
+              <th style="width:130px">主播</th><th>文件</th>
+              <th style="width:100px">大小</th><th style="width:150px">操作</th>
+            </tr></thead>
+            <tbody id="videoOrphansTable"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 数据分析 -->
+    <section class="view" id="view-analysis">
+      <div class="analysis-wrap">
+        <aside class="panel analysis-side">
+          <div class="panel-title">选择录制文件</div>
+          <div class="tabs small" id="anaTabs">
+            <button class="tab active" data-kind="records">弹幕记录</button>
+            <button class="tab" data-kind="weak">房管处置存档</button>
+          </div>
+          <div class="analysis-mini-actions">
+            <button class="btn btn-sm" id="anaSelectAll" type="button">全选</button>
+            <button class="btn btn-sm" id="anaClear" type="button">清空</button>
+            <span class="muted" id="anaSelCount">已选 0</span>
+          </div>
+          <div class="file-tree" id="anaFileTree"></div>
+          <div class="analysis-bottom">
+            <button class="btn btn-primary" id="btnAnalyze" type="button">开始分析</button>
+            <div class="dedup-box">
+              <label>后处理去重（对选中文件）</label>
+              <div class="add-row tight">
+                <input class="input" id="anaDedupWindow" type="number" value="300" min="0" max="86400" title="同用户同文案的重复判定窗口（秒）；0=整个文件只留一条">
+                <button class="btn" id="btnBatchDedup" type="button">批量去重</button>
+              </div>
+              <div class="hint">窗口秒数；0 = 整文件去重。关心用户与 SC/礼物不参与。</div>
+            </div>
+          </div>
+        </aside>
+        <div class="analysis-report" id="analysisReport">
+          <div class="empty soft"><div class="empty-icon">📊</div>
+            <p>勾选左侧录制文件后点「开始分析」</p>
+            <p class="muted">支持跨主播多选；分析只读，不会改动任何文件</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 运行日志 -->
+    <section class="view" id="view-logs">
+      <div class="toolbar terminal-bar">
+        <label class="chip-check"><input type="checkbox" data-level="info" checked> INFO</label>
+        <label class="chip-check"><input type="checkbox" data-level="warning" checked> WARN</label>
+        <label class="chip-check"><input type="checkbox" data-level="error" checked> ERROR</label>
+        <span class="log-dir-hint">日志目录：<button type="button" class="pathlink" id="logDirHint" title="点击在文件管理器中打开">—</button></span>
+        <span class="toolbar-spacer"></span>
+        <button class="btn btn-sm" id="logsClear">清空显示</button>
+      </div>
+      <div class="terminal" id="logTerminal"></div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="view" id="view-settings">
+      <div class="settings-tabs" id="settingsTabs">
+        <button type="button" class="st-tab active" data-tab="base">基础与策略</button>
+        <button type="button" class="st-tab" data-tab="video">视频直录</button>
+        <button type="button" class="st-tab" data-tab="ds">弹幕样式</button>
+        <button type="button" class="st-tab" data-tab="ai">AI 解读</button>
+        <button type="button" class="st-tab" data-tab="cared">关心名单</button>
+        <button type="button" class="st-tab" data-tab="theme">战报样式</button>
+        <span class="st-hint" id="settingsTopHint"></span>
+      </div>
+
+      <!-- 设置面板：基础与策略 -->
+      <div class="settings-tabpanel active" data-panel="base">
+      <button class="follow-entry tour-entry" id="btnShowOnboarding" type="button"
+              title="清除引导记忆，重新从第一步播放新手分步教程">
+        <span class="fe-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.2 14.6h-2.4v-2.4h2.4v2.4zm2.5-7.5l-1 1c-.8.8-1.3 1.4-1.3 2.6h-2.4v-.6c0-1.2.5-2.2 1.4-3l1.3-1.3c.4-.4.7-1 .7-1.6a2.4 2.4 0 1 0-4.8 0H8a4.8 4.8 0 1 1 8.5 2.4z"/>
+          </svg>
+        </span>
+        <span class="fe-text">
+          <span class="fe-title">重新查看新手引导</span>
+          <span class="fe-sub">跟着分步教程走一遍全部功能，过程中会写入演示数据方便预览，随时可跳过</span>
+        </span>
+        <span class="fe-cta">
+          开始
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </span>
+      </button>
+      <div class="settings-grid">
+        <div class="panel">
+          <div class="panel-title">凭证与数据目录</div>
+          <div class="form-row">
+            <label>SESSDATA Cookie <span class="tag" id="sessTag">未配置</span></label>
+            <div class="input-with-action">
+              <input class="input" id="setSess" type="password" autocomplete="off"
+                     placeholder="扫码获取，或粘贴 SESSDATA 值 / 整段 Cookie（自动提取）">
+              <button class="btn btn-sm" id="toggleSess" type="button">显示</button>
+              <button class="btn btn-sm btn-primary" id="btnQrLogin" type="button">📱 扫码获取</button>
+            </div>
+            <div class="guide">
+              <div class="guide-head">SESSDATA 有什么用？不填会怎样？</div>
+              <ul class="guide-points">
+                <li><b>不填也能正常录制：</b>弹幕、SC、进场消息、人气等属于直播间的公开广播，游客身份就能接收，和你不登录 B 站也能看直播弹幕一样；</li>
+                <li><b>填写后连接更稳：</b>带登录态时边缘 WS 节点更少被风控秒断，长时间挂机更可靠；</li>
+                <li><b>战报数据更全：</b>金礼物、大航海等需要登录态的营收明细才拿得到，否则战报营收可能偏少；</li>
+                <li><b>解锁关注导入：</b>「房间管理 → 从 B 站关注导入」可读取关注列表、查看哪些主播正在开播并一键加入录制（该接口游客无权访问）。</li>
+              </ul>
+              <div class="guide-head">如何获取 SESSDATA · 方式一：扫码（推荐，10 秒）</div>
+              <ol class="guide-steps">
+                <li>点击上方 <b>📱 扫码获取</b>，弹出二维码；</li>
+                <li>打开手机上的 <b>哔哩哔哩 App</b> → 左上角菜单 → 右上角扫一扫，扫码并在手机上点确认登录；</li>
+                <li>电脑端自动填好 SESSDATA，点页面底部 <b>保存设置</b> 即可，无需 F12。</li>
+              </ol>
+              <div class="guide-head">方式二：手动从浏览器复制（扫码不可用时）</div>
+              <ol class="guide-steps" start="1">
+                <li>用电脑浏览器（Chrome / Edge）登录 <a href="https://live.bilibili.com" target="_blank" rel="noopener" class="doc-link">live.bilibili.com</a></li>
+                <li>按 <kbd>F12</kbd> 打开开发者工具，切到 <b>Application</b>（应用）选项卡 → 在左侧展开 <b>Cookies</b> → <b>单击</b>列表里的 <code>https://live.bilibili.com</code> 这一项（它是 Cookie 的域名分组，不是网址，无需打开）</li>
+                <li>在右侧 Cookie 列表找到 <code>SESSDATA</code>，双击复制它的 <b>Value</b> 值，粘贴到上方输入框并保存（也可以把整段 Cookie 直接粘进输入框，会自动提取）</li>
+              </ol>
+              <div class="guide-lock">凭证仅保存在本机 <code>config/settings.json</code>，不会上传任何服务器；在 B 站退出登录或改密会使其失效，重新复制一次即可。</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <button class="btn" id="btnTestCookie">检测登录状态</button>
+            <span class="hint inline" id="cookieResult"></span>
+          </div>
+          <div class="form-row">
+            <label>匿名编号密钥（高级，无特殊需求不用改）</label>
+            <input class="input" id="setSalt" type="text" placeholder="各场次保持一致即可">
+            <div class="hint">
+              录制时程序用它给每位观众生成一个 16 位匿名编号，文件里不保存真实 UID，用于保护隐私。
+              密钥相同时，同一位观众在各场次的匿名编号才一致，跨场次去重和按用户统计才能对上；
+              <b>一旦更换密钥，历史文件里的旧编号与新数据将无法关联</b>（跨场去重、按匿名编号添加的关心名单会失效，真实 UID 不受影响）。
+              无特殊需求保持默认即可；高级用户也可用环境变量 <code>DANMAKU_ANON_SALT</code> 覆盖。
+            </div>
+          </div>
+          <div class="form-row">
+            <label>数据保存目录</label>
+            <input class="input" id="setDataDir" type="text" placeholder="留空 = 程序目录下 data/">
+            <div class="hint">生效路径：<code class="eff-path" id="dataDirEff" data-open="data" title="点击在文件管理器中打开当前已生效的数据目录">—</code></div>
+          </div>
+          <div class="form-row">
+            <label>日志文件目录</label>
+            <input class="input" id="setLogDir" type="text" placeholder="留空 = 数据目录下 logs/">
+            <div class="hint">运行日志按天滚动保存为 <code>app.log</code>，自动保留最近 14 天；生效路径：<code class="eff-path" id="logDirEff" data-open="logs" title="点击在文件管理器中打开当前已生效的日志目录">—</code></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">录制策略</div>
+          <div class="hint" style="margin:0 0 10px">
+            以下开关既是全局录制行为，也是<b>新房间的默认值</b>；需要让某个房间不同时，
+            可在「房间管理 → ⚙ 设置」里逐间覆盖（显示为「跟随全局 / 开 / 关」三态），不会出现两处互相冲突的配置。
+          </div>
+          <div class="switch-row"><div><div class="sw-title">录制 SC（醒目留言）</div>
+            <div class="hint">付费醒目留言默认录制；关闭后所有「跟随全局」的房间不再记录 SC（高能 SC 统计也会缺数据）</div></div>
+            <input type="checkbox" id="swSc" checked></div>
+          <div class="switch-row"><div><div class="sw-title">录制礼物事件</div>
+            <div class="hint">关闭则战报无礼物营收；开启后记录礼物名/数量与金瓜子价值</div></div>
+            <input type="checkbox" id="swGifts"></div>
+          <div class="switch-row"><div><div class="sw-title">过滤纯表情弹幕</div>
+            <div class="hint">剥除 [表情] 后没有文字的弹幕不保存，文字+表情保留</div></div>
+            <input type="checkbox" id="swEmoticon" checked></div>
+          <div class="switch-row"><div><div class="sw-title">房管处置存档</div>
+            <div class="hint">房管把某人拉黑或禁言时，自动把这个人近 30 分钟发过的弹幕存成文件，方便事后回看他说了什么</div></div>
+            <input type="checkbox" id="swModeration" checked></div>
+          <div class="switch-row"><div><div class="sw-title">UID / 用户名匿名</div>
+            <div class="hint">文件里不保存真实 UID，用户名只保留姓（如 张***）</div></div>
+            <input type="checkbox" id="swAnon" checked></div>
+          <div class="switch-row"><div><div class="sw-title">隐私内容自动打码</div>
+            <div class="hint">自动替换弹幕里的链接 / @用户 / QQ / UID / 手机号</div></div>
+            <input type="checkbox" id="swSanitize" checked></div>
+          <div class="switch-row"><div><div class="sw-title">启动服务即自动录制弹幕</div>
+            <div class="hint">启动后自动连接所有「弹幕启用」的房间（视频直录按房间独立开关联动）</div></div>
+            <input type="checkbox" id="swAutoStart" checked></div>
+          <div class="sub-divider">调度参数</div>
+          <div class="form-row">
+            <label>未开播轮询间隔（秒，最小 10）</label>
+            <input class="input" id="setPoll" type="number" min="10" value="45" style="max-width:160px">
+          </div>
+          <div class="form-row">
+            <label>全部关播后自动停止（分钟，0 = 不自动停止）</label>
+            <input class="input" id="setIdle" type="number" min="0" value="0" style="max-width:160px">
+          </div>
+        </div>
+      </div><!-- /settings-grid：基础与策略 -->
+      </div><!-- /settings-tabpanel：base -->
+
+      <!-- 设置面板：视频直录 -->
+      <div class="settings-tabpanel" data-panel="video">
+        <div class="panel st-narrow">
+          <div class="panel-title">视频直录 <span class="muted">附加功能，默认关闭</span></div>
+          <div class="switch-row"><div><div class="sw-title">启用视频直录（全局总开关）</div>
+            <div class="hint">开启后，已勾选「视频」的房间开播时会额外直录直播流；与弹幕录制互不影响</div></div>
+            <input type="checkbox" id="swVideoEnabled"></div>
+          <div class="form-row">
+            <label>默认画质</label>
+            <select class="input" id="setVideoQn" style="max-width:220px">
+              <option value="10000">原画（约 1.4–3.6 GB/小时）</option>
+              <option value="400">蓝光（约 1.0–2.0 GB/小时）</option>
+              <option value="250">超清（约 0.4–0.7 GB/小时）</option>
+              <option value="150">高清（更省空间）</option>
+              <option value="80">流畅（最省空间）</option>
+            </select>
+            <div class="hint">新房间默认画质；可在「房间管理 → ⚙ 设置」为单个房间指定其他画质（下次取流生效）。B 站按权限实际下发：<b>游客（未填 SESSDATA）会被自动降为超清</b>，
+              配置有效登录凭证后才可录原画；无 HEVC 授权时自动回退可用编码。</div>
+          </div>
+          <div class="form-row">
+            <label>磁盘剩余空间下限（GB）</label>
+            <input class="input" id="setVideoMinFree" type="number" min="1" max="1000" value="5" style="max-width:160px">
+            <div class="hint">所在磁盘剩余低于该值时，正在录制的视频会<b>自动停止并告警</b>，5 分钟后复检；
+              弹幕录制不受影响。</div>
+          </div>
+          <div class="form-row">
+            <label>视频保存目录</label>
+            <input class="input" id="setVideoDir" type="text"
+                   placeholder="留空 = 数据目录下 video（如 D:\直播视频 可独立指定其他盘）">
+            <div class="hint">生效路径：<code class="eff-path" id="videoDirEff" data-open="video" title="点击在文件管理器中打开当前已生效的视频保存目录">—</code>（按主播分目录，文件名与弹幕 jsonl 同日对齐）</div>
+            <div class="hint">独立目录与弹幕数据解耦，<b>修改不会迁移已有视频文件</b>；新路径对之后启动的录制任务生效（运行中的任务请停止后再开始）。
+              路径不可写时保存会被拒绝；相对路径相对于程序启动目录，建议填写绝对路径。</div>
+          </div>
+          <div class="guide-lock" style="margin-top:6px">
+            产物说明：每场生成 ① 纯净 FLV（供剪辑，绝不烧录弹幕）② 弹幕字幕文件（ASS 是一种通用
+            字幕格式：文件与视频同名放在一起，用 VLC / PotPlayer / mpv 播放视频时可加载字幕、随时
+            开关显示，弹幕不会写进画面）③ 场次元数据；断线自动分段，重连不拼接。
+            「录制文件 → 视频录制」页提供高能时间轴、播放器跳转命令、ffmpeg 无损秒切与
+            「导出弹幕版」（把字幕烧录进画面另存 MP4，需自行安装 ffmpeg 并加入 PATH）。
+          </div>
+          <div class="warn-box">
+            ⚠ 磁盘与带宽：原画一场 4 小时直播约 6–15 GB，请按硬盘容量谨慎开启多房间视频；
+            视频录制只占用下行带宽，不影响弹幕。<br>
+            ⚠ 开关生效：全局开关与房间级「视频」勾选都可在运行中随时切换，<b>无需重启任务</b>；
+            两个开关都打开时，正在直播的房间最迟 2 秒内起录（从当前时刻开始录），未开播则开播自动起录；
+            关闭时正在录制的场次会继续到本场结束，之后不再起录。<br>
+            ⚠ 录制内容仅供个人备份学习，请勿公开传播或用于商业用途，遵守 B 站相关协议与法律法规。
+          </div>
+        </div>
+      </div><!-- /settings-tabpanel：video -->
+
+      <!-- 设置面板：弹幕样式 -->
+      <div class="settings-tabpanel" data-panel="ds">
+        <div class="panel">
+          <div class="panel-title">弹幕样式 <span class="muted">控制旁挂 ASS 字幕与「导出弹幕版」的弹幕观感 · 独立即时保存（不进入下方统一保存）· 存于 config/danmaku_style.json，也可直接编辑该文件</span></div>
+
+          <div class="th-toolbar">
+            <button class="btn btn-sm btn-primary" type="button" id="btnDsSave">保存弹幕样式</button>
+            <button class="btn btn-sm" type="button" id="btnDsReset">恢复默认</button>
+            <button class="btn btn-sm" type="button" id="btnDsPreviewJump"
+                    title="向下滚动到页面底部的实时预览">预览弹幕</button>
+            <span class="hint inline" id="dsResult"></span>
+          </div>
+
+          <div class="ds-layout">
+            <div class="ds-form">
+              <div class="th-group-title">画布尺寸</div>
+              <div class="th-switch-grid">
+                <label class="th-switch"><input type="radio" name="dsCanvasMode" value="auto" checked><span>自动探测视频分辨率（推荐）</span></label>
+                <label class="th-switch"><input type="radio" name="dsCanvasMode" value="manual"><span>手动指定画布宽高</span></label>
+              </div>
+              <div class="th-form-grid" id="dsManualBox" style="margin-top:8px">
+                <label class="th-field">画布宽度（像素，320–7680）
+                  <input class="input" id="dsCanvasW" type="number" min="320" max="7680" step="2" value="1920">
+                </label>
+                <label class="th-field">画布高度（像素，320–4320）
+                  <input class="input" id="dsCanvasH" type="number" min="320" max="4320" step="2" value="1080">
+                </label>
+              </div>
+              <div class="hint" style="margin:6px 0 0">自动模式优先读 FLV 流内尺寸（零依赖），读不到时调用 ffmpeg 兜底，再失败按 1920×1080；
+                竖屏直播会自动识别为竖屏画布。字幕画布必须与视频一致，字号/车道/速度才能对齐原生观感。</div>
+
+              <div class="th-group-title" style="margin-top:14px">字体与字号</div>
+              <div class="th-form-grid">
+                <label class="th-field span-2">字体名称（ASS Fontname，需播放/转码机器装有该字体）
+                  <input class="input" id="dsFontFamily" type="text" maxlength="40" value="Microsoft YaHei" placeholder="Microsoft YaHei">
+                </label>
+                <label class="th-field">字号档位
+                  <select class="input" id="dsFontScale"></select>
+                </label>
+                <label class="th-field">描边粗细
+                  <select class="input" id="dsOutline"></select>
+                </label>
+                <label class="th-switch" style="align-self:end"><input type="checkbox" id="dsBold"><span>粗体弹幕</span></label>
+              </div>
+
+              <div class="th-group-title" style="margin-top:14px">滚动速度 / 密度 / 透明度</div>
+              <div class="th-form-grid">
+                <label class="th-field span-2">滚动速度（一条弹幕横穿屏幕的秒数，越小越快）
+                  <select class="input" id="dsSpeed"></select>
+                </label>
+                <label class="th-field">显示区域（从屏幕顶部起算占比）
+                  <select class="input" id="dsArea"></select>
+                </label>
+                <label class="th-field">不透明度
+                  <select class="input" id="dsOpacity"></select>
+                </label>
+              </div>
+              <div class="hint" style="margin:6px 0 0">区域越小同屏弹幕越稀疏（原生网页默认约 1/4 屏）；弹幕密度过高时超出车道容量的弹幕会被自动丢弃，
+                丢弃上限 2 秒（与网页弹幕逻辑一致），不会出现重叠追尾。</div>
+
+              <div class="th-group-title" style="margin-top:14px">弹幕类型效果</div>
+              <div class="th-switch-grid">
+                <label class="th-switch"><input type="checkbox" id="dsShowColor" checked><span>保留发送者弹幕颜色（关闭则全部白色）</span></label>
+                <label class="th-switch"><input type="checkbox" id="dsFixedMode" checked><span>按原模式渲染顶部/底部固定弹幕</span></label>
+                <label class="th-switch"><input type="checkbox" id="dsScCard" checked><span>SC 渲染为原生风右下角卡片（关闭则降级为底部金色一行）</span></label>
+              </div>
+
+              <div class="guide-lock" style="margin-top:12px">
+                生效范围：保存后<b>新生成</b>的字幕立即采用本样式——包括场次收尾自动生成、
+                「录制文件 → 视频录制」里的「重新生成弹幕字幕」与「导出弹幕版」现场生成；
+                已经生成的 .ass 文件不会自动改动，点「重新生成弹幕字幕」即可。
+                直接用 VLC / PotPlayer / mpv 播放 FLV 时把同名 .ass 放在同一目录即可加载，可随时开关字幕。
+              </div>
+            </div>
+
+            <div class="ds-preview-col">
+              <div class="th-preview-bar">
+                <span class="th-preview-title">实时预览 <span class="muted">按当前选项模拟，保存前也会即时变化 · 比例跟随画布设置（手动竖屏即竖屏预览）</span></span>
+              </div>
+              <div class="ds-preview" id="dsPreview">
+                <div class="ds-area-mask" id="dsAreaMask"></div>
+                <div class="ds-fixed-top" id="dsFixedTop">顶部固定弹幕示例</div>
+                <div class="ds-sc-card" id="dsScSample">
+                  <div class="ds-sc-bar"></div>
+                  <div class="ds-sc-head">观众 · ¥100</div>
+                  <div class="ds-sc-body">醒目留言（SC）卡片示例，较长内容会自动折行</div>
+                </div>
+                <div class="ds-sc-plain" id="dsScPlain" hidden>【SC ¥100 观众】醒目留言降级样式示例</div>
+                <div class="ds-fixed-bottom" id="dsFixedBottom">底部固定弹幕示例</div>
+              </div>
+              <div class="hint ds-preview-hint">预览按预览框像素等比缩放，实际字号随视频真实分辨率自适应；
+                半透明弹幕在深色画面上效果更明显。</div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /settings-tabpanel：ds -->
+
+      <!-- 设置面板：AI 解读 -->
+      <div class="settings-tabpanel" data-panel="ai">
+        <div class="panel st-narrow">
+          <div class="panel-title">AI 高能解读 <span class="muted">可选项 · OpenAI 兼容接口</span></div>
+          <div class="switch-row"><div><div class="sw-title">场次结束后自动解读</div>
+            <div class="hint">关闭时只在「视频录制 → 高能片段」弹窗手动触发；开启后正常下播会自动按下述模式分析一次（改设置后新场次生效）。本开关是新房间默认值，可在房间设置里逐间覆盖</div></div>
+            <input type="checkbox" id="swLlmAuto"></div>
+          <div class="form-row">
+            <label>快捷模板（点按自动填充）</label>
+            <div class="llm-presets" id="llmPresets">
+              <button type="button" class="btn btn-sm"
+                      data-base="https://api.deepseek.com/v1"
+                      data-model="deepseek-chat">DeepSeek</button>
+              <button type="button" class="btn btn-sm"
+                      data-base="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                      data-model="qwen-plus">通义千问</button>
+              <button type="button" class="btn btn-sm"
+                      data-base="https://api.moonshot.cn/v1"
+                      data-model="moonshot-v1-8k">Kimi</button>
+              <button type="button" class="btn btn-sm"
+                      data-base="http://localhost:11434/v1"
+                      data-model="qwen2.5:14b">本地 Ollama</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>API Base URL</label>
+            <input class="input" id="setLlmBase" type="text"
+                   placeholder="https://api.deepseek.com/v1">
+          </div>
+          <div class="form-row">
+            <label>API Key <span class="tag" id="llmKeyTag">未配置</span></label>
+            <div class="input-with-action">
+              <input class="input" id="setLlmKey" type="password"
+                     autocomplete="off"
+                     placeholder="已保存则留空；重新填写即替换（Key 不会回显）">
+              <button class="btn btn-sm" id="toggleLlmKey" type="button">显示</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>模型名</label>
+            <input class="input" id="setLlmModel" type="text"
+                   placeholder="deepseek-chat / qwen-plus / qwen2.5:14b">
+          </div>
+          <div class="form-row">
+            <label>默认分析模式（单场弹窗里可临时切换）</label>
+            <div class="llm-modes">
+              <label class="llm-mode-card">
+                <input type="radio" name="llmMode" value="A" checked>
+                <span><b>A 轻量解读</b>
+                  <span class="hint">规则检测出的 Top 8 高能窗口交给模型：切片标题、封面大字、
+                    高能理由、内容分类、建议前后扩切点。约 2–6K tokens，
+                    <b>约 ¥0.01–0.05/场</b>，一般 30 秒内完成。</span></span>
+              </label>
+              <label class="llm-mode-card">
+                <input type="radio" name="llmMode" value="C">
+                <span><b>C 深度策划</b>
+                  <span class="hint">在 A 基础上，先把全场切成 5 分钟统计段让模型粗筛
+                    「弹幕不密但有梗 / 金句 / 神转折」的补漏窗口，并为每个切片写口播开场白。
+                    约 15–25K tokens，<b>约 ¥0.1–0.4/场</b>，约 1–2 分钟。</span></span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row">
+            <button class="btn" id="btnTestLlm" type="button">测试连接</button>
+            <span class="hint inline" id="llmTestResult"></span>
+          </div>
+          <div class="warn-box">
+            ⚠ <b>数据外发、费用自负：</b>分析时会把该场的<b>弹幕文本片段、SC、时间统计</b>
+            发送到你填写的接口（本地 Ollama 不出本机）；<b>不会发送视频文件、UID 或 Cookie</b>。
+            API Key 仅保存在本机服务端 <code>config/settings.json</code>，绝不下发浏览器。<br>
+            ⚠ 结果缓存在视频目录旁挂的 <code>live_xxx.ai.json</code>，重复打开不重复扣费，
+            点「重新分析」才会再次调用；模型可能出错，文案请自行把关。
+          </div>
+        </div>
+      </div><!-- /settings-tabpanel：ai -->
+
+      <!-- 设置面板：关心名单 -->
+      <div class="settings-tabpanel" data-panel="cared">
+        <div class="panel">
+          <div class="panel-title">关心用户名单 <span class="muted">后处理去重时这些用户的弹幕全部保留 · 独立即时保存</span></div>
+          <div class="add-row">
+            <input class="input" id="caredKey" type="text" style="max-width:300px"
+                   placeholder="真实 UID（纯数字）或录制文件中的 16 位匿名 ID">
+            <input class="input" id="caredNote" type="text" style="max-width:220px" placeholder="备注（可留空）">
+            <button class="btn btn-primary" id="btnAddCared" type="button">添加</button>
+          </div>
+          <div class="hint">匿名 ID 可在「数据分析」页的活跃用户榜一键添加；更换匿名盐后旧匿名 ID 会失效，真实 UID 不受影响。</div>
+          <div class="table-scroll">
+          <table class="table">
+            <thead><tr>
+              <th>标识</th><th style="width:240px">备注</th><th style="width:170px">添加时间</th><th style="width:80px">操作</th>
+            </tr></thead>
+            <tbody id="caredTable"></tbody>
+          </table>
+          </div>
+          <div class="empty soft" id="caredEmpty" hidden><p>名单为空，默认所有用户平等参与去重</p></div>
+        </div>
+      </div><!-- /settings-tabpanel：cared -->
+
+      <!-- 设置面板：战报样式 -->
+      <div class="settings-tabpanel" data-panel="theme">
+        <div class="panel">
+          <div class="panel-title">战报样式 <span class="muted">配色 / 字体 / 排版 / 内容区块 · 保存后重新生成战报即生效（存于 config/report_theme.json，也可直接编辑该文件）· 独立即时保存</span></div>
+
+          <div class="th-toolbar">
+            <button class="btn btn-sm" type="button" data-th-preset="dark">套用深色预设</button>
+            <button class="btn btn-sm" type="button" data-th-preset="light">套用浅色预设</button>
+            <button class="btn btn-sm" type="button" id="btnThPreview">生成预览</button>
+            <button class="btn btn-sm btn-primary" type="button" id="btnThSave">保存样式</button>
+            <button class="btn btn-sm" type="button" id="btnThReset">恢复默认</button>
+            <span class="hint inline" id="thResult"></span>
+          </div>
+
+          <div class="th-group-title">配色</div>
+          <div class="th-colors" id="thColors"></div>
+
+          <div class="th-group-title">字体与排版</div>
+          <div class="th-form-grid">
+            <div class="th-subgroup">
+              <div class="th-sub-title">字体文件 <span class="muted">留空使用微软雅黑；修改后新生成的战报生效</span></div>
+              <label class="th-field">常规字体文件路径（.ttf / .ttc / .otf）
+                <input class="input" id="thFontRegular" type="text"
+                       placeholder="如 D:\fonts\SourceHanSansSC-Regular.otf">
+              </label>
+              <label class="th-field">粗体字体文件路径
+                <input class="input" id="thFontBold" type="text"
+                       placeholder="如 D:\fonts\SourceHanSansSC-Bold.otf">
+              </label>
+            </div>
+            <div class="th-subgroup">
+              <div class="th-sub-title">画布与字号</div>
+              <div class="th-fields">
+                <label class="th-field">画布方向
+                  <select class="input" id="thOrientation"></select>
+                </label>
+                <label class="th-field">字号档位
+                  <select class="input" id="thFontScale">
+                    <option value="0.92">小</option>
+                    <option value="1.0" selected>标准</option>
+                    <option value="1.12">大</option>
+                  </select>
+                </label>
+                <label class="th-field">画布宽度
+                  <select class="input" id="thWidth"></select>
+                </label>
+                <label class="th-field">指标卡每行个数
+                  <select class="input" id="thCardCols"></select>
+                </label>
+              </div>
+            </div>
+            <div class="th-subgroup">
+              <div class="th-sub-title">封面文字</div>
+              <div class="th-fields two">
+                <label class="th-field">头部品牌行文字
+                  <input class="input" id="thBrand" type="text" maxlength="40">
+                </label>
+                <label class="th-field">自定义页脚（留空 = 默认营收口径文案）
+                  <input class="input" id="thFooter" type="text" maxlength="80">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="th-group-title">内容区块 <span class="muted">勾选显隐，↑↓ 调整从上到下的排列顺序</span></div>
+          <div class="th-sections" id="thSections"></div>
+
+          <div class="th-group-title">封面 / 榜单列 / 页脚</div>
+          <div class="th-switch-grid">
+            <label class="th-switch"><input type="checkbox" id="thShowCover" checked><span>头部封面图</span></label>
+            <label class="th-switch"><input type="checkbox" id="thShowTopTexts" checked><span>高频弹幕榜</span></label>
+            <label class="th-switch"><input type="checkbox" id="thShowTopSc" checked><span>SC 贡献榜</span></label>
+            <label class="th-switch"><input type="checkbox" id="thShowTopMedals" checked><span>粉丝牌榜</span></label>
+            <label class="th-switch"><input type="checkbox" id="thShowFooter" checked><span>页脚说明</span></label>
+          </div>
+
+          <div class="th-group-title">指标卡显隐</div>
+          <div class="th-switch-grid" id="thCards"></div>
+
+          <div class="th-preview" id="thPreviewBox" hidden>
+            <div class="th-preview-bar">
+              <span class="th-preview-title">预览效果
+                <span class="muted">基于内置样例数据，仅查看样式，不会保存或生成文件</span>
+              </span>
+              <button class="btn btn-sm" type="button" id="btnThPreviewAgain">重新生成</button>
+              <button class="btn btn-sm" type="button" id="btnThPreviewClose">收起</button>
+            </div>
+            <img id="thPreviewImg" alt="战报样式预览（点击可放大查看）" title="点击放大查看">
+          </div>
+        </div>
+      </div><!-- /settings-tabpanel：theme -->
+
+      <!-- 未保存修改时的底部常驻保存条 -->
+      <div class="dirtybar" id="settingsDirtyBar" hidden>
+        <span class="dirtybar-dot"></span>
+        <span class="dirtybar-text">设置已修改，尚未保存</span>
+        <span class="dirtybar-result" id="saveResult"></span>
+        <span class="dirtybar-spacer"></span>
+        <button class="btn" id="btnDiscardSettings" type="button">放弃修改</button>
+        <button class="btn btn-primary" id="btnSaveSettings" type="button">保存全部设置</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- B 站扫码登录弹窗 -->
+<div class="modal-mask" id="qrLoginMask" hidden>
+  <div class="modal qr-modal">
+    <div class="modal-head">
+      <b>扫码获取 SESSDATA</b>
+      <button class="btn btn-sm" id="qrLoginClose" type="button">✕ 关闭</button>
+    </div>
+    <div class="modal-body qr-body">
+      <div class="qr-stage">
+        <img id="qrLoginImg" alt="登录二维码" hidden>
+        <div class="qr-loading" id="qrLoginLoading">正在向 B 站申请二维码…</div>
+      </div>
+      <div class="qr-status" id="qrLoginStatus">请使用 <b>哔哩哔哩手机 App</b> 扫码（左上角菜单 → 扫一扫）</div>
+      <div class="qr-actions">
+        <button class="btn btn-sm" id="qrLoginRefresh" type="button" hidden>刷新二维码</button>
+      </div>
+      <div class="qr-note">扫码仅用于登录 B 站网页版并读取 SESSDATA，凭证只保存在本机，不会上传第三方；拿到后记得点页面底部「保存设置」。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 房间级录制设置弹窗 -->
+<div class="modal-mask" id="roomCfgMask" hidden>
+  <div class="modal" style="width:min(680px,94vw)">
+    <div class="modal-head">
+      <b id="roomCfgTitle">房间设置</b>
+      <button class="btn btn-sm" id="roomCfgClose" type="button">✕ 关闭</button>
+    </div>
+    <div class="modal-body nonmono room-cfg-body" id="roomCfgBody"></div>
+    <div class="modal-foot">
+      <button class="btn" id="roomCfgInheritAll" type="button"
+              title="清除该房间所有自定义项，全部回到设置页的全局默认">全部恢复跟随全局</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="roomCfgCancel" type="button">取消</button>
+      <button class="btn btn-primary" id="roomCfgSave" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 设置未保存离开确认弹窗 -->
+<div class="modal-mask" id="settingsGuardMask" hidden>
+  <div class="modal" style="width:min(430px,92vw)">
+    <div class="modal-head"><b>设置有未保存的修改</b></div>
+    <div class="modal-body">
+      你修改了录制设置但还没保存。直接离开将<b>丢失这些修改</b>。
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn" id="guardStay" type="button">留下继续编辑</button>
+      <button class="btn btn-danger" id="guardDiscard" type="button">不保存离开</button>
+      <button class="btn btn-primary" id="guardSave" type="button">保存并离开</button>
+    </div>
+  </div>
+</div>
+
+<!-- 直播战报弹窗 -->
+<div class="modal-mask" id="reportMask" hidden>
+  <div class="modal" style="width:min(860px,94vw)">
+    <div class="modal-head">
+      <span>单场直播战报</span>
+      <button class="btn btn-sm" id="reportClose" type="button">关闭</button>
+    </div>
+    <div class="modal-body nonmono" id="reportBody">
+      <div class="muted">正在汇总…</div>
+    </div>
+    <div class="report-img-wrap" id="reportImgWrap" hidden>
+      <img id="reportImg" alt="生成的战报 PNG 预览">
+    </div>
+    <div class="modal-foot">
+      <span class="hint" style="margin:0">营收=SC+金礼物；人气值为 B 站加权指标</span>
+      <a class="btn" id="reportOpenTab" target="_blank" rel="noopener" hidden>新标签页打开</a>
+      <a class="btn btn-primary" id="reportDownload" download hidden>下载 PNG</a>
+      <button class="btn btn-primary" id="reportGen" style="margin-left:auto" type="button">生成 PNG 一页战报</button>
+    </div>
+  </div>
+</div>
+
+<!-- 去重弹窗 -->
+<div class="modal-mask" id="dedupMask" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <span id="dedupTitle">后处理去重</span>
+      <button class="btn btn-sm" id="dedupClose" type="button">关闭</button>
+    </div>
+    <div class="modal-body" id="dedupBody">
+      <div class="muted">正在分析…</div>
+    </div>
+    <div class="modal-foot">
+      <label class="dedup-win">窗口
+        <input class="input" id="dedupWindow" type="number" value="300" min="0" max="86400">
+        秒（0=整文件）
+      </label>
+      <button class="btn" id="dedupRePreview" type="button">重新预览</button>
+      <button class="btn btn-primary" id="dedupConfirm" type="button">执行去重（另存 .dedup.jsonl）</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文件预览弹窗 -->
+<div class="modal-mask" id="previewMask" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <span id="previewTitle">文件预览</span>
+      <div>
+        <a class="btn btn-sm" id="previewDownload" download>下载</a>
+        <button class="btn btn-sm" id="previewClose">关闭</button>
+      </div>
+    </div>
+    <pre class="modal-body" id="previewBody"></pre>
+  </div>
+</div>
+
+<!-- 关注列表导入弹窗 -->
+<div class="modal-mask" id="followMask" hidden>
+  <div class="modal" style="width:min(880px,94vw)">
+    <div class="modal-head">
+      <span>从 B 站关注导入 <span class="muted" id="followStats"></span></span>
+      <button class="btn btn-sm" id="followClose" type="button">关闭</button>
+    </div>
+    <div class="modal-body nonmono" style="padding:0">
+      <div class="follow-toolbar">
+        <input class="input" id="followSearch" type="search"
+               placeholder="搜索主播名 / 房间号 / 标题">
+        <label class="switch-line"><input type="checkbox" id="followLiveOnly"> 仅看直播中</label>
+        <label class="switch-line"><input type="checkbox" id="followHideAdded" checked> 隐藏已添加</label>
+        <button class="btn btn-sm" id="followReload" type="button">刷新</button>
+      </div>
+      <div class="follow-list" id="followContent">
+        <div class="muted follow-hint">正在读取关注列表…</div>
+      </div>
+      <div class="follow-more" id="followMoreBar" hidden></div>
+    </div>
+    <div class="modal-foot">
+      <span class="hint" style="margin:0" id="followSelInfo"></span>
+      <button class="btn" id="followSelectLive" type="button">选中全部直播中</button>
+      <button class="btn btn-primary" id="followConfirm" style="margin-left:auto" type="button"
+              title="加入后仅开始弹幕录制；视频直录默认关闭，需在房间管理逐房间勾选">
+        加入选中（开始弹幕录制）
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 高能时间轴弹窗 -->
+<div class="modal-mask" id="hlMask" hidden>
+  <div class="modal" style="width:min(960px,96vw)">
+    <div class="modal-head">
+      <span id="hlTitle">高能时间轴</span>
+      <button class="btn btn-sm" id="hlClose" type="button">关闭</button>
+    </div>
+    <div class="modal-body nonmono" id="hlBody" style="max-height:70vh;overflow:auto">
+      <div class="muted">正在分析场次数据…</div>
+    </div>
+    <div class="modal-foot" style="flex-wrap:wrap;gap:8px">
+      <label class="dedup-win">窗口
+        <select class="input" id="hlWindow" style="width:80px">
+          <option value="30">30s</option>
+          <option value="60" selected>60s</option>
+          <option value="90">90s</option>
+          <option value="120">120s</option>
+        </select>
+      </label>
+      <label class="dedup-win">Top
+        <select class="input" id="hlTopN" style="width:70px">
+          <option value="5">5</option>
+          <option value="8" selected>8</option>
+          <option value="12">12</option>
+        </select>
+      </label>
+      <button class="btn btn-sm" id="hlReanalyze" type="button">重新分析</button>
+      <span class="toolbar-divider"></span>
+      <label class="dedup-win">AI
+        <select class="input" id="hlAiMode" style="width:auto">
+          <option value="A">A 轻量解读</option>
+          <option value="C">C 深度策划</option>
+        </select>
+      </label>
+      <button class="btn btn-sm btn-primary" id="hlAiRun" type="button">🤖 AI 解读本场</button>
+      <span class="toolbar-spacer"></span>
+      <button class="btn btn-sm" id="hlRegenAss" type="button"
+              title="从本场弹幕记录重新生成 ASS 字幕文件（弹幕 + SC，随时间轴滚动显示）">重新生成弹幕字幕</button>
+    </div>
+  </div>
+</div>
+
+<!-- 战报预览大图：点击预览图放大，长图可上下滚动，点遮罩 / 按 Esc 关闭 -->
+<div class="modal-mask th-zoom-mask" id="thZoomMask" hidden>
+  <button class="btn btn-sm th-zoom-close" id="thZoomClose" type="button">关闭（Esc）</button>
+  <div class="th-zoom-scroll" id="thZoomScroll">
+    <img id="thZoomImg" alt="战报样式预览大图">
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<!-- 脚本同样带 ?v=N 防缓存，改对应 js 后把 N 加一 -->
+<script src="/onboarding.js?v=14"></script>
+<script src="/pulse-strip.js?v=9"></script>
+<script src="/app.js?v=78"></script>
