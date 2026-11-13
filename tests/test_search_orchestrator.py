@@ -203,7 +203,9 @@ async def test_extra_headers_reach_searxng_only_with_required_json_headers(
 ) -> None:
     secret = tmp_path / "secret"
     secret.write_text("header-secret\n", encoding="utf-8")
+    # Windows expanduser prefers USERPROFILE over HOME.
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("SEARXNG_URL", "https://searx.test")
     monkeypatch.setenv("YDC_API_KEY", "sk-test")
     monkeypatch.setenv("SEARXNG_EXTRA_HEADERS", json.dumps({
