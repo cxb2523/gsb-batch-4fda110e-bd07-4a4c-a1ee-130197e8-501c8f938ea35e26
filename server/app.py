@@ -300,6 +300,31 @@ def create_app() -> FastAPI:
             "items": out,
         }
 
+    @app.get("/api/followings/collect")
+    async def collect_followings(
+            max_pages: int = Query(50, ge=1, le=following_mod.MAX_PAGE)):
+        """一次性按页采集全部关注：服务端逐页拉取、合并去重，并给出可核对的摘要
+        （请求页码序列、每页条目数、是否疑似降级提前停止、结束原因）。
+        未配置 SESSDATA 400；采集失败不抛错，结果体里以 end_reason /
+        error_code 区分凭证失效（auth_invalid）与其他接口错误。"""
+        sd = mgr().settings.effective_sessdata()
+        if not sd.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="尚未配置 SESSDATA：关注列表属于账号私有数据，"
+                       "游客模式无法读取，请先到「设置」页填写登录凭证")
+        existing = {t.room_id for t in mgr().target_store.targets}
+        result = await asyncio.to_thread(
+            following_mod.collect_all_followed, sd, max_pages, existing)
+        result["summary"] = {
+            "pages_fetched": len(result["pages"]),
+            "item_count": len(result["items"]),
+            "degraded": result["degraded"],
+            "end_reason": result["end_reason"],
+            "ok": result["ok"],
+        }
+        return result
+
     # 录制控制
     @app.post("/api/rooms/{room_id}/start")
     async def start_room(room_id: int):

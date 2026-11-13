@@ -172,6 +172,104 @@ def test_followings_error_codes(client, monkeypatch):
     assert client.get("/api/followings").status_code == 502
 
 
+# 关注列表批量采集
+
+def _collect_page(page: int, room_ids, total: int, total_page: int) -> dict:
+    return {
+        "items": [{"room_id": r, "uid": r, "uname": f"主播{r}", "title": "",
+                   "live_status": 1, "face": "", "live_time": ""}
+                  for r in room_ids],
+        "page": page, "page_size": fmod.PAGE_SIZE,
+        "total": total, "total_page": total_page, "live_count": 0,
+    }
+
+
+def test_followings_collect_without_sessdata_400(client):
+    """未配置 SESSDATA：GET /api/followings/collect 返回 400。"""
+    r = client.get("/api/followings/collect")
+    assert r.status_code == 400
+    assert "SESSDATA" in r.json()["detail"]
+
+
+def test_followings_collect_bad_max_pages_422(client):
+    """max_pages 越界（0 / 1001）被参数校验拦截。"""
+    client.put("/api/settings", json={"sessdata": "FAKE-SESS"})
+    assert client.get("/api/followings/collect",
+                      params={"max_pages": 0}).status_code == 422
+    assert client.get("/api/followings/collect",
+                      params={"max_pages": 1001}).status_code == 422
+
+
+def test_followings_collect_ok_multi_page(client, monkeypatch):
+    """正常多页采集 200：摘要给出页数 / 总条数，added 标记与录制目标对应。"""
+    client.put("/api/settings", json={"sessdata": "FAKE-SESS"})
+    client.post("/api/targets", json={"room_id": 22})
+
+    def fake(sessdata, page=1):
+        pages = {
+            1: _collect_page(1, list(range(1, 21)), 25, 2),
+            2: _collect_page(2, list(range(21, 26)), 25, 2),
+        }
+        return pages[page]
+
+    monkeypatch.setattr(fmod, "fetch_followed_page", fake)
+    r = client.get("/api/followings/collect")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["end_reason"] == "complete"
+    assert body["ok"] is True and body["degraded"] is False
+    assert body["pages"] == [1, 2] and body["page_counts"] == [20, 5]
+    assert body["summary"] == {"pages_fetched": 2, "item_count": 25,
+                               "degraded": False, "end_reason": "complete",
+                               "ok": True}
+    items = {i["room_id"]: i for i in body["items"]}
+    assert len(items) == 25
+    assert items[22]["added"] is True
+    assert items[7]["added"] is False
+
+
+def test_followings_collect_degraded_flag(client, monkeypatch):
+    """第二页条目数不足且仍有后续页：degraded=true，end_reason=degraded。"""
+    client.put("/api/settings", json={"sessdata": "FAKE-SESS"})
+
+    def fake(sessdata, page=1):
+        pages = {
+            1: _collect_page(1, list(range(1, 21)), 60, 3),
+            2: _collect_page(2, list(range(1, 11)), 60, 3),  # 静默降级：回第 1 页前 10 条
+        }
+        return pages[page]
+
+    monkeypatch.setattr(fmod, "fetch_followed_page", fake)
+    r = client.get("/api/followings/collect")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["degraded"] is True
+    assert body["end_reason"] == "degraded"
+    assert body["ok"] is False
+    assert body["pages"] == [1, 2]
+    assert body["summary"]["pages_fetched"] == 2
+    assert body["summary"]["item_count"] == 20  # 第 2 页全是重复，去重后 20 条
+
+
+def test_followings_collect_auth_invalid_distinct(client, monkeypatch):
+    """凭证失效（-101）与页码非法（400）在采集结果里是可区分的错误。"""
+    client.put("/api/settings", json={"sessdata": "FAKE-SESS"})
+
+    monkeypatch.setattr(fmod, "fetch_followed_page",
+                        _raiser(fmod.FollowingError("登录态失效", -101)))
+    body = client.get("/api/followings/collect").json()
+    assert body["end_reason"] == "auth_invalid"
+    assert body["error_code"] == -101
+    assert body["ok"] is False
+
+    monkeypatch.setattr(fmod, "fetch_followed_page",
+                        _raiser(fmod.FollowingError("页码非法", 400)))
+    body = client.get("/api/followings/collect").json()
+    assert body["end_reason"] == "error"
+    assert body["error_code"] == 400
+    assert body["ok"] is False
+
+
 # 录制控制
 
 @pytest.mark.tc("TC-RM-B08")

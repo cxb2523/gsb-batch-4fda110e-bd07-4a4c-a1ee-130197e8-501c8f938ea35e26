@@ -155,7 +155,9 @@ async function api(path, opts = {}) {
   if (!res.ok) {
     let detail = res.statusText;
     try { detail = (await res.json()).detail || detail; } catch (_) {}
-    throw new Error(detail);
+    const err = new Error(detail);
+    err.status = res.status;  // 调用方需区分 401（凭证失效，禁止继续翻页）等状态
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }
@@ -1083,7 +1085,82 @@ const followState = {
   items: [], loaded: false, loading: false, selected: new Set(),
   page: 0, total: 0, totalPage: 0, hasMore: false,
   loadingMore: false, moreError: '',
+  collecting: false, collect: null,  // collect: 最近一次「采集全部」的摘要
 };
+
+/* 采集结束原因 → 展示文案前缀与级别 */
+const FOLLOW_END_REASON = {
+  complete: { label: '采集完成（已取满全部页）', level: 'ok' },
+  no_more_pages: { label: '采集完成（关注列表为空或无更多页）', level: 'ok' },
+  page_limit: { label: '达到页数上限，已保护性停止', level: 'warn' },
+  degraded: { label: '疑似接口静默降级，已提前停止', level: 'warn' },
+  auth_invalid: { label: '凭证失效，采集中止', level: 'err' },
+  error: { label: '接口错误，采集中止', level: 'err' },
+};
+
+/* 把一次「采集全部」的结果渲染成摘要条：页数 / 总条数 / 降级与失败原因 */
+function renderFollowCollect() {
+  const bar = $('#followCollectBar');
+  if (!bar) return;
+  const c = followState.collect;
+  if (followState.collecting) {
+    bar.hidden = false;
+    bar.className = 'follow-collect';
+    bar.textContent = '正在按页采集全部关注…';
+    return;
+  }
+  if (!c) { bar.hidden = true; bar.innerHTML = ''; return; }
+  const meta = FOLLOW_END_REASON[c.end_reason] ||
+    { label: `未知结束原因（${c.end_reason}）`, level: 'err' };
+  const pagesTxt = c.pages.length
+    ? `拉取 ${c.pages.length} 页（第 ${c.pages[0]}–${c.pages[c.pages.length - 1]} 页，每页 ${c.page_size} 条）`
+    : '未拉到任何页';
+  const addedCount = c.items.filter((i) => i.added).length;
+  let html = `<b>${meta.label}</b>：${pagesTxt}，合并去重后共 ${c.items.length} 位` +
+    `（其中 ${addedCount} 位已在录制目标中）。`;
+  if (c.degraded) {
+    const last = c.page_counts.length - 1;
+    html += ` ⚠️ 第 ${c.pages[last]} 页仅返回 ${c.page_counts[last]} 条` +
+      `（少于每页 ${c.page_size} 条且仍有后续页），结果可能不完整，请检查风控 cookie 后重试。`;
+  }
+  if (c.error) html += ` ❌ ${fmt.esc(c.error)}`;
+  bar.hidden = false;
+  bar.className = `follow-collect is-${meta.level}`;
+  bar.innerHTML = html;
+}
+
+/* 服务端一次性按页采集全部关注，结果灌入列表并展示摘要 */
+async function collectAllFollow() {
+  if (followState.collecting || followState.loading) return;
+  followState.collecting = true;
+  followState.collect = null;
+  renderFollowCollect();
+  try {
+    const r = await api('/api/followings/collect');
+    followState.collect = r;
+    followState.items = r.items || [];
+    followState.total = r.total || followState.items.length;
+    followState.totalPage = r.total_page || 1;
+    followState.page = (r.pages && r.pages.length)
+      ? r.pages[r.pages.length - 1] : 0;
+    // 服务端已按页采完（或因降级/失败中止），前端不得再继续翻页
+    followState.hasMore = false;
+    followState.moreError = '';
+    followState.loaded = true;
+    const ids = new Set(followState.items.map((i) => i.room_id));
+    followState.selected = new Set(
+      [...followState.selected].filter((id) => ids.has(id)));
+  } catch (err) {
+    followState.collect = {
+      pages: [], page_counts: [], page_size: 20, items: [],
+      degraded: false, end_reason: 'error', error: err.message,
+    };
+  } finally {
+    followState.collecting = false;
+    renderFollowCollect();
+    renderFollow();
+  }
+}
 
 /* 按搜索词 / 只看直播中 / 隐藏已添加 过滤关注列表 */
 function followVisible() {
@@ -1204,6 +1281,8 @@ function renderFollowMore() {
 async function loadFollow() {
   followState.loading = true;
   followState.loaded = false;
+  followState.collect = null;  // 重新分页加载后，旧采集摘要不再适用
+  renderFollowCollect();
   renderFollow();
   try {
     const r = await api('/api/followings?page=1');
@@ -1257,6 +1336,8 @@ async function loadMoreFollow() {
     renderFollow();
   } catch (err) {
     followState.moreError = err.message || '加载失败';
+    // 凭证失效（401）：继续翻页毫无意义，直接终止分页（含滚动自动加载）
+    if (err.status === 401) followState.hasMore = false;
   } finally {
     followState.loadingMore = false;
     renderFollowMore();
@@ -1270,6 +1351,7 @@ $('#btnImportFollowing').addEventListener('click', () => {
 });
 $('#followClose').addEventListener('click', () => { $('#followMask').hidden = true; });
 $('#followReload').addEventListener('click', () => { if (!followState.loading) loadFollow(); });
+$('#followCollectAll').addEventListener('click', collectAllFollow);
 $('#followMoreBar').addEventListener('click', (e) => {
   if (e.target.closest('#followMoreBtn')) loadMoreFollow();
 });

@@ -1490,6 +1490,14 @@ input[type="checkbox"]:checked::after { transform: translateX(16px); background:
   font-size: 12.5px;
 }
 .follow-more-err { color: var(--danger); font-size: 12.5px; }
+.follow-collect {
+  padding: 8px 14px; font-size: 12.5px; line-height: 1.6;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text); background: var(--panel-2);
+}
+.follow-collect.is-ok { border-left: 3px solid var(--ok); }
+.follow-collect.is-warn { border-left: 3px solid var(--warn); }
+.follow-collect.is-err { border-left: 3px solid var(--danger); }
 .follow-err {
   padding: 34px 18px; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 10px;

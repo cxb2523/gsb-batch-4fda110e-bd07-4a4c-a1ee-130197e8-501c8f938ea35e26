@@ -972,7 +972,11 @@
         <label class="switch-line"><input type="checkbox" id="followLiveOnly"> 仅看直播中</label>
         <label class="switch-line"><input type="checkbox" id="followHideAdded" checked> 隐藏已添加</label>
         <button class="btn btn-sm" id="followReload" type="button">刷新</button>
+        <button class="btn btn-sm" id="followCollectAll" type="button"
+                title="由服务端按页拉完全部关注并给出采集摘要（页码序列 / 每页条数 / 降级检测）">
+          采集全部</button>
       </div>
+      <div class="follow-collect" id="followCollectBar" hidden></div>
       <div class="follow-list" id="followContent">
         <div class="muted follow-hint">正在读取关注列表…</div>
       </div>
