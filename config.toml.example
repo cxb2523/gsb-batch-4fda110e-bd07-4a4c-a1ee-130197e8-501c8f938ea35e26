@@ -1,0 +1,36 @@
+# Example configuration for instapaper-scraper
+
+# Default output filename for the main unread article list
+output_filename = "unread-articles.csv"
+
+# Default output filenames for special collections
+liked_output_filename = "liked-articles.csv"
+archive_output_filename = "archive-articles.csv"
+
+# Instapaper credentials
+# You can still use .env file or environment variables for credentials
+# INSTAPAPER_USERNAME="your-username"
+# INSTAPAPER_PASSWORD="your-password"
+
+# Optional fields to include in the output.
+# These can be overridden by command-line flags.
+[fields]
+read_url = false
+article_preview = false
+
+# Default output format. Can be "csv", "json", or "sqlite".
+# This can be overridden by the --format command-line flag.
+[output]
+format = "csv"
+
+[[folders]]
+key = "ml"
+id = "1234567"
+slug = "machine-learning"
+output_filename = "ml-articles.json"
+
+[[folders]]
+key = "python"
+id = "7654321"
+slug = "python-programming"
+output_filename = "python-articles.db"

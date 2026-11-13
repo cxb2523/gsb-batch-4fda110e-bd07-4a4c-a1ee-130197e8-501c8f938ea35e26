@@ -1,0 +1,17 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80% # Enforce 80% coverage on the main codebase
+        threshold: 1 # Stricter threshold to prevent significant drops
+        paths:
+          - "src"
+    patch:
+      default:
+        target: 90%
+        threshold: 2%
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false # Post a comment even if coverage doesn't change

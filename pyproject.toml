@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "instapaper-scraper"
+version = "1.4.1"
+description = "A tool to scrape articles from Instapaper."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Internet :: WWW/HTTP :: Browsers",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+license-files = ["LICEN[CS]E*"]
+dependencies = [
+    "certifi>=2025.11.12,<2026.11.0",
+    "charset-normalizer>=3.4.3,<3.6.0",
+    "cryptography>=50.0.0,<51.0.0",
+    "idna~=3.11",
+    "requests>=2.33.1,<2.35.0",
+    "urllib3>=2.6.3,<2.9.0",
+    "tomli~=2.0.1; python_version < '3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/chriskyfung/InstapaperScraper"
+Source = "https://github.com/chriskyfung/InstapaperScraper"
+Issues = "https://github.com/chriskyfung/InstapaperScraper/issues"
+
+[project.scripts]
+instapaper-scraper = "instapaper_scraper.cli:main"
+
+[tool.licensecheck]
+license = "GPL-3.0"
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+ignore = [
+    "BLE001",  # Blind exception catch (Bandit): prevents catching overly broad exceptions
+    "LOG015",  # Lazy % formatting (Logging): enforces lazy % formatting for better performance
+    "PLC0414", # Future annotations (Pylint-compat): suggests using __future__ import annotations
+    "RUF012",  # Mutable class attributes (Ruff): requires mutable class attributes to be annotated
+    "RUF059",  # Unused self parameter (Ruff): detects methods with unused self parameter
+    "S102",    # Assert usage (Bandit): flags use of assert statements removed with -O flag
+    "SIM102",  # Nested if statements (Simplify): suggests merging collapsible nested ifs
+    "SIM117",  # Multiple with statements (Simplify): suggests merging multiple with statements
+    "TC004",   # Try block issues (Tryceratops): flags common issues in try blocks
+    "TRY002",  # Create your own exception (Tryceratops): suggests creating custom exceptions
+    "TRY201",  # sys.exit usage (Tryceratops): flags use of sys.exit() in library code
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.3,<9.3.0",
+    "pytest-cov~=7.1.0",
+    "ruff>=0.15.11,<0.18.0",
+    "types-requests~=2.33.0.20260408",
+    "requests-mock~=1.12.1",
+    "build>=1.4.3,<1.7.0",
+    "twine>=6.2,<7.1",
+    "mypy>=1.20.1,<2.5.0",
+    "pre-commit>=4.5.1,<4.7.0",
+    "licensecheck",
+]
