@@ -156,7 +156,11 @@ def test_a_listing_with_no_plus_code_row_still_gets_one():
     scraper = GoogleMapsScraper.__new__(GoogleMapsScraper)
     scraper.driver = Panel()
 
-    assert scraper._extract_plus_code(url) == "8FVC2222+22"
+    # No rendered row: the code is derived from the URL's own coordinates,
+    # which is exactly the case the "computed" provenance value exists for.
+    value, source = scraper._extract_plus_code(url)
+    assert value == "8FVC2222+22"
+    assert source == "computed"
 
 
 # --------------------------------------------------------------- the website

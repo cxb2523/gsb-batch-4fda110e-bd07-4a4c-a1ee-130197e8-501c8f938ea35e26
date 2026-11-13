@@ -577,6 +577,16 @@ class LivePipeline(Pipeline):
             progress(f"Found {len(businesses)} businesses.")
             return list(businesses)
         finally:
+            # Write the per-business collection checklist (detail / card
+            # fallback / failed with per-field provenance) beside the listings
+            # CSV.  Guarded because the stub scrapers used in tests do not
+            # carry every method of the real GoogleMapsScraper.
+            save_checklist = getattr(scraper, "save_checklist", None)
+            if save_checklist is not None:
+                try:
+                    save_checklist(progress=progress)
+                except OSError as exc:  # pragma: no cover - filesystem dependent
+                    progress(f"⚠ could not save collection checklist: {exc}")
             scraper.close()
             self._finish_search(businesses, field, location, progress)
 
@@ -633,7 +643,8 @@ class LivePipeline(Pipeline):
                 # _scrape_one retries a half-rendered panel and, if it never
                 # hydrates, falls back to the card rather than dropping the
                 # business — so a slow listing costs a website, not a name and
-                # a phone number.
+                # a phone number.  It also writes the per-business audit entry
+                # the collection checklist is built from.
                 data = scraper._scrape_one(url, cards.get(url, {}))
                 if data:
                     scraper.businesses.append(data)
@@ -642,10 +653,28 @@ class LivePipeline(Pipeline):
                     # Hand it over before the next progress line, which is
                     # where a stop request surfaces.
                     on_business(business)
+                    fallback = " (card fallback)" if data.get(
+                        "_record_status") == "card" else ""
                     progress(f"[{idx}/{len(urls)}] {data.get('name', 'business')}"
-                             f" — {data.get('phone') or 'no phone'}")
+                             f" — {data.get('phone') or 'no phone'}{fallback}")
+                else:
+                    entry = scraper.audit[-1] if getattr(
+                        scraper, "audit", None) else {}
+                    progress(f"[{idx}/{len(urls)}] failed — "
+                             f"{entry.get('reason') or 'no card or detail page'}")
             except Exception as exc:  # pragma: no cover - network dependent
-                progress(f"[{idx}/{len(urls)}] error: {str(exc)[:80]}")
+                message = str(exc)[:80]
+                # Keep the checklist honest: an unexpected blow-up on one
+                # business is a failed entry, not a missing one, and must not
+                # abort the businesses behind it.
+                record_audit = getattr(scraper, "_record_audit", None)
+                if record_audit is not None:
+                    blank_sources = getattr(scraper, "_blank_sources", None)
+                    record_audit(
+                        url, "failed",
+                        blank_sources() if blank_sources is not None else {},
+                        message)
+                progress(f"[{idx}/{len(urls)}] error: {message}")
 
     def scrape_contacts(
         self,

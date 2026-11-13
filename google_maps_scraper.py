@@ -13,6 +13,13 @@ Two sources are merged for every business:
 The detail panel routinely hydrates only halfway when it is opened by direct
 URL navigation, so the card is what keeps the phone column full even when the
 panel comes up empty.
+
+Every key field (name, phone, address, website, rating, reviews count,
+category, hours, plus code) is stamped with the source its final value came
+from — ``detail``, ``card``, ``computed`` (a plus code derived from the URL
+coordinates) or ``missing`` — and each run writes a collection checklist
+(``save_checklist``) naming every business's final status: detail success,
+card fallback after the retries ran out, or total failure with a reason.
 """
 
 import os
@@ -41,6 +48,38 @@ _ICON_RE = re.compile("[\ue000-\uf8ff]")
 
 #: North-American numbers as they appear on Maps: "(740) 453-3649".
 _PHONE_RE = re.compile("\\+?\\d[\\d\\s().\u2011-]{7,}\\d")
+
+# ---------------------------------------------------------------- provenance
+#: Every key field is stamped with where its value came from.  ``detail``
+#: means the place page rendered it, ``card`` means the feed card rescued it,
+#: ``computed`` is reserved for a plus code derived from the URL's own
+#: coordinates, and ``missing`` marks a field that neither source could fill.
+SOURCE_DETAIL = "detail"
+SOURCE_CARD = "card"
+SOURCE_COMPUTED = "computed"
+SOURCE_MISSING = "missing"
+SOURCE_VALUES = (SOURCE_DETAIL, SOURCE_CARD, SOURCE_COMPUTED, SOURCE_MISSING)
+
+#: The nine key fields whose provenance the collection checklist reports on,
+#: in the order the checklist lists them: name, phone, address, website,
+#: rating, reviews, category, hours and plus code.
+FIELD_SOURCE_FIELDS = (
+    "name", "phone", "address", "website", "rating",
+    "reviews_count", "category", "hours", "plus_code",
+)
+
+#: Final per-business outcomes for the run's collection checklist.
+#: ``detail`` rendered its title, ``card`` had to be rescued from the feed
+#: card after the retries ran out, and ``failed`` produced no record at all.
+STATUS_DETAIL = "detail"
+STATUS_CARD = "card"
+STATUS_FAILED = "failed"
+
+#: Metadata keys carried alongside the listing columns.  The CSV writer's
+#: ``extrasaction='ignore'`` drops them from the listings export; the JSON
+#: export keeps them, and :meth:`GoogleMapsScraper.save_checklist` reads them.
+FIELD_SOURCES_KEY = "_field_sources"
+RECORD_STATUS_KEY = "_record_status"
 
 
 def clean_text(value: str) -> str:
@@ -258,6 +297,9 @@ class GoogleMapsScraper:
         self.location = ""
         #: place URL -> facts harvested from that business's feed card.
         self._cards = {}
+        #: One entry per attempted business for the collection checklist:
+        #: final status, per-field provenance and the short failure reason.
+        self.audit = []
 
     # ------------------------------------------------------------------ search
 
@@ -484,11 +526,22 @@ class GoogleMapsScraper:
 
         ``progress`` is an optional ``callable(str)`` used by the TUI to stream
         status lines while the scrape runs.
+
+        Every attempted URL gets an entry in :attr:`audit` — detail success,
+        card fallback, or total failure with its reason — so the run's
+        collection checklist can later say exactly what each record is missing
+        and which source it is missing from.  A business that blows up is
+        recorded as failed and skipped; it never stops the businesses behind
+        it from being processed.
         """
         def emit(message):
             print(message)
             if progress:
                 progress(message)
+
+        # A fresh run starts a fresh checklist; re-running on the same scraper
+        # object must not double-count an earlier search.
+        self.audit = []
 
         try:
             # Wait for results to load
@@ -510,22 +563,111 @@ class GoogleMapsScraper:
                 card = self._cards.get(url, {})
                 try:
                     # Extract business details, falling back to the card.
+                    # _scrape_one writes the audit entry itself; a None means
+                    # neither the panel nor the card produced a record.
                     business_data = self._scrape_one(url, card)
-                    if business_data:
-                        self.businesses.append(business_data)
-                        emit(f"[{idx+1}/{len(business_urls)}] "
-                             f"{business_data.get('name') or 'business'} "
-                             f"— {business_data.get('phone') or 'no phone'}")
-
                 except Exception as e:
-                    emit(f"[{idx+1}/{len(business_urls)}] error: {str(e)[:80]}")
-                    continue
+                    # Safety net: even an unexpected blow-up on one business
+                    # must be recorded and must not abort the rest of the run.
+                    reason = clean_text(str(e)[:120]) or e.__class__.__name__
+                    business_data = None
+                    self._record_audit(
+                        url, STATUS_FAILED, self._blank_sources(), reason)
+                    emit(f"[{idx+1}/{len(business_urls)}] failed: {reason}")
+
+                if business_data:
+                    self.businesses.append(business_data)
+                    status = business_data.get(RECORD_STATUS_KEY, STATUS_DETAIL)
+                    note = "" if status == STATUS_DETAIL else " (card fallback)"
+                    emit(f"[{idx+1}/{len(business_urls)}] "
+                         f"{business_data.get('name') or 'business'} "
+                         f"— {business_data.get('phone') or 'no phone'}{note}")
+                else:
+                    entry = self.audit[-1]
+                    emit(f"[{idx+1}/{len(business_urls)}] failed — "
+                         f"{entry.get('reason') or 'no card or detail page'}")
 
         except TimeoutException:
             emit("Timeout waiting for results")
 
+    def _blank_sources(self):
+        """A provenance map with every key field initially marked ``missing``."""
+        return {field: SOURCE_MISSING for field in FIELD_SOURCE_FIELDS}
+
+    def _record_audit(self, url, status, sources, reason="", name=""):
+        """Append one business's checklist entry for this run."""
+        # Objects built via __new__ in the unit tests never ran __init__;
+        # start lazily so a bare extraction still has somewhere to record.
+        if not hasattr(self, "audit"):
+            self.audit = []
+        entry = {
+            "url": url or "",
+            "name": name or "",
+            "status": status,
+            "sources": dict(sources or self._blank_sources()),
+            "reason": reason or "",
+        }
+        self.audit.append(entry)
+        return entry
+
+    @staticmethod
+    def _has_card_facts(card):
+        """True when a feed card carries at least one usable key value.
+
+        An empty/None card — or one that only carries the place URL — cannot
+        produce a fallback record and means the business is a total failure.
+        """
+        if not card:
+            return False
+        tracked = set(FIELD_SOURCE_FIELDS) | {"phone_e164"}
+        return any(str(card.get(key, "") or "").strip() for key in tracked)
+
+    def _card_fallback_record(self, url, card, reason):
+        """Build the rescue record from a feed card after the panel failed.
+
+        Every value is stamped ``card``; the plus code is still computed from
+        the URL coordinates (``computed``) when the card has none; whatever
+        the card never carried stays explicitly ``missing``.  The record is
+        written with status :data:`STATUS_CARD`, so it can never be counted as
+        a detail-page success.
+        """
+        card = card or {}
+        data = self._blank_record()
+        sources = self._blank_sources()
+
+        for key in FIELD_SOURCE_FIELDS:
+            value = card.get(key, "")
+            if value:
+                data[key] = value
+                sources[key] = SOURCE_CARD
+
+        # phone_e164 is not one of the tracked key fields but is part of the
+        # listing row the merge/CRM reads.
+        data["phone_e164"] = card.get("phone_e164", "")
+        data["url"] = url
+
+        # The coordinates live in the URL, so this column survives a panel
+        # that never rendered at all.
+        computed = plus_code(*coords_from_url(url))
+        if computed:
+            data["plus_code"] = computed
+            sources["plus_code"] = SOURCE_COMPUTED
+
+        data[FIELD_SOURCES_KEY] = sources
+        data[RECORD_STATUS_KEY] = STATUS_CARD
+        self._record_audit(
+            url, STATUS_CARD, sources, reason, name=data.get("name", ""))
+        return data
+
     def _scrape_one(self, url, card, attempts=2):
-        """Open one place page and extract it, retrying a half-loaded panel."""
+        """Open one place page and extract it, retrying a half-loaded panel.
+
+        Returns the merged record (detail values winning, card values filling
+        the gaps), or ``None`` when *both* sources came up empty — in which
+        case a ``failed`` audit entry has already been recorded.  Every other
+        path records a ``detail`` or ``card`` audit entry.
+        """
+        detail_error = ""
         for attempt in range(attempts):
             self.driver.get(url)
             try:
@@ -535,24 +677,30 @@ class GoogleMapsScraper:
                     (By.CSS_SELECTOR, 'h1.DUwDvf')))
                 time.sleep(1)
                 return self._extract_business_details(card)
-            except TimeoutException:
+            except TimeoutException as exc:
+                detail_error = str(exc) or "detail panel timed out"
+                if attempt + 1 < attempts:
+                    continue
+            except Exception as exc:  # panel died mid-render, navigation, stale…
+                detail_error = str(exc)[:120] or exc.__class__.__name__
                 if attempt + 1 < attempts:
                     continue
 
-        # The panel never hydrated. The card still knows the name and the
-        # phone, which is the whole point of harvesting it — emit that rather
-        # than dropping the business.
-        if card:
-            data = self._blank_record()
-            data.update({k: v for k, v in card.items()
-                         if v and k in data_store.LISTING_FIELDS})
-            data["phone_e164"] = card.get("phone_e164", "")
-            data["url"] = url
-            # The coordinates live in the URL, so this column survives a panel
-            # that never rendered at all.
-            if not data["plus_code"]:
-                data["plus_code"] = plus_code(*coords_from_url(url))
-            return data
+        # The panel never hydrated after every retry.  The card still knows
+        # the name and the phone, which is the whole point of harvesting it —
+        # emit that rather than dropping the business.  Selenium's message
+        # carries embedded newlines; collapse them so the checklist's reason
+        # column stays one readable line.
+        reason = clean_text(
+            f"detail page did not render a title: {detail_error}")[:200]
+        if self._has_card_facts(card):
+            return self._card_fallback_record(url, card, reason)
+
+        # Neither a rendered panel nor a usable card: keep the failure with
+        # its reason but do not emit an empty record into the CSV.
+        self._record_audit(
+            url, STATUS_FAILED, self._blank_sources(), reason,
+            name=str((card or {}).get("name", "") or ""))
         return None
 
     def _blank_record(self):
@@ -842,82 +990,119 @@ class GoogleMapsScraper:
         return ""
 
     def _extract_plus_code(self, url=""):
-        """The listing's plus code, read from the panel or computed.
+        """The listing's plus code plus where it came from.
 
-        Maps hides the "Plus code" row on plenty of listings — usually the
-        ones with a precise street address.  A plus code is a pure function of
-        the coordinates, and the place URL carries those, so the column is
-        filled either way instead of being blank for half an export.
+        Returns ``(value, source)`` where source is :data:`SOURCE_DETAIL` for
+        a "Plus code" row rendered by the panel, :data:`SOURCE_COMPUTED` for
+        one encoded from the coordinates in the place URL, or
+        :data:`SOURCE_MISSING` (with an empty value) when neither is
+        available.  Maps hides the row on plenty of listings — usually the
+        ones with a precise street address — and a plus code is a pure
+        function of the coordinates, so the URL fills the column either way.
         """
         value, _ = self._detail_row('button[data-item-id="oloc"]', 'Plus code')
         value = clean_text(value)
         if value:
-            return value
+            return value, SOURCE_DETAIL
 
         latitude, longitude = coords_from_url(url or "")
         if latitude is None:
             latitude, longitude = coords_from_url(self.driver.current_url)
-        return plus_code(latitude, longitude)
+        computed = plus_code(latitude, longitude)
+        if computed:
+            return computed, SOURCE_COMPUTED
+        return "", SOURCE_MISSING
 
     def _extract_business_details(self, card=None):
         """Extract details from a business listing page.
 
-        ``card`` is this business's row from the search feed; every field falls
-        back to it, so a detail panel that renders only halfway still yields a
-        usable record.
+        ``card`` is this business's row from the search feed; every field the
+        panel leaves blank falls back to it, so a detail panel that renders
+        only halfway still yields a usable record.
+
+        The returned row carries two provenance maps alongside the listing
+        columns:
+
+        * ``_field_sources`` — one of detail/card/computed/missing per key
+          field, naming the source the *final* value came from;
+        * ``_record_status`` — :data:`STATUS_DETAIL`, since this method only
+          runs once the page title has rendered.
+
+        The detail page is the authority whenever it has a value; the card
+        only fills what the panel did not render.
         """
         card = card or {}
         data = self._blank_record()
+        sources = self._blank_sources()
 
+        # Business name
         try:
-            # Business name
-            try:
-                data['name'] = clean_text(self.driver.find_element(
-                    By.CSS_SELECTOR, 'h1.DUwDvf').text)
-            except NoSuchElementException:
-                data['name'] = ''
+            name = clean_text(self.driver.find_element(
+                By.CSS_SELECTOR, 'h1.DUwDvf').text)
+        except NoSuchElementException:
+            name = ""
 
-            # Rating + number of reviews (robust, multi-strategy)
-            rating, reviews_count = self._extract_rating_reviews()
-            data['rating'] = rating
-            data['reviews_count'] = reviews_count
+        # Rating + number of reviews (robust, multi-strategy)
+        rating, reviews_count = self._extract_rating_reviews()
 
-            # Category
-            data['category'] = self._extract_category()
+        # Category
+        category = self._extract_category()
 
-            # Address
-            data['address'] = self._extract_address()
+        # Address
+        address = self._extract_address()
 
-            # Phone — the column this scraper exists for.
-            data['phone'], data['phone_e164'] = self._extract_phone()
+        # Phone — the column this scraper exists for.
+        phone, phone_e164 = self._extract_phone()
 
-            # Website
-            data['website'] = self._extract_website()
+        # Website
+        website = self._extract_website()
 
-            # Hours
-            data['hours'] = self._extract_hours()
+        # Hours
+        hours = self._extract_hours()
 
-            # URL
-            data['url'] = self.driver.current_url
+        # URL
+        data['url'] = self.driver.current_url
 
-            # Plus Code — last, because it falls back to the coordinates in
-            # the URL we have only just read.
-            data['plus_code'] = self._extract_plus_code(data['url'])
+        # Plus Code — last, because it falls back to the coordinates in
+        # the URL we have only just read.
+        plus, plus_source = self._extract_plus_code(data['url'])
 
-            # Anything the panel failed to render, take from the feed card.
-            for key, value in card.items():
-                if value and not data.get(key):
-                    data[key] = value
+        # Detail values win; the feed card fills only what the panel did not
+        # render, and each pick is stamped with the source it came from.
+        detail_values = {
+            "name": name,
+            "rating": rating,
+            "reviews_count": reviews_count,
+            "category": category,
+            "address": address,
+            "phone": phone,
+            "website": website,
+            "hours": hours,
+            "plus_code": plus,
+        }
+        for field, detail_value in detail_values.items():
+            if detail_value:
+                data[field] = detail_value
+                sources[field] = (plus_source if field == "plus_code"
+                                  else SOURCE_DETAIL)
+            elif str(card.get(field, "") or "").strip():
+                data[field] = card[field]
+                sources[field] = SOURCE_CARD
+            # else: stays "" and stays SOURCE_MISSING.
 
-            # Seed-search provenance (origin for local-SEO ranking).
-            data['search_term'] = self.search_term
-            data['search_location'] = self.location
+        # phone_e164 has no checklist column of its own; keep whichever the
+        # panel produced, else the card's.
+        data["phone_e164"] = phone_e164 or card.get("phone_e164", "")
 
-            return data
+        # Seed-search provenance (origin for local-SEO ranking).
+        data['search_term'] = self.search_term
+        data['search_location'] = self.location
 
-        except Exception as e:
-            print(f"Error extracting details: {str(e)}")
-            return None
+        data[FIELD_SOURCES_KEY] = sources
+        data[RECORD_STATUS_KEY] = STATUS_DETAIL
+        self._record_audit(
+            data['url'], STATUS_DETAIL, sources, name=data.get("name", ""))
+        return data
 
     # ------------------------------------------------------------------ output
 
@@ -1036,6 +1221,72 @@ class GoogleMapsScraper:
         print(f"✓ Saved {len(self.businesses)} businesses to {path}")
         return path
 
+    # --------------------------------------------------- collection checklist
+
+    def checklist_summary(self):
+        """Counts of the three final outcomes across the most recent run."""
+        summary = {STATUS_DETAIL: 0, STATUS_CARD: 0, STATUS_FAILED: 0}
+        for entry in self.audit:
+            status = entry.get("status", STATUS_FAILED)
+            summary[status] = summary.get(status, 0) + 1
+        return summary
+
+    def save_checklist(self, filename=None, progress=None):
+        """Write the per-business collection checklist beside the CSV.
+
+        One row per attempted business with its name, final status
+        (``detail`` / ``card`` / ``failed``), one provenance column per key
+        field (detail/card/computed/missing) and a short failure reason.  A
+        card-fallback record is never counted as a detail success; a business
+        with neither a card nor a rendered panel gets its own ``failed`` row
+        so nothing vanishes silently.
+        """
+        if not self.audit:
+            message = "No collection checklist to save (no businesses attempted)"
+            print(message)
+            if progress:
+                progress(message)
+            return None
+
+        columns = (
+            ["name", "status", "reason", "url"]
+            + [f"source_{field}" for field in FIELD_SOURCE_FIELDS]
+        )
+
+        if filename:
+            path = Path(filename)
+        else:
+            directory = data_store.search_dir(self.search_term, self.location)
+            path = directory / data_store.timestamped_name("checklist").replace(
+                ".csv", ".csv")
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'w', newline='', encoding='utf-8') as handle:
+            writer = csv.DictWriter(handle, fieldnames=columns,
+                                    extrasaction='ignore', restval='')
+            writer.writeheader()
+            for entry in self.audit:
+                sources = entry.get("sources", {}) or {}
+                row = {
+                    "name": entry.get("name", ""),
+                    "status": entry.get("status", STATUS_FAILED),
+                    "reason": entry.get("reason", ""),
+                    "url": entry.get("url", ""),
+                }
+                for field in FIELD_SOURCE_FIELDS:
+                    row[f"source_{field}"] = sources.get(field, SOURCE_MISSING)
+                writer.writerow(row)
+
+        summary = self.checklist_summary()
+        message = (f"✓ Saved collection checklist to {path} "
+                   f"({summary[STATUS_DETAIL]} detail, "
+                   f"{summary[STATUS_CARD]} card fallback, "
+                   f"{summary[STATUS_FAILED]} failed)")
+        print(f"\n{message}")
+        if progress:
+            progress(message)
+        return path
+
     def close(self):
         """Close the browser"""
         self.driver.quit()
@@ -1081,6 +1332,12 @@ def main():
         if args.output in ['json', 'both']:
             json_file = f"{args.filename}.json" if args.filename else None
             scraper.save_to_json(json_file)
+
+        # The collection checklist always accompanies the CSV, even when the
+        # run only emitted JSON rows, so every run can be reconciled.
+        checklist_file = (
+            f"{args.filename}-checklist.csv" if args.filename else None)
+        scraper.save_checklist(checklist_file)
 
         scraper.save_to_crm()
         scraper.print_coverage()
