@@ -1,0 +1,126 @@
+name: Patchright Chromium Tests
+
+on:
+  workflow_call:
+    inputs:
+      playwright_version:
+        description: 'Playwright Version (e.g. v1.58.0 or 1.58.0)'
+        required: true
+        type: string
+      patchright_core_version:
+        description: 'Patchright Core Version (e.g. v1.58.2 or 1.58.2) on npm'
+        required: true
+        type: string
+      patchright_version:
+        description: 'Patchright Release Version (e.g. v1.58.3 or 1.58.3) on PyPI'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      playwright_version:
+        description: 'Playwright Version to test against (e.g. v1.58.0 or 1.58.0). If empty, latest PyPI release is used.'
+        required: false
+        type: string
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  run-patchright-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Python
+        run: |
+          uv python install
+
+      - name: Install Playwright-Python Package
+        env:
+          playwright_version: ${{ inputs.playwright_version }}
+          patchright_core_version: ${{ inputs.patchright_core_version }}
+          patchright_version: ${{ inputs.patchright_version }}
+        run: |
+          uv sync --all-groups
+          if [ -z "$playwright_version" ]; then
+            playwright_version=$(curl -fsSL https://pypi.org/pypi/playwright/json | jq -r '
+              [.releases | to_entries[]
+                | select(.key | test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                | select(.value | length > 0)
+                | .key]
+              | sort_by(split(".") | map(tonumber))
+              | last
+            ')
+          fi
+          playwright_version=${playwright_version#v}
+          patchright_core_version=${patchright_core_version#v}
+          patchright_version=${patchright_version#v}
+          IFS=. read -r playwright_major playwright_minor playwright_patch <<< "$playwright_version"
+          playwright_line="$playwright_major.$playwright_minor"
+
+          if [ -z "$patchright_core_version" ]; then
+            patchright_core_version=$(npm view patchright-core versions --json | jq -r \
+              --arg line "$playwright_line" \
+              --argjson minimum_patch "$playwright_patch" '
+                [.[]
+                  | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                  | select(startswith($line + "."))
+                  | select((split(".")[2] | tonumber) >= $minimum_patch)]
+                | sort_by(split(".") | map(tonumber))
+                | last // empty
+              ')
+          fi
+          if [ -z "$patchright_core_version" ]; then
+            echo "::error::No compatible patchright-core version exists for Playwright $playwright_version"
+            exit 1
+          fi
+          if [ -z "$patchright_version" ]; then
+            patchright_version=$patchright_core_version
+          fi
+
+          echo "playwright_version=v$playwright_version" >> "$GITHUB_ENV"
+          echo "patchright_core_version=$patchright_core_version" >> "$GITHUB_ENV"
+          echo "patchright_version=$patchright_version" >> "$GITHUB_ENV"
+          git clone https://github.com/microsoft/playwright-python --branch "v$playwright_version"
+          cd playwright-python
+          uv add -r local-requirements.txt
+
+      - name: Patch Playwright-Python Package
+        run: |
+          uv run patch_python_package.py
+          uvx ruff format playwright-python
+
+      - name: Build Patchright-Python Package
+        run: |
+          cd playwright-python
+          uv pip install -e .
+          for wheel in $(uv run setup.py --list-wheels); do
+            PLAYWRIGHT_TARGET_WHEEL=$wheel uv build --wheel
+          done
+
+      - name: Install Local Patchright Package
+        run: |
+          uv pip install --python .venv/bin/python playwright-python/dist/patchright-*-manylinux1_x86_64.whl
+
+      - name: Install Chromium with Patchright
+        run: |
+          uv run --no-sync patchright install --with-deps chromium
+
+      - name: Clone Playwright-Python Tests
+        run: |
+          cp -r playwright-python/tests ./tests
+
+      - name: Modify Tests
+        run: |
+          uv run --no-sync utils/modify_tests.py
+
+      - name: Run Chromium Tests
+        run: |
+          xvfb-run -a uv run --no-sync pytest --browser=chromium --disable-warnings --timeout 90 tests/sync/
+          xvfb-run -a uv run --no-sync pytest --browser=chromium --disable-warnings --timeout 90 tests/async/
