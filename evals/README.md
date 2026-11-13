@@ -120,6 +120,48 @@ names, or domains from `nimble-web-expert-production` or from
 `~/.nimble/skills-evals/traces/` into the repo — bashlex/payload tests only
 need shell shape and JSONL structure.
 
+### Checking a command string without an API key
+
+`evals.commons.nimble_cmd` is pure parsing, so any command string can be
+checked locally with no Nimble CLI, no key and no credits:
+
+```bash
+cd evals
+uv run python -c '
+from evals.commons.nimble_cmd import nimble_tools_from_command as f
+import sys
+for cmd in sys.argv[1:]:
+    print(f(cmd), "<-", cmd)
+' \
+  'nimble search --query acme | head -5' \
+  'out=$(nimble map --url https://example.com | jq -r .urls[]); echo "$out"' \
+  'nimble extract --url https://example.com || nimble crawl run --url https://example.com' \
+  '/bin/zsh -lc "out=$(nimble search --query acme && nimble map --url https://example.com)"' \
+  'echo "nimble search --query acme"' \
+  'nimble --version'
+```
+
+Expected output — one line per input, families deduplicated in first-seen
+order, `[]` for anything that is not an invocation (the echoed command text is
+printed by the shell, so on Git Bash a leading `/bin/zsh` is shown rewritten):
+
+```text
+['nimble search']                   <- nimble search --query acme | head -5
+['nimble map']                      <- out=$(nimble map --url ...); echo "$out"
+['nimble extract', 'nimble crawl']  <- nimble extract --url ... || nimble crawl ...
+['nimble search', 'nimble map']     <- /bin/zsh -lc "out=$(...
+[]                                  <- echo "nimble search --query acme"
+[]                                  <- nimble --version
+```
+
+The collected shapes are direct calls, `env` prefixes, nested `sh|bash|zsh|dash`
+`-c` / `-lc` scripts, pipelines, `&&` / `||` / `;` chains, and command
+substitution (`$(…)` and backticks) as a variable value or an argument — including
+substitution bodies that contain a logical list, and `-lc` scripts nested inside
+a substitution. Literal mentions in `echo` arguments, quotes, heredoc bodies and
+comments are never counted; a subcommand-less call returns `[]`; and a script
+bashlex cannot parse returns `[]` rather than raising.
+
 ## Metrics
 
 | Metric | Meaning |
