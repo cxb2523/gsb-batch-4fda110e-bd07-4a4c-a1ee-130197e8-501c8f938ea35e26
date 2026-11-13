@@ -96,7 +96,16 @@ Done. (Mirror the same in `panel.html` / `panel.js` if you want it in the full p
 
 ## Tests
 
-There are no automated tests yet (PRs welcome — see [[Roadmap]]). Manual smoke test before submitting a PR:
+The export pipeline has a dependency-free suite using Node's built-in test runner.
+It loads `zip.js`, `offscreen.js`, and `background.js` into a VM with a stubbed `chrome`
+surface, so real ZIP-building and `DOWNLOAD` handling are exercised without a browser:
+
+```bash
+node --test
+```
+
+There are still no automated tests for the CDP capture path (PRs welcome — see [[Roadmap]]).
+Manual smoke test before submitting a PR:
 
 1. Load unpacked
 2. Capture 50+ requests from any SPA

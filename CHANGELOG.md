@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet. See the [Roadmap](README.md#-roadmap) for what's planned.
+### Added
+- `manifest.json` in the ZIP archive (alongside `summary.json`): generation time,
+  capture start/end/tab, request totals, success/failure counts, the number and list
+  of requests missing a response body, and per-request index / method / URL /
+  status-or-error / body availability. Indices use the same five-digit prefix as the
+  `requests/` and `bodies/` file names.
+- The manifest records capture start/end/tab URL plus every pause window, so it is
+  visible where CDP events were ignored and requests may be absent.
+- Dependency-free test suite (`node --test`) covering the ZIP manifest, file-name
+  alignment, pause/resume export isolation, and the empty-capture rejection.
+
+### Fixed
+- `DOWNLOAD` on an empty capture now returns `{ ok: false, error }` with a readable
+  message instead of building an empty ZIP or surfacing an unhandled exception.
+- Export now takes a snapshot of the request set, so requests recorded after an
+  export (e.g. following a resume) never leak into an earlier archive.
 
 ## [1.1.0]
 

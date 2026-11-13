@@ -146,6 +146,7 @@ Unzip it, open `index.html` in your browser, and click any request to see its fu
 network_capture_2026-04-28T14-02-33Z.zip
 ├─ index.html                    ← clickable browsable summary
 ├─ summary.json                  ← capture metadata (start/end/bytes/tab)
+├─ manifest.json                 ← machine-readable session checklist
 ├─ all_requests.json             ← every request in one big file
 ├─ capture.har                   ← HAR 1.2 — open in DevTools/Postman
 ├─ capture.csv                   ← spreadsheet-friendly summary

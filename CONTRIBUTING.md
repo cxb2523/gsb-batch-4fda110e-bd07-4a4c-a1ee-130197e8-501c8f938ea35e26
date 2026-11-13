@@ -68,7 +68,7 @@ Architecture deep-dive: [How It Works](https://github.com/Mahdi-hasan-shuvo/netw
 2. In `popup.html` / `popup.js`, add a button and wire it with `doDownload('xxx')`.
 3. Mirror it in `panel.html` / `panel.js` to expose it in the full panel too.
 
-> If you change the per-request file naming inside the ZIP, update it in **both** `buildBlob()` and `buildIndexHtml()` — the index links are generated separately.
+> If you change the per-request file naming inside the ZIP, update it in **both** `buildBlob()` and `buildIndexHtml()` — the index links are generated separately. Both now derive from `requestFileBase()`, and `manifest.json` uses the same helper, so keep that as the single source of truth.
 
 ### Add a new background message type
 
@@ -79,9 +79,20 @@ Architecture deep-dive: [How It Works](https://github.com/Mahdi-hasan-shuvo/netw
 
 ---
 
-## ✅ Manual smoke test (before opening a PR)
+## ✅ Tests
 
-There is no automated test suite yet (contributions welcome). Please verify:
+The export pipeline has a dependency-free test suite using Node's built-in runner.
+It loads `zip.js`, `offscreen.js` and `background.js` into a VM with a small `chrome`
+stub, so it exercises the real ZIP build / download-handling code without a browser:
+
+```bash
+node --test
+```
+
+Requires Node 18+. There are still no tests for the CDP capture path (contributions welcome) —
+please also run the manual smoke test below.
+
+### Manual smoke test
 
 1. Load unpacked and capture 50+ requests from any SPA.
 2. Pause / Resume / Clear all work.

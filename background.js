@@ -14,8 +14,21 @@ const state = {
   count: 0,
   bytes: 0,
   requests: new Map(), // requestId -> entry
-  pendingBodies: new Set()
+  pendingBodies: new Set(),
+  // [{ from, to }] — CDP events are dropped while paused, so these windows
+  // document exactly where the archive may be missing requests.
+  pauseWindows: []
 };
+
+function openPauseWindow() {
+  if (state.pauseWindows.some(w => w.to == null)) return;
+  state.pauseWindows.push({ from: Date.now(), to: null });
+}
+
+function closePauseWindow() {
+  const open = state.pauseWindows.find(w => w.to == null);
+  if (open) open.to = Date.now();
+}
 
 // ---------- persistence ----------
 async function saveState() {
@@ -27,7 +40,8 @@ async function saveState() {
     tabId: state.tabId,
     tabUrl: state.tabUrl,
     count: state.requests.size,
-    bytes: state.bytes
+    bytes: state.bytes,
+    pauseWindows: state.pauseWindows
   };
   // Storage has 5MB quota for sync but local is fine for big data
   try {
@@ -48,10 +62,13 @@ async function loadState() {
     if (Array.isArray(data[REQUESTS_KEY])) {
       for (const [k, v] of data[REQUESTS_KEY]) state.requests.set(k, v);
     }
+    // Older persisted state predates pause-window tracking.
+    if (!Array.isArray(state.pauseWindows)) state.pauseWindows = [];
     // After service-worker restart, debugger session is gone — mark not capturing
     if (state.capturing) {
       state.capturing = false;
       state.endTime = Date.now();
+      closePauseWindow();
       await saveState();
     }
   }
@@ -288,6 +305,7 @@ chrome.debugger.onDetach.addListener((source, reason) => {
     if (state.capturing) {
       state.capturing = false;
       state.endTime = Date.now();
+      closePauseWindow();
       saveState();
       try { chrome.action.setBadgeText({ text: '' }); } catch {}
     }
@@ -316,6 +334,7 @@ async function startCapture(tabId) {
   state.paused = false;
   state.startTime = Date.now();
   state.endTime = null;
+  state.pauseWindows = [];
   await saveState();
   setBadge();
 }
@@ -325,12 +344,15 @@ async function stopCapture() {
   try { await chrome.debugger.detach({ tabId: state.tabId }); } catch {}
   state.capturing = false;
   state.endTime = Date.now();
+  closePauseWindow();
   await saveState();
   setBadge();
 }
 
 async function pauseCapture(paused) {
   state.paused = !!paused;
+  if (state.paused) openPauseWindow();
+  else closePauseWindow();
   await saveState();
   setBadge();
 }
@@ -341,6 +363,7 @@ async function clearCapture() {
   state.count = 0;
   state.startTime = null;
   state.endTime = null;
+  state.pauseWindows = [];
   await saveState();
   setBadge();
 }
@@ -378,9 +401,18 @@ async function ensureOffscreen() {
   offscreenReady = true;
 }
 
+// Freeze the request set at export time. Entries captured after this point
+// (e.g. after resuming from a pause) must not leak into this archive's manifest.
+function snapshotEntries() {
+  return Array.from(state.requests.values()).map((e) => ({ ...e }));
+}
+
 async function downloadAll(format = 'zip') {
-  const entries = Array.from(state.requests.values());
-  if (!entries.length) throw new Error('Nothing to download — capture some requests first.');
+  const entries = snapshotEntries();
+  if (!entries.length) {
+    // Caller turns this into a readable { ok: false, error } reply.
+    throw new Error('Nothing to download — no requests have been captured yet.');
+  }
   await ensureOffscreen();
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const reply = await chrome.runtime.sendMessage({
@@ -394,7 +426,9 @@ async function downloadAll(format = 'zip') {
       endTime: state.endTime || Date.now(),
       tabUrl: state.tabUrl,
       count: entries.length,
-      bytes: state.bytes
+      bytes: state.bytes,
+      // Export-time snapshot: pause windows recorded before this export only.
+      pauseWindows: state.pauseWindows.map((w) => ({ from: w.from, to: w.to == null ? Date.now() : w.to }))
     }
   });
   if (!reply || !reply.ok) throw new Error((reply && reply.error) || 'offscreen build failed');
@@ -491,8 +525,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
         case 'DOWNLOAD': {
+          if (!state.requests.size) {
+            sendResponse({ ok: false, error: 'Nothing to download — no requests have been captured yet.' });
+            break;
+          }
           const r = await downloadAll(msg.format);
-          sendResponse({ ok: true, ...r });
+          sendResponse({ ok: true, filename: r.filename, downloadId: r.downloadId });
           break;
         }
         case 'GET_TARGET_URL': {
@@ -564,6 +602,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (state.tabId === tabId && state.capturing) {
     state.capturing = false;
     state.endTime = Date.now();
+    closePauseWindow();
     saveState();
     setBadge();
   }

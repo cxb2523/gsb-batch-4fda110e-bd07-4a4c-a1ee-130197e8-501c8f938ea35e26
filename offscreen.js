@@ -141,6 +141,13 @@ function buildCsv(entries) {
   return lines.join('\n');
 }
 
+function requestFileBase(i, e) {
+  const idx = pad(i + 1, 5);
+  const host = safe(e.hostname || 'unknown', 24);
+  const method = safe(e.method || 'GET', 6);
+  return `requests/${idx}_${host}_${method}`;
+}
+
 function buildIndexHtml(entries, meta) {
   const rows = entries.map((e, i) => {
     const status = e.failed ? `<span style="color:#c33">ERR ${e.errorText || ''}</span>`
@@ -153,7 +160,7 @@ function buildIndexHtml(entries, meta) {
       <td title="${(e.url || '').replace(/"/g,'&quot;')}">${(e.hostname || '') + (e.pathname || '')}</td>
       <td>${e.duration ? Math.round(e.duration) + 'ms' : ''}</td>
       <td>${e.encodedDataLength || ''}</td>
-      <td><a href="requests/${pad(i+1,5)}_${safe((e.hostname||'x'),24)}_${safe(e.method||'GET',6)}.json">json</a></td>
+      <td><a href="${requestFileBase(i, e)}.json">json</a></td>
     </tr>`;
   }).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>Capture ${new Date(meta.startTime||Date.now()).toISOString()}</title>
@@ -166,9 +173,160 @@ th{background:#f0f0f0}tr:hover{background:#fff}h1{font-size:18px}small{color:#66
 </body></html>`;
 }
 
+function responseBodyFile(i, e) {
+  const idx = pad(i + 1, 5);
+  const host = safe(e.hostname || 'unknown', 24);
+  const ext = extFromMime(
+    e.responseMimeType,
+    (e.responseHeadersFull && (e.responseHeadersFull['content-type'] || e.responseHeadersFull['Content-Type'])) || ''
+  );
+  return `bodies/${idx}_${host}.${ext}`;
+}
+
+function hasBody(e) {
+  // A retrieved body may legitimately be empty (204/304); `undefined` means
+  // getResponseBody never succeeded (failed request or responseBodyError).
+  return typeof e.responseBody === 'string';
+}
+
+// Machine-readable session checklist shipped alongside summary.json.
+// Every number here mirrors the five-digit prefix of the requests/ file names.
+// `bodyFiles[i]` is the actual body file emitted for entry i (null if none).
+function buildManifest(entries, meta, generatedAt, bodyFiles = []) {
+  const pauseWindows = (meta.pauseWindows || []).filter(w => w && w.from != null && w.to != null);
+  const requests = entries.map((e, i) => {
+    const idx = pad(i + 1, 5);
+    const failed = !!e.failed;
+    const bodyFile = bodyFiles[i] || null;
+    return {
+      index: i + 1,                // 1-based position, mirrors the file prefix
+      fileIndex: idx,              // five-digit prefix used by requests/ and bodies/
+      method: e.method || 'GET',
+      url: e.url || '',
+      status: e.responseStatus == null ? null : e.responseStatus,
+      failed,
+      error: failed ? (e.errorText || 'request failed') : null,
+      bodyError: e.responseBodyError || null,
+      hasResponseBody: !!bodyFile,
+      detailFile: `${requestFileBase(i, e)}.json`,
+      bodyFile
+    };
+  });
+  const failedCount = requests.filter(r => r.failed).length;
+  const bodyMissingCount = requests.filter(r => !r.hasResponseBody).length;
+  return {
+    generatedAt,
+    capture: {
+      startedAt: meta.startTime ? new Date(meta.startTime).toISOString() : null,
+      endedAt: meta.endTime ? new Date(meta.endTime).toISOString() : null,
+      tabUrl: meta.tabUrl || null,
+      // CDP events are ignored while paused, so requests in these windows are
+      // not in the archive — listed explicitly rather than silently dropped.
+      pausedMs: pauseWindows.reduce((sum, w) => sum + (w.to - w.from), 0),
+      pauseWindows: pauseWindows.map((w) => ({
+        from: new Date(w.from).toISOString(),
+        to: new Date(w.to).toISOString(),
+        ms: w.to - w.from
+      }))
+    },
+    totalRequests: requests.length,
+    succeededCount: requests.length - failedCount,
+    failedCount,
+    bodyMissingCount,
+    missingResponseBody: requests.filter(r => !r.hasResponseBody).map(r => r.fileIndex),
+    requests
+  };
+}
+
+function buildZipFileList({ entries, meta }) {
+  if (!entries || !entries.length) {
+    throw new Error('Nothing to download — capture some requests first.');
+  }
+
+  const now = new Date().toISOString();
+  const files = [];
+  const bodyFiles = new Array(entries.length).fill(null);
+
+  // top-level summary (manifest is appended last, once body files are known)
+  files.push({ name: 'summary.json', data: enc.encode(JSON.stringify({
+    meta, count: entries.length, generatedAt: now
+  }, null, 2)) });
+
+  files.push({ name: 'all_requests.json', data: enc.encode(JSON.stringify(entries, null, 2)) });
+  files.push({ name: 'capture.har', data: enc.encode(buildHar(entries, meta)) });
+  files.push({ name: 'capture.csv', data: enc.encode(buildCsv(entries)) });
+  files.push({ name: 'index.html', data: enc.encode(buildIndexHtml(entries, meta)) });
+
+  // counter / time file
+  files.push({ name: 'counter_and_time.txt', data: enc.encode([
+    `Network Capture Pro — capture report`,
+    ``,
+    `Total requests       : ${entries.length}`,
+    `Total bytes          : ${meta.bytes || 0}`,
+    `Started at           : ${meta.startTime ? new Date(meta.startTime).toISOString() : '-'}`,
+    `Ended at             : ${meta.endTime ? new Date(meta.endTime).toISOString() : '-'}`,
+    `Elapsed (seconds)    : ${meta.startTime && meta.endTime ? ((meta.endTime - meta.startTime)/1000).toFixed(2) : '-'}`,
+    `Tab URL              : ${meta.tabUrl || '-'}`,
+    `Generated at         : ${now}`,
+    ``
+  ].join('\n')) });
+
+  // collect cookies across all requests
+  const allReqCookies = [];
+  const allResCookies = [];
+  for (const e of entries) {
+    for (const c of (e.requestCookies || [])) allReqCookies.push({ from: e.url, ...c });
+    for (const c of (e.responseCookies || [])) allResCookies.push({ from: e.url, ...c });
+  }
+  files.push({ name: 'cookies/request_cookies.json',  data: enc.encode(JSON.stringify(allReqCookies, null, 2)) });
+  files.push({ name: 'cookies/response_cookies.json', data: enc.encode(JSON.stringify(allResCookies, null, 2)) });
+
+  // per-request files
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    const idx = pad(i + 1, 5);
+    const host = safe(e.hostname || 'unknown', 24);
+    const base = requestFileBase(i, e);
+
+    // detail JSON (always)
+    files.push({
+      name: `${base}.json`,
+      data: enc.encode(JSON.stringify(e, null, 2))
+    });
+
+    // raw response body if present
+    if (hasBody(e)) {
+      let bodyName = responseBodyFile(i, e);
+      if (e.responseBase64Encoded) {
+        try { files.push({ name: bodyName, data: b64ToBytes(e.responseBody) }); }
+        catch { bodyName += '.b64'; files.push({ name: bodyName, data: enc.encode(e.responseBody) }); }
+      } else {
+        files.push({ name: bodyName, data: enc.encode(e.responseBody) });
+      }
+      bodyFiles[i] = bodyName;
+    }
+
+    // raw post body if present
+    if (e.postData) {
+      files.push({ name: `post_data/${idx}_${host}.txt`, data: enc.encode(e.postData) });
+    }
+  }
+
+  // Manifest goes after the per-request files so it reflects what was actually
+  // written (e.g. a body that fell back to .b64).
+  files.push({ name: 'manifest.json', data: enc.encode(JSON.stringify(
+    buildManifest(entries, meta, now, bodyFiles), null, 2
+  )) });
+
+  return files;
+}
+
 async function buildBlob({ format, ts, entries, meta }) {
+  if (!entries || !entries.length) {
+    throw new Error('Nothing to download — capture some requests first.');
+  }
+
   let url, filename, mime;
-  const total = entries.length;
 
   if (format === 'json') {
     const payload = JSON.stringify({ meta, requests: entries }, null, 2);
@@ -189,74 +347,8 @@ async function buildBlob({ format, ts, entries, meta }) {
     filename = `network_capture_${ts}.csv`;
     mime = 'text/csv';
   } else {
-    // ZIP — per-request files + summary + bodies + index.html
-    const files = [];
-
-    // top-level summary & manifest
-    files.push({ name: 'summary.json', data: enc.encode(JSON.stringify({
-      meta, count: total, generatedAt: new Date().toISOString()
-    }, null, 2)) });
-
-    files.push({ name: 'all_requests.json', data: enc.encode(JSON.stringify(entries, null, 2)) });
-    files.push({ name: 'capture.har', data: enc.encode(buildHar(entries, meta)) });
-    files.push({ name: 'capture.csv', data: enc.encode(buildCsv(entries)) });
-    files.push({ name: 'index.html', data: enc.encode(buildIndexHtml(entries, meta)) });
-
-    // counter / time file
-    files.push({ name: 'counter_and_time.txt', data: enc.encode([
-      `Network Capture Pro — capture report`,
-      ``,
-      `Total requests       : ${total}`,
-      `Total bytes          : ${meta.bytes || 0}`,
-      `Started at           : ${meta.startTime ? new Date(meta.startTime).toISOString() : '-'}`,
-      `Ended at             : ${meta.endTime ? new Date(meta.endTime).toISOString() : '-'}`,
-      `Elapsed (seconds)    : ${meta.startTime && meta.endTime ? ((meta.endTime - meta.startTime)/1000).toFixed(2) : '-'}`,
-      `Tab URL              : ${meta.tabUrl || '-'}`,
-      `Generated at         : ${new Date().toISOString()}`,
-      ``
-    ].join('\n')) });
-
-    // collect cookies across all requests
-    const allReqCookies = [];
-    const allResCookies = [];
-    for (const e of entries) {
-      for (const c of (e.requestCookies || [])) allReqCookies.push({ from: e.url, ...c });
-      for (const c of (e.responseCookies || [])) allResCookies.push({ from: e.url, ...c });
-    }
-    files.push({ name: 'cookies/request_cookies.json',  data: enc.encode(JSON.stringify(allReqCookies, null, 2)) });
-    files.push({ name: 'cookies/response_cookies.json', data: enc.encode(JSON.stringify(allResCookies, null, 2)) });
-
-    // per-request files
-    for (let i = 0; i < entries.length; i++) {
-      const e = entries[i];
-      const idx = pad(i + 1, 5);
-      const host = safe(e.hostname || 'unknown', 24);
-      const method = safe(e.method || 'GET', 6);
-      const base = `requests/${idx}_${host}_${method}`;
-
-      // detail JSON (always)
-      files.push({
-        name: `${base}.json`,
-        data: enc.encode(JSON.stringify(e, null, 2))
-      });
-
-      // raw response body if present
-      if (e.responseBody) {
-        const ext = extFromMime(e.responseMimeType, (e.responseHeadersFull && (e.responseHeadersFull['content-type'] || e.responseHeadersFull['Content-Type'])) || '');
-        const bodyName = `bodies/${idx}_${host}.${ext}`;
-        if (e.responseBase64Encoded) {
-          try { files.push({ name: bodyName, data: b64ToBytes(e.responseBody) }); }
-          catch { files.push({ name: bodyName + '.b64', data: enc.encode(e.responseBody) }); }
-        } else {
-          files.push({ name: bodyName, data: enc.encode(e.responseBody) });
-        }
-      }
-
-      // raw post body if present
-      if (e.postData) {
-        files.push({ name: `post_data/${idx}_${host}.txt`, data: enc.encode(e.postData) });
-      }
-    }
+    // ZIP — per-request files + summary + bodies + manifest + index.html
+    const files = buildZipFileList({ entries, meta });
 
     const zipBytes = NCPZip.create(files);
     const blob = new Blob([zipBytes], { type: 'application/zip' });
