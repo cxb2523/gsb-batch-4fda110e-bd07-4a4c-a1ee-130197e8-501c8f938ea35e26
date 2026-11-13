@@ -1,0 +1,59 @@
+{
+  "name": "nimble",
+  "version": "1.10.0",
+  "description": "Live web search for AI agents. Find current pages, read any URL, and run research agents that work across many sources and return findings with citations. Includes reusable Extraction Templates for consistently shaped records from known sites, and Web Search Agents for research, enrichment, and dataset building.",
+  "author": {
+    "name": "Nimble",
+    "email": "support@nimbleway.com",
+    "url": "https://www.nimbleway.com"
+  },
+  "homepage": "https://www.nimbleway.com",
+  "repository": "https://github.com/Nimbleway/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "nimble",
+    "web-extraction",
+    "web-search",
+    "web-crawl",
+    "web-map",
+    "agents",
+    "mcp",
+    "cli",
+    "data-extraction",
+    "structured-data",
+    "competitor-intelligence",
+    "meeting-prep",
+    "company-research",
+    "business-intelligence"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Nimble",
+    "shortDescription": "Expert web search for agents",
+    "longDescription": "Nimble gives agents governed, accurate access to the public web, at a lower token cost per answer. Search finds current pages with ranked results and snippets. Extract returns clean, structured content from any URL, including pages needing JavaScript or interaction. Extraction Templates give consistently shaped records from known sites. Web Search Agents handle open-ended work across many sources, returning findings with citations, for research, enrichment, and dataset building.\n\nAlso included: ready-made workflows for competitor research, company profiles, meeting prep, market discovery, brand monitoring, SEO, and talent sourcing.",
+    "developerName": "Nimble",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Web search",
+      "Page extraction",
+      "Extraction Templates",
+      "Web Search Agents",
+      "Site mapping",
+      "Bulk crawling"
+    ],
+    "websiteURL": "https://www.nimbleway.com",
+    "privacyPolicyURL": "https://www.nimbleway.com/privacy-policy",
+    "termsOfServiceURL": "https://www.nimbleway.com/terms-of-use",
+    "brandColor": "#0D0D0D",
+    "brandColorDark": "#F8E71C",
+    "defaultPrompt": [
+      "What are people saying about a company this month?",
+      "Research this market and give me findings with sources.",
+      "Pull the pricing from this page as structured rows."
+    ],
+    "composerIcon": "./assets/nimble-logo.png",
+    "logo": "./assets/nimble-logo.png",
+    "screenshots": []
+  }
+}

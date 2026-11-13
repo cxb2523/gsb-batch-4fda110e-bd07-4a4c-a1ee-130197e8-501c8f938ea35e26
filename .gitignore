@@ -1,0 +1,101 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.claude
+.claude/
+
+# Local docs / design documents
+docs/
+
+# Local-only working output (release note drafts, scratch)
+local/
+
+# IDE / editor plugin state
+.cursor/
+*.bak
+
+# API keys and secrets
+*.key
+*.pem
+secrets/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+*.cache
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+
+# Output directories
+dist/
+build/
+out/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Plugin-specific / nimble CLI local outputs (skill redirects scrape data here)
+.nimble/
+.nimble-cache/
+research-results/
+extracted-content/
+.agents/
+
+# Eval harness local outputs (prompts/results/seeds must not be published)
+evals/.venv/
+evals/results/
+evals/.traces/
+evals/**/*_results.json
+evals/**/*_meta.json
+evals/**/*_run_name.txt
+evals/.env
+evals/.env.*
+!evals/.env.example
+evals/datasets/
+evals/**/*_seed.json
+evals/**/dataset_production*.json

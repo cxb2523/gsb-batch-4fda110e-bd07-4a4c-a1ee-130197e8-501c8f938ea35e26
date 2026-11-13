@@ -1,0 +1,36 @@
+{
+  "name": "nimble",
+  "version": "1.10.0",
+  "description": "Live web search for AI agents. Find current pages, read any URL, and run research agents that work across many sources and return findings with citations. Includes reusable Extraction Templates for consistently shaped records from known sites, and Web Search Agents for research, enrichment, and dataset building.",
+  "author": {
+    "name": "Nimble",
+    "email": "support@nimbleway.com",
+    "url": "https://www.nimbleway.com"
+  },
+  "homepage": "https://www.nimbleway.com",
+  "repository": "https://github.com/Nimbleway/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "nimble",
+    "web-extraction",
+    "web-search",
+    "web-crawl",
+    "web-map",
+    "agents",
+    "mcp",
+    "cli",
+    "data-extraction",
+    "structured-data",
+    "competitor-intelligence",
+    "meeting-prep",
+    "company-research",
+    "business-intelligence"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "nimble": {
+      "type": "http",
+      "url": "https://mcp.nimbleway.com/mcp"
+    }
+  }
+}
