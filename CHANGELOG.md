@@ -12,6 +12,22 @@ their output or their bill.
 
 ## [Unreleased]
 
+> **Behaviour change: a page the site answers with a DIFFERENT page is
+> dropped, not collected.** Rakuten does not error past a listing's last
+> page — `?p=151` of a 150-page query redirects to page 1 and serves it under
+> HTTP 200, and `/category/{id}/?p=2` serves page 1 without redirecting at
+> all. Both are full pages of real products, so their rows used to be merged
+> into the output as duplicates of page 1 while the run reported `complete`.
+> The page is now detected from the offset the site states itself
+> (`pagination.start`), compared against the page the REQUESTED URL names
+> (not the loop counter, so `--url '…?p=2'` keeps its row), its rows are
+> discarded, and the run stops with `stop_reason: end_of_listing`.
+> `no_new_products` keeps its own meaning — the catalogue repeating itself —
+> and a page with no readable payload is judged by its state, not treated as
+> an end. Under `--concurrency` the first worker to meet such a page stops
+> dispatch and the succeeded pages merge in page-number order; the
+> `pages_completed` count no longer includes the dropped page.
+>
 > **Behaviour change: a page that stays throttled is a failed page.** A page
 > still answering HTTP 503 after the three waits (6, 15, 30 s) used to count
 > as read with no rows: the run reported `status: complete` and exit 0 with

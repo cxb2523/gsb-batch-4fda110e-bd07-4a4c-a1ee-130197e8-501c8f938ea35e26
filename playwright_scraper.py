@@ -66,7 +66,7 @@ What this engine has to know about this site, all of it measured on
   `www.rakuten.co.jp/category/{id}/?p=2` answers 200 with page 1 without
   even redirecting. Both look like success. What settles it is that the
   payload states the offset the server USED — see
-  `page_flow.served_the_page_asked_for`.
+  `page_flow.served_page_is_other`.
 
 * **HTTP 503 is a throttle, not a block.** Rakuten answers a client going
   too fast with its own branded "アクセスが集中しております" page under 503 —
@@ -200,10 +200,14 @@ class PageOutcome:
     # different words and a status alone would be lying by omission.
     cap: Optional[dict] = None
     # Whether the SERVER served the page we asked for, read off
-    # `pagination.start` rather than trusted from the request. False means
-    # the end of the listing: page 151 of a 150-page query answers 301 to
-    # page 1 and then HTTP 200 with 45 real products, and a `/category/` URL
-    # answers page 1 for any `?p=` at all. Both look like success.
+    # `pagination.start` rather than trusted from the request. False means the
+    # site said, itself, that it served a DIFFERENT page — the end of the
+    # listing: page 151 of a 150-page query answers 301 to page 1 and then
+    # HTTP 200 with 45 real products, and a `/category/` URL answers page 1
+    # for any `?p=` at all. Both look like success. A page with no payload to
+    # read (a shell, a refusal, a load failure) states no offset, so it stays
+    # True here and is judged by its own `state`/`load_failed` instead — see
+    # `page_flow.served_page_is_other`.
     served_requested_page: bool = True
     # In --mode product, the merchant's own facts read off the item page.
     # Stored as the small dict rather than by keeping the page's HTML around:
@@ -350,7 +354,7 @@ def _plan_page_urls(page, args, page_one_url: str) -> Optional[List[str]]:
     redirects to page 1 and serves it with HTTP 200, and a `/category/`
     URL serves page 1 for any `?p=` at all. Neither is visible from the
     request, so every fetched page is checked against
-    `page_flow.served_the_page_asked_for` before its rows are kept.
+    `page_flow.served_page_is_other` before its rows are kept.
     """
     if args.pages < 2:
         return None
@@ -1215,11 +1219,30 @@ def _fetch_one_page(session, args, pool, page_num: int, url: str) -> PageOutcome
         # against the loop's counter — a run started on a URL that already
         # carries `?p=2` asks the site for page 2 while calling it page 1 of
         # the run. See page_flow.requested_page_number.
+        #
+        # The POSITIVE signal is used here rather than the bare predicate:
+        # `served_the_page_asked_for` is False both for a page whose payload
+        # states a different offset and for a shell that states none at all,
+        # and those two mean opposite things. `served_page_is_other` is true
+        # only when the site said, itself, that it served another page.
         asked = page_flow.requested_page_number(url, page_num)
-        outcome.served_requested_page = page_flow.served_the_page_asked_for(
+        outcome.served_requested_page = not page_flow.served_page_is_other(
             html, asked)
         if not outcome.served_requested_page:
             served = page_flow.served_page_number(html)
+            if page_num == 1:
+                # The page the server handed back is (on this site) page 1,
+                # so the run facts page 1 normally supplies are still
+                # readable even though its ROWS are dropped: the query's
+                # match count and cap arithmetic, and the served language.
+                # Dropping them too would leave a sidecar with no total
+                # against a run that did ask the site and was answered.
+                outcome.total_available = total_results(html)
+                outcome.header = search_header(html)
+                outcome.cap = page_flow.cap_summary(html)
+            # The page's rows are NOT parsed and so cannot reach the merge —
+            # they are page `served` over again, and writing them would be the
+            # duplicate file this check exists to prevent.
             logger.info(
                 "Asked Rakuten for page %d and it served page %s — its own "
                 "`pagination.start` says so. That is the end of this "
@@ -1389,6 +1412,14 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int):
     Each worker owns its own Playwright instance, browser and exit: with the
     sync API a browser belongs to the thread that made it, so sharing one
     across threads is not an option even if it were desirable.
+
+    Returns (results, unattempted, end_reason). `end_reason` is None while the
+    listing still had pages to give, and otherwise the name of the fact that
+    ended it — "end_of_listing" when the server said it served a page other
+    than the one asked for, "no_new_products" when a page came back legitimately
+    empty. It is a STRING rather than a bool because the two are different
+    facts about the catalogue and the sidecar's `stop_reason` has to say which.
+    Callers that only test truthiness still work: both names are truthy.
     """
     work = queue.Queue()
     for spec in specs:
@@ -1401,6 +1432,18 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int):
     # 45 empty ones. Workers check it before taking more work, so at most
     # (concurrency - 1) extra pages are in flight when it trips.
     exhausted = threading.Event()
+    # WHY dispatch stopped, and the reason survives a race between workers:
+    # a page the server re-served as a different page is a stronger and
+    # more specific fact than "this page had no rows", so it wins if both
+    # land. Guarded by `results_lock` so two workers cannot each store a
+    # different last reason.
+    end_reason = {"value": None}
+
+    def _stop(reason: str):
+        with results_lock:
+            if end_reason["value"] != "end_of_listing":
+                end_reason["value"] = reason
+        exhausted.set()
 
     def worker(index: int):
         name = f"worker-{index + 1}"
@@ -1421,11 +1464,24 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int):
                                                   page_num, url)
                         with results_lock:
                             results.append(outcome)
-                        if outcome.ok and not outcome.products:
+                        # The site answered with a page other than the one
+                        # asked for: this page's rows were already dropped
+                        # inside `_fetch_one_page`, and no later page can be
+                        # trusted either — the listing has ended and Rakuten
+                        # is re-serving page 1. Stopping dispatch HERE is what
+                        # keeps the rest of a 50-page request from collecting
+                        # page 1 over and over.
+                        if not outcome.served_requested_page:
+                            logger.info("[%s] page %d came back as a different "
+                                        "page than asked for — the listing has "
+                                        "ended; stopping dispatch.", name,
+                                        page_num)
+                            _stop("end_of_listing")
+                        elif outcome.ok and not outcome.products:
                             logger.info("[%s] page %d returned no rows — "
                                         "treating that as the end of the listing "
                                         "and stopping dispatch.", name, page_num)
-                            exhausted.set()
+                            _stop("no_new_products")
                 finally:
                     session.close()
         except Exception:  # noqa: BLE001 — a dead worker must not hang the run
@@ -1447,7 +1503,7 @@ def _fetch_pages_concurrently(args, pool, specs, concurrency: int):
             unattempted.append(work.get_nowait()[0])
         except queue.Empty:
             break
-    return results, sorted(unattempted), exhausted.is_set()
+    return results, sorted(unattempted), end_reason["value"]
 
 
 def scrape(args) -> int:
@@ -1543,16 +1599,38 @@ def scrape(args) -> int:
                         stop_reason, args.pages)
             else:
                 seen_keys.update(p.sku for p in first.products if p.sku is not None)
-                planned = _plan_page_urls(session.page, args, first.final_url)
+                planned = None
+                # The listing ended on the very first fetch, so nothing may be
+                # dispatched below — neither to a worker nor to the sequential
+                # loop. This is one flag consulted by both branches rather than
+                # two copies of the same `if` waiting to drift apart.
+                ended_here = not first.served_requested_page
+                if ended_here:
+                    # Page 1 of the RUN is not page 1 of the SITE: the URL
+                    # handed in already carried `?p=2` (or deeper) and the
+                    # server answered with page 1. Its rows were dropped, and
+                    # asking for more pages would collect page 1 again under
+                    # a new `?p=` each time. That is an end of the listing,
+                    # distinct from the catalogue repeating itself.
+                    stop_reason = "end_of_listing"
+                    logger.info(
+                        "The first page asked for is not the page the server "
+                        "served, so pages 2-%d are not attempted: the URL "
+                        "already carried a page number past what the site "
+                        "will use, and every further request would be "
+                        "answered with the same first page.", args.pages)
+                else:
+                    planned = _plan_page_urls(session.page, args, first.final_url)
 
-                if args.pages > 1 and concurrency > 1 and planned is None:
+                if (args.pages > 1 and not ended_here and concurrency > 1
+                        and planned is None):
                     logger.warning("--concurrency %d requested, but this "
                                    "listing's pagination cannot be addressed "
                                    "independently (see above) — falling back to "
                                    "one page at a time.", concurrency)
                     concurrency = 1
 
-                if args.pages > 1 and concurrency > 1:
+                if args.pages > 1 and not ended_here and concurrency > 1:
                     # Close the page-1 browser before starting workers: it has
                     # done its job, and holding it open would cost one more
                     # browser than asked for.
@@ -1574,12 +1652,23 @@ def scrape(args) -> int:
                             blocked_by=worst.blocked_by)
                         blocked = any(o.blocked_by for o in rest)
                     elif exhausted:
-                        stop_reason = "no_new_products"
+                        # Named, not merely truthy: a page the server re-served
+                        # as a different page (`end_of_listing`) and a page that
+                        # legitimately held nothing (`no_new_products`) are
+                        # different facts, and both are complete ends.
+                        stop_reason = exhausted
                     elif unattempted:
                         # Should not happen without a failure or exhaustion,
                         # but say so rather than reporting a complete run.
                         stop_reason = "pages_unattempted"
                     session = None  # already closed
+                elif ended_here:
+                    # Nothing to dispatch: the first fetch already found the
+                    # end of the listing. The branch is explicit rather than
+                    # letting the loop below run its first iteration, because
+                    # `url` for page 2 would be planned from a page that is
+                    # not the page the run asked for.
+                    pass
                 else:
                     url = (planned[0] if planned else
                            _next_url_from_page(session.page, args, 1))
@@ -1684,7 +1773,13 @@ def scrape(args) -> int:
     total_available = next((o.total_available for o in outcomes
                             if o.total_available is not None), None)
     if args.mode == "listing" and all_rows:
-        counts = [(o.page_num, len(o.products)) for o in outcomes if o.ok]
+        # Only pages that were served AS ASKED count towards the page-size
+        # comparison. A page the site answered with a different page has no
+        # rows by construction, so including it would report every such run
+        # as holding a "much thinner" page — a warning that would fire on
+        # correct behaviour and teach the reader to ignore it.
+        counts = [(o.page_num, len(o.products)) for o in outcomes
+                  if o.ok and o.served_requested_page]
         fullest = max((n for _, n in counts), default=0)
         thin = [(p, n) for p, n in counts
                 if fullest and n < THIN_PAGE_SHARE * fullest]
@@ -1729,6 +1824,11 @@ def scrape(args) -> int:
 
     ok_pages = [o for o in outcomes if o.ok]
     failed_pages = [o.page_num for o in outcomes if not o.ok]
+    # `pages_completed` counts pages the site actually served AS ASKED. A page
+    # the server answered with a different page is neither a completed page
+    # nor a failed one — it is the site saying the listing ended — so counting
+    # it as completed would claim 45 rows that the run deliberately dropped.
+    completed_pages = [o for o in ok_pages if o.served_requested_page]
     final_url = (max(ok_pages, key=lambda o: o.page_num).final_url
                  if ok_pages else args.url)
 
@@ -1764,7 +1864,8 @@ def scrape(args) -> int:
 
     return finish_run(all_rows, args.out, args.format, args.allow_empty,
                       blocked=blocked, stop_reason=stop_reason,
-                      pages_requested=args.pages, pages_completed=len(ok_pages),
+                      pages_requested=args.pages,
+                      pages_completed=len(completed_pages),
                       pages_failed=failed_pages, mode=args.mode,
                       # `rakuten.co.jp`, matching every ROW's `source` —
                       # not the hostname of the moment. A run can

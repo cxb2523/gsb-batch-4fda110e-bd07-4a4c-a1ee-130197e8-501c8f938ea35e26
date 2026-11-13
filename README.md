@@ -502,6 +502,23 @@ saying outright that it served page 1, so every fetched page is checked
 against it and a mismatch ends the listing (`stop_reason: end_of_listing`,
 which counts as a *complete* run).
 
+Three details of that check are worth knowing, because each is a case where a
+plausible alternative is wrong:
+
+* The page compared against is the one the **requested URL** names, not the
+  loop's counter. `--url '…?p=2' --pages 1` asks the site for its page 2
+  while calling it page 1 of the run, and asking for its page 2 then receiving
+  page 2 is a correct run (`pagination.start: 45`), not an end of listing.
+* A page with **no payload to read** — a shell, a refusal, a load failure —
+  states no offset, and is judged by its state instead. Only a
+  `pagination.start` that is present AND names another page is an end.
+* Under `--concurrency` any worker that finds the page it asked for answered
+  with a different one stops dispatch, and the pages that did succeed are
+  merged in **page-number order** — the output is the same whatever order
+  they finished in. The sidecar distinguishes this from `no_new_products`
+  (a page the catalogue legitimately repeated or ran out of), and
+  `pages_completed` counts only pages actually served as asked.
+
 The site also publishes **no `<link rel="next">` anywhere** — only
 `rel="canonical"`, on 3 of 3 captures — so the durable layer the family's
 pagination rules lead with simply does not exist here. The `?p=` convention

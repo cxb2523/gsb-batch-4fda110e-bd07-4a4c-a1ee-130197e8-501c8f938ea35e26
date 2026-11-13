@@ -896,16 +896,26 @@ def _fetch_one_page(session, args, pool, page_num: int, url: str) -> PageOutcome
         # against the loop's counter — a run started on a URL that already
         # carries `?p=2` asks the site for page 2 while calling it page 1 of
         # the run. See page_flow.requested_page_number.
+        # The POSITIVE signal, as in the other two engines: a bare False also
+        # covers a page that states nothing (a shell), which is "unknown"
+        # rather than a mismatch. See page_flow.served_page_is_other.
         asked = page_flow.requested_page_number(url, page_num)
-        outcome.served_requested_page = page_flow.served_the_page_asked_for(
+        outcome.served_requested_page = not page_flow.served_page_is_other(
             html, asked)
         if not outcome.served_requested_page:
+            served = page_flow.served_page_number(html)
+            if page_num == 1:
+                # Its rows are dropped, but the query facts page 1 supplies
+                # are still the site's own arithmetic.
+                outcome.total_available = total_results(html)
+                outcome.header = search_header(html)
+                outcome.cap = page_flow.cap_summary(html)
             logger.info(
                 "Asked Rakuten for page %d and it served page %s — its own "
                 "`pagination.start` says so. That is the end of this "
                 "listing; Rakuten re-serves page 1 with HTTP 200 rather than "
                 "erroring. Dropping this page's rows, which are duplicates.",
-                asked, page_flow.served_page_number(html))
+                asked, served)
             outcome.state = "empty"
             return outcome
 
@@ -1035,7 +1045,15 @@ def scrape(args) -> int:
             seen_keys.update(p.sku for p in first.products if p.sku is not None)
 
             planned = None
-            if args.pages > 1:
+            # The first fetch already found the end of the listing, so
+            # nothing may be dispatched — see the Playwright engine.
+            ended_here = not first.served_requested_page
+            if ended_here:
+                stop_reason = "end_of_listing"
+                logger.info(
+                    "The first page asked for is not the page the server "
+                    "served, so pages 2-%d are not attempted.", args.pages)
+            elif args.pages > 1:
                 page_one = first.final_url or args.url
                 constructed = page_url(page_one, 2)
                 candidates = _next_page_candidates(session, 1)
@@ -1056,11 +1074,17 @@ def scrape(args) -> int:
                     planned = [page_url(page_one, n)
                                for n in range(2, args.pages + 1)]
 
-            first_candidates = _next_page_candidates(session, 1)
-            url = (planned[0] if planned else
-                   (first_candidates[0] if first_candidates
-                    else page_url(session.driver.current_url, 2)))
+            first_candidates = (_next_page_candidates(session, 1)
+                                if not ended_here else [])
+            if ended_here:
+                url = args.url
+            else:
+                url = (planned[0] if planned else
+                       (first_candidates[0] if first_candidates
+                        else page_url(session.driver.current_url, 2)))
             for page_num in range(2, args.pages + 1):
+                if ended_here:
+                    break
                 if pool and pool.rotates_per_page():
                     pool.advance(f"per-page rotation, page {page_num}")
                     session.relaunch()
@@ -1133,7 +1157,9 @@ def scrape(args) -> int:
     total_available = next((o.total_available for o in outcomes
                             if o.total_available is not None), None)
     if args.mode == "listing" and all_rows:
-        counts = [(o.page_num, len(o.products)) for o in outcomes if o.ok]
+        # Only pages served AS ASKED count — see the Playwright engine.
+        counts = [(o.page_num, len(o.products)) for o in outcomes
+                  if o.ok and o.served_requested_page]
         fullest = max((n for _, n in counts), default=0)
         thin = [(p, n) for p, n in counts
                 if fullest and n < THIN_PAGE_SHARE * fullest]
@@ -1174,6 +1200,8 @@ def scrape(args) -> int:
 
     ok_pages = [o for o in outcomes if o.ok]
     failed_pages = [o.page_num for o in outcomes if not o.ok]
+    # Pages the site served AS ASKED — see the Playwright engine's note.
+    completed_pages = [o for o in ok_pages if o.served_requested_page]
     final_url = (max(ok_pages, key=lambda o: o.page_num).final_url
                  if ok_pages else args.url)
 
@@ -1209,7 +1237,8 @@ def scrape(args) -> int:
 
     return finish_run(all_rows, args.out, args.format, args.allow_empty,
                       blocked=blocked, stop_reason=stop_reason,
-                      pages_requested=args.pages, pages_completed=len(ok_pages),
+                      pages_requested=args.pages,
+                      pages_completed=len(completed_pages),
                       pages_failed=failed_pages, mode=args.mode,
                       # `rakuten.co.jp`, matching every ROW's `source` — a run
                       # can start on www.rakuten.co.jp and

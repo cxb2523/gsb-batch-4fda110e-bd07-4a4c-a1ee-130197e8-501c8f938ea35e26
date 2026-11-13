@@ -441,7 +441,7 @@ def block_advice(html: Optional[str], headless: bool,
 #      what `page_url` builds for it, host rewrite included.
 #   3. A data terminator, and this is the one to trust: the response states
 #      which offset it SERVED, in `pagination.start`. See
-#      `served_the_page_asked_for`.
+#      `served_page_is_other`.
 NEXT_PAGE_SELECTOR = (
     'link[rel="next"], '
     'a[rel="next"][href*="?p="], '
@@ -473,6 +473,27 @@ def requested_page_number(url: str, loop_index: int = 1) -> int:
     """
     from_url = page_number_from_url(url)
     return from_url if from_url > 1 else max(1, loop_index)
+
+
+def served_page_is_other(html: Optional[str],
+                         requested_page: int) -> bool:
+    """Whether the server's OWN statement contradicts the page asked for.
+
+    The positive spelling of `served_the_page_asked_for`, and the one the
+    engine branches on. It exists because "no payload to read" and "the
+    payload says a different page" are opposite facts that both arrive as a
+    False from a predicate named "served the page asked for": a shell or a
+    blocked page states no `pagination.start`, so the only honest answer for
+    it is "unknown", and an engine reading a bare `False` as a mismatch would
+    drop a perfectly good page that was merely slow.
+
+    So the mismatch is a POSITIVE signal here — a `pagination.start` that is
+    present AND names a different page — and its absence is `unknown`.
+    """
+    served = served_page_number(html)
+    if served is None:
+        return False
+    return served != max(1, requested_page)
 
 
 def served_the_page_asked_for(html: Optional[str],

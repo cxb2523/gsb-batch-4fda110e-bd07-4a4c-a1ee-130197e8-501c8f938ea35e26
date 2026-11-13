@@ -4291,6 +4291,406 @@ def test_retries_is_validated_in_every_entry_point():
     return check("--retries is validated in every entry point, so 0 is a usage error", not problems)
 
 
+# --- Out-of-range pagination: the site that "succeeds" with the wrong page --
+
+def _listing_offline(start, item_ids, num_found=200, page_size=45):
+    """A tiny listing page whose payload STATES the offset it served.
+
+    Built here rather than captured, because the point is the OFFSET: the
+    fixtures in `fixtures_generated.json` are real captures and every one of
+    them is page 1, so none can express "asked for page 3, served page 1".
+    The markup is deliberately the minimum the parser reads — one SSR
+    payload with `pagination` and `items`, plus enough price tiles for the
+    readiness count — and carries no styling, no JSON-LD and no currency.
+
+    It never touches the network: `_fetch_one_page` is driven with a fake
+    browser page holding exactly this HTML.
+    """
+    items = [
+        {"name": "offline product %s" % item_id,
+         "price": 1000,
+         "url": "https://item.rakuten.co.jp/offline-shop/%s/" % item_id,
+         "itemOptions": {"cpc": None}}
+        for item_id in item_ids
+    ]
+    payload = {"state": {"metadata": {"lang": "ja"},
+                         "data": {"ichibaSearch": {
+                             "pagination": {"numFound": num_found,
+                                            "start": start,
+                                            "pageSize": page_size,
+                                            "subset": 6750,
+                                            "sortAlternative": None,
+                                            "nextPageOffset": None},
+                             "items": items}}}}
+    tiles = "".join('<p class="price--x">1,000</p>' for _ in item_ids)
+    return ('<!DOCTYPE html><html><head><meta charset="utf-8">'
+            '<title>offline listing</title></head><body>%s'
+            '<script>window.__INITIAL_STATE__ = %s;</script></body></html>'
+            % (tiles, json.dumps(payload, ensure_ascii=False)))
+
+
+def test_out_of_range_pagination(skips):
+    group("pagination that LIES: a re-served page is dropped and named")
+    ok = True
+    import argparse as _ap
+    import page_flow as _pf
+
+    search_url = ("https://search.rakuten.co.jp/search/mall/"
+                  "%E3%82%B3%E3%83%BC%E3%83%92%E3%83%BC/")
+    PAGE = 45          # what this site serves per page, and what the offset
+                       # is a multiple of in every synthetic page below.
+
+    # 1. The signal itself, in both spellings. `served_page_is_other` exists
+    #    so that "the site named a different page" and "this page states
+    #    nothing" cannot be confused: both used to arrive as the same False.
+    ok &= check("a payload naming another page is a positive mismatch",
+                _pf.served_page_is_other(_listing_offline(0, ["a"]), 2) is True)
+    ok &= check("a payload naming the asked-for page is not",
+                _pf.served_page_is_other(_listing_offline(PAGE, ["a"]), 2)
+                is False)
+    ok &= check("a page stating no offset is UNKNOWN, not a mismatch",
+                _pf.served_page_is_other("<html></html>", 3) is False
+                and _pf.served_page_is_other(None, 3) is False)
+    ok &= check("the old predicate still reads a no-payload page as served",
+                _pf.served_the_page_asked_for(None, 3) is True)
+
+    try:
+        engine = _load_engine_with_stub_driver("playwright_scraper")
+    except Exception as e:  # noqa: BLE001
+        skips.append("playwright_scraper (%s)" % e)
+        return ok
+
+    real_time = engine.time
+    import types as _types
+    import time as _time
+    engine.time = _types.SimpleNamespace(sleep=lambda s: None,
+                                         time=_time.time,
+                                         monotonic=_time.monotonic)
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            def args_for(pages=1, mode="listing", url=None, name="out"):
+                """Flags from the engine's OWN parser, so a new namespace
+                field cannot silently diverge from what a real run gets."""
+                args, code = _parse_engine_args(
+                    engine, ["--url", url or search_url,
+                             "--pages", str(pages), "--mode", mode,
+                             "--out", os.path.join(d, name),
+                             "--retries", "1", "--retry-delay", "0",
+                             "--proxy-block-retries", "0"])
+                assert code is None, "the engine refused the test's flags"
+                return args
+
+            # 2. A page the site DID serve as asked keeps its rows. If this
+            #    ever fails, every check below is meaningless: it would mean
+            #    rows are being dropped for some other reason.
+            good = _listing_offline(PAGE, ["p2-a", "p2-b"])
+
+            page = _LoopFakePage(search_url + "?p=2", good, status=200)
+            out = engine._fetch_one_page(_LoopFakeSession(page), args_for(),
+                                         None, 2, search_url + "?p=2")
+            ok &= check("a page served as asked keeps its rows (%d, %s)"
+                        % (len(out.products), out.state),
+                        out.ok and out.state == "content"
+                        and out.served_requested_page
+                        and len(out.products) == 2)
+
+            # 3. Asked for page 3, the site answers with page 1 — 45 real
+            #    products that are the SAME products page 1 already gave.
+            #    The rows must NOT be parsed at all, and the page must be
+            #    marked as the end of the listing.
+            re_served = _listing_offline(0, ["p1-a", "p1-b"])
+            page = _LoopFakePage(search_url + "?p=3", re_served, status=200)
+            out = engine._fetch_one_page(_LoopFakeSession(page), args_for(),
+                                         None, 3, search_url + "?p=3")
+            ok &= check("a re-served page drops every row it held (%d parsed)"
+                        % len(out.products),
+                        out.products == [] and out.ok)
+            ok &= check("...and is flagged as a page other than the one asked "
+                        "for", out.served_requested_page is False)
+            ok &= check("...and is not reported as a FAILED page",
+                        out.blocked_by is None and not out.load_failed
+                        and not out.throttled)
+
+            # 4. The requested page is the URL's, not the loop's. A run
+            #    started on `?p=2` asks the site for page 2 while calling it
+            #    page 1 of the run; the server serving page 2 must keep
+            #    those rows, and the server serving page 1 must drop them.
+            page = _LoopFakePage(search_url + "?p=2", good, status=200)
+            out = engine._fetch_one_page(_LoopFakeSession(page), args_for(),
+                                         None, 1, search_url + "?p=2")
+            ok &= check("a run starting at ?p=2 keeps the page 2 it was served",
+                        out.ok and len(out.products) == 2
+                        and out.served_requested_page)
+            page = _LoopFakePage(search_url + "?p=2", re_served, status=200)
+            out = engine._fetch_one_page(_LoopFakeSession(page), args_for(),
+                                         None, 1, search_url + "?p=2")
+            ok &= check("...and drops page 1 if that is what came back instead",
+                        out.products == []
+                        and out.served_requested_page is False)
+
+            # 5. The run's stop reason, through the public finish path. A run
+            #    that fetched page 1 and was handed it again must be
+            #    COMPLETE (the listing ended), report `end_of_listing`, and
+            #    keep every statistic of the pages that did succeed — the
+            #    query's own total, and the total row count.
+            first_html = _listing_offline(0, ["p1-a", "p1-b"])
+            row = Product(sku="sku:one", url="https://item.rakuten.co.jp/s/1/",
+                          title="t", price=100.0)
+            with redirect_stdout(io.StringIO()):
+                rc = finish_run(
+                    [row], os.path.join(d, "eol"), "json", False,
+                    blocked=False, stop_reason="end_of_listing",
+                    pages_requested=3, pages_completed=1, pages_failed=[],
+                    start_url=search_url, final_url=search_url,
+                    extra=dict(page_flow.cap_summary(first_html)))
+            meta = json.load(open(os.path.join(d, "eol") + ".meta.json"))
+            ok &= check("end_of_listing finishes COMPLETE, exit 0 (rc=%r, "
+                        "status=%r)" % (rc, meta["status"]),
+                        rc == 0 and meta["status"] == "complete"
+                        and meta["stop_reason"] == "end_of_listing")
+            ok &= check("the sidecar keeps the succeeded page's statistics "
+                        "and the total hit count",
+                        meta["products"] == 1 and meta["pages_completed"] == 1
+                        and meta["total_results"] == 200
+                        and meta["pages_available"] == 5)
+    finally:
+        engine.time = real_time
+
+    # 6. The seam that matters most: `scrape()` itself, with a
+    #    listing that ends on page 2. Page 3 is asked for and the
+    #    server answers page 1; page 2 must be kept, page 3 dropped,
+    #    and the sidecar must say `end_of_listing` rather than
+    #    `no_new_products` — a re-served page 1 would also trip the
+    #    dedupe terminator, which is why the offset check runs first.
+    seen = []
+    first_html = _listing_offline(0, ["p1-a", "p1-b"])
+
+    def fake_fetch_full(session, a, pool, page_num, url):
+        seen.append(page_num)
+        oc = engine.PageOutcome(page_num=page_num, url=url)
+        oc.state = "content"
+        oc.final_url = url
+        if page_num == 1:
+            oc.products = parse_products(first_html, url, page=1)
+            oc.total_available = total_results(first_html)
+            oc.cap = page_flow.cap_summary(first_html)
+        elif page_num == 2:
+            oc.products = parse_products(
+                _listing_offline(PAGE, ["p2-a", "p2-b"]), url, page=2)
+        else:
+            # Asked for page 3; the server handed back its page 1 payload.
+            oc.served_requested_page = False
+        return oc
+
+    def fake_plan(page, a, page_one_url):
+        return [search_url + "?p=%d" % n for n in (2, 3)]
+
+    def fake_next(page, a, page_num):
+        return search_url + "?p=%d" % (page_num + 1)
+
+    class _SessionWithPage(_FakeSession):
+        """`_FakeSession` carries no `.page`, and `scrape()` reads it to plan
+        page 2 from page 1. The planning call is faked too, but the attribute
+        still has to exist or the run dies before the check it is testing."""
+
+        def __init__(self, pool=None):
+            super().__init__(pool)
+            self.page = object()
+
+    original = (engine.sync_playwright, engine._BrowserSession,
+                engine._fetch_one_page, engine._plan_page_urls,
+                engine._next_url_from_page)
+    engine.sync_playwright = lambda: _FakePlaywright()
+    engine._BrowserSession = lambda pw, a, pool, **kw: _SessionWithPage(pool)
+    engine._fetch_one_page = fake_fetch_full
+    engine._plan_page_urls = fake_plan
+    engine._next_url_from_page = fake_next
+    try:
+        args = args_for(pages=3)
+        with redirect_stdout(io.StringIO()):
+            rc = engine.scrape(args)
+    finally:
+        (engine.sync_playwright, engine._BrowserSession,
+         engine._fetch_one_page, engine._plan_page_urls,
+         engine._next_url_from_page) = original
+    meta = json.load(open(os.path.join(d, "out") + ".meta.json"))
+    ok &= check("a run whose page 3 is re-served page 1 stops at the "
+                "end and says so (stop_reason=%r, pages=%r)"
+                % (meta.get("stop_reason"), seen),
+                rc == 0 and meta["stop_reason"] == "end_of_listing"
+                and meta["status"] == "complete")
+    ok &= check("...keeps page 1 and page 2's rows and none of page 3's",
+                meta["products"] == 4
+                and meta["pages_completed"] == 2
+                and meta["pages_failed"] == [])
+
+    # 7. A run STARTED on `?p=2` whose first fetch is answered with
+    #    page 1 must dispatch nothing at all — not nine more fetches of
+    #    page 1 under rising `?p=` values.
+    dispatched = []
+
+    def only_first(session, a, pool, page_num, url):
+        dispatched.append(page_num)
+        oc = engine.PageOutcome(page_num=page_num, url=url)
+        oc.state = "content"
+        oc.served_requested_page = False
+        oc.total_available = 200
+        return oc
+
+    engine.sync_playwright = lambda: _FakePlaywright()
+    engine._BrowserSession = lambda pw, a, pool, **kw: _SessionWithPage(pool)
+    engine._fetch_one_page = only_first
+    try:
+        args = args_for(pages=10, url=search_url + "?p=2", name="p2start")
+        with redirect_stdout(io.StringIO()):
+            rc = engine.scrape(args)
+    finally:
+        (engine.sync_playwright, engine._BrowserSession,
+         engine._fetch_one_page) = original[:3]
+    ok &= check("a run starting past the end fetches ONE page, not "
+                "ten (%r)" % dispatched, dispatched == [1])
+    # No rows were gathered: `save` writes nothing, so there is no sidecar to
+    # read and no file that could overwrite an earlier good one. Exit 4
+    # ("no products") is the honest code here, and the checks below pin that
+    # the run did NOT reach it by claiming a complete empty catalogue.
+    ok &= check("...and writes no sidecar claiming a complete run",
+                not os.path.exists(os.path.join(d, "p2start") + ".meta.json"))
+    ok &= check("...and reports no products (rc=%r)" % rc,
+                rc == EXIT_NO_PRODUCTS)
+
+    # 8. Concurrency. Any worker that finds the server served another page
+    #    must stop dispatch — and that has to be true even when the page it
+    #    answered with is NOT the first one fetched. Driven at concurrency 1
+    #    first: with one worker the order is deterministic, so the assertion
+    #    tests the rule rather than which thread won a race.
+    def concurrent_fetch(session, a, pool, page_num, url):
+        oc = engine.PageOutcome(page_num=page_num, url=url)
+        oc.state = "content"
+        oc.final_url = url
+        if page_num == 3:
+            oc.served_requested_page = False
+        else:
+            oc.products = parse_products(
+                _listing_offline(PAGE * (page_num - 1),
+                                 ["p%d-a" % page_num, "p%d-b" % page_num]),
+                url, page=page_num)
+        return oc
+
+    engine.sync_playwright = lambda: _FakePlaywright()
+    engine._BrowserSession = lambda pw, a, pool, **kw: _SessionWithPage(pool)
+    engine._fetch_one_page = concurrent_fetch
+    try:
+        rest, unattempted, end_reason = engine._fetch_pages_concurrently(
+            _ap.Namespace(delay=0, mode="listing"), None,
+            [(n, search_url + "?p=%d" % n) for n in range(2, 12)], 1)
+    finally:
+        (engine.sync_playwright, engine._BrowserSession,
+         engine._fetch_one_page) = original[:3]
+    pages_fetched = sorted(o.page_num for o in rest)
+    ok &= check("a re-served page stops dispatch and NAMES the reason "
+                "(%r, unattempted=%d)" % (end_reason, len(unattempted)),
+                end_reason == "end_of_listing" and unattempted)
+    ok &= check("...having fetched the re-served page and nothing after it "
+                "(%r)" % pages_fetched, pages_fetched == [2, 3])
+    merged = []
+    merged_seen = set()
+    for oc in sorted(rest, key=lambda o: o.page_num):
+        merged.extend(dedupe_by_key(oc.products, merged_seen, key="sku"))
+    ok &= check("...and the rows that DID succeed survive, in page order "
+                "(%r)" % [r.sku for r in merged],
+                [r.sku for r in merged]
+                == ["offline-shop:p2-a", "offline-shop:p2-b"])
+
+    # 8b. The merge does not depend on ARRIVAL order. Feeding the outcomes in
+    #      reverse is what a concurrent run can genuinely produce; the output
+    #      must be byte-for-byte the same either way.
+    def merged_from(outs):
+        rows, seen = [], set()
+        for oc in sorted(outs, key=lambda o: o.page_num):
+            rows.extend(dedupe_by_key(oc.products, seen, key="sku"))
+        return [r.sku for r in rows]
+
+    ok &= check("the merge is by PAGE number, not by completion order",
+                merged_from(rest) == merged_from(list(reversed(rest))))
+    ok &= check("...and that ordered merge is the page order the run asked "
+                "for", merged_from(list(reversed(rest))
+                                   + [concurrent_fetch(None, None, None, 4,
+                                                       "u")])
+                == ["offline-shop:p2-a", "offline-shop:p2-b",
+                    "offline-shop:p4-a", "offline-shop:p4-b"])
+
+    # 9. An empty page (legitimately served, `numFound: 0`) is still
+    #    `no_new_products`, not `end_of_listing`: the two are
+    #    different facts and the sidecar must not conflate them. Asked for
+    #    page 1, which is the only page a 0-hit query has — asking for page
+    #    2 of it lands in section 3's case instead, because Rakuten's answer
+    #    is its page 1 under a request for another page.
+    empty = _listing_offline(0, [], num_found=0)
+    page = _LoopFakePage(search_url, empty, status=200)
+    out = engine._fetch_one_page(_LoopFakeSession(page), args_for(),
+                                 None, 1, search_url)
+    ok &= check("a page the site served empty is not an end_of_listing",
+                out.served_requested_page is True
+                and out.state == "empty" and out.ok
+                and out.products == [])
+
+    # 10. 503 exhausts the THROTTLE budget and is a FAILED page: not exit 0,
+    #     not exit 4, and never "read but empty". The status is the only
+    #     signal separating this from a 403 refusal, and the same branded
+    #     body carries it — so this drives the real classifier.
+    blk_html, _, _ = fx("block_403")
+    with tempfile.TemporaryDirectory() as d:
+        args, code = _parse_engine_args(
+            engine, ["--url", search_url, "--pages", "1",
+                     "--out", os.path.join(d, "out"),
+                     "--retries", "1", "--retry-delay", "0",
+                     "--proxy-block-retries", "0"])
+        assert code is None, "the engine refused the test's flags"
+        page = _LoopFakePage(search_url, blk_html, status=503)
+        out = engine._fetch_one_page(_LoopFakeSession(page), args, None,
+                                     1, search_url)
+        ok &= check("a page still 503 after every wait is throttled and NOT "
+                    "ok (%d fetch(es), state=%r)"
+                    % (page.gotos, out.state),
+                    out.throttled and not out.ok and out.state == "throttled"
+                    and page.gotos == 1 + _pf.THROTTLE_RETRIES)
+        ok &= check("...and it is not reported as an empty page",
+                    out.state != "empty" and out.products == []
+                    and not out.load_failed and out.blocked_by is None)
+        # The same 503 through the whole run, so the sidecar is written by
+        # the public path rather than asserted about a hand-built outcome.
+        # THROTTLE_RETRIES waits really happen here, so the sleep is stubbed
+        # (engine.time is already a no-sleep namespace above).
+        def always_503(session, a, pool, page_num, url):
+            oc = engine.PageOutcome(page_num=page_num, url=url)
+            oc.state = "throttled"
+            oc.throttled = True
+            return oc
+
+        original = (engine.sync_playwright, engine._BrowserSession,
+                    engine._fetch_one_page)
+        engine.sync_playwright = lambda: _FakePlaywright()
+        engine._BrowserSession = lambda pw, a, pool, **kw: _SessionWithPage(pool)
+        engine._fetch_one_page = always_503
+        try:
+            with redirect_stdout(io.StringIO()):
+                rc = engine.scrape(args)
+        finally:
+            (engine.sync_playwright, engine._BrowserSession,
+             engine._fetch_one_page) = original
+        ok &= check("...so the run does not report complete (rc=%r)" % rc,
+                    rc == 5)
+        # `save` refuses to write an empty file, so no sidecar is written at
+        # all — which is the documented contract for a run that gathered
+        # nothing. A sidecar claiming "complete" would be the failure; its
+        # ABSENCE, with exit 5, is the correct answer.
+        meta_path = os.path.join(d, "out") + ".meta.json"
+        ok &= check("...and it writes no sidecar at all rather than one "
+                    "claiming a completed empty page",
+                    not os.path.exists(meta_path))
+    return ok
+
+
 # --- Failure semantics: what a page that did NOT come back usable means -----
 #
 # One group for the defects a live verification of v0.3.0 found, each pinned
@@ -4937,6 +5337,7 @@ def main() -> int:
     ok &= test_x_debug_header_is_redacted()
     ok &= test_scraper_api_waitfor_is_an_object()
     ok &= test_engine_fetch_loop_offline()
+    ok &= test_out_of_range_pagination(skips)
     ok &= test_failure_semantics(skips)
     ok &= test_config_and_ignore_rules()
 

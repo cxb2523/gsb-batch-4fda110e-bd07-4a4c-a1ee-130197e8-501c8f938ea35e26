@@ -139,6 +139,15 @@ The run reads the offset the SERVER states (`pagination.start`) and stops
 when it does not match, which is why it did not collect page 1 nine more
 times. `end_of_listing` counts as a complete run.
 
+Two neighbouring symptoms, and they are different facts:
+
+* `stop_reason: no_new_products` means a page the site DID serve as asked
+  added nothing not already seen — the catalogue repeated itself.
+* `stop_reason: end_of_listing` with **nothing** in the output means the
+  page you asked for was already past the end. A run started on
+  `--url '…?p=2'` against a one-page listing is answered with page 1, whose
+  rows are dropped, so there was nothing to write.
+
 ## `currency` is null on some rows
 
 The row's page stated no currency. Rakuten's listing payload contains no
