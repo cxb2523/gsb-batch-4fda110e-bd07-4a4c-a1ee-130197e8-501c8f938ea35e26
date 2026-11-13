@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tsuyu-mi</title>
+  <meta name="description" content="Raindrop.io に溜めた「あとで読む」記事を AI が 3 行要約し、今読む / 後回し / 捨てる の優先度付きで一覧化する自動更新ダッシュボード。">
+  <link rel="canonical" href="https://unsolublesugar.github.io/tsuyu-mi/">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tsuyu-mi">
+  <meta property="og:title" content="Tsuyu-mi">
+  <meta property="og:description" content="Raindrop.io に溜めた「あとで読む」記事を AI が 3 行要約し、今読む / 後回し / 捨てる の優先度付きで一覧化する自動更新ダッシュボード。">
+  <meta property="og:url" content="https://unsolublesugar.github.io/tsuyu-mi/">
+  <meta property="og:image" content="https://unsolublesugar.github.io/tsuyu-mi/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tsuyu-mi — 「あとで読む」を、読む前に仕分ける。Raindrop.io の記事を AI が 3 行要約し優先度付きで一覧化">
+  <meta property="og:locale" content="ja_JP">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tsuyu-mi">
+  <meta name="twitter:description" content="Raindrop.io に溜めた「あとで読む」記事を AI が 3 行要約し、今読む / 後回し / 捨てる の優先度付きで一覧化する自動更新ダッシュボード。">
+  <meta name="twitter:image" content="https://unsolublesugar.github.io/tsuyu-mi/og.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-row">
+        <div class="brand">
+          <img src="favicon.svg" alt="" width="34" height="34">
+          <div class="brand-text">
+            <div class="site-name">Tsuyu-mi</div>
+            <div class="tagline">「あとで読む」を、読む前に仕分ける</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="stats">
+            <div class="stats-count"><strong id="stats-count">26</strong> / <span id="stats-total">26</span> 件を表示</div>
+            <div class="stats-sub">最終実行 2026-11-11 07:08</div>
+          </div>
+          <a href="https://app.raindrop.io/" target="_blank" rel="noopener" class="raindrop-link" title="Raindrop.io を開く">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48" width="22" height="22">
+              <defs>
+                <path id="icon_raw-a" d="M12,0 C18.627417,0 24,5.372583 24,12 L24,12 L24,24 L12,24 C5.372583,24 0,18.627417 0,12 C0,5.372583 5.372583,0 12,0 Z"/>
+                <path id="icon_raw-c" d="M0,24 L0,12 L0.00379985776,11.6950252 C0.165607248,5.20854437 5.47454326,0 12,0 C18.627417,0 24,5.372583 24,12 C24,18.627417 18.627417,24 12,24 L12,24 L0,24 Z"/>
+              </defs>
+              <g fill="none" fill-rule="evenodd" transform="translate(0 5)">
+                <path fill="#0B7ED0" d="M35.3137085,4.6862915 C41.5620972,10.9346802 41.5620972,21.0653198 35.3137085,27.3137085 C35.1048567,27.5225603 34.8916675,27.7244313 34.674431,27.9193214 L24,38 L13.325569,27.9193214 C13.1083325,27.7244313 12.8951433,27.5225603 12.6862915,27.3137085 C6.43790283,21.0653198 6.43790283,10.9346802 12.6862915,4.6862915 C18.9346802,-1.56209717 29.0653198,-1.56209717 35.3137085,4.6862915 Z"/>
+                <g transform="translate(0 14)">
+                  <mask id="icon_raw-b" fill="#fff"><use xlink:href="#icon_raw-a"/></mask>
+                  <use fill="#2CD4ED" xlink:href="#icon_raw-a"/>
+                  <path fill="#0DB4E2" d="M35.3137085,-9.3137085 C41.5620972,-3.06531983 41.5620972,7.06531983 35.3137085,13.3137085 C35.1048567,13.5225603 34.8916675,13.7244313 34.674431,13.9193214 L24,24 L13.325569,13.9193214 C13.1083325,13.7244313 12.8951433,13.5225603 12.6862915,13.3137085 C6.43790283,7.06531983 6.43790283,-3.06531983 12.6862915,-9.3137085 C18.9346802,-15.5620972 29.0653198,-15.5620972 35.3137085,-9.3137085 Z" mask="url(#icon_raw-b)"/>
+                </g>
+                <g transform="translate(24 14)">
+                  <mask id="icon_raw-d" fill="#fff"><use xlink:href="#icon_raw-c"/></mask>
+                  <use fill="#3169FF" xlink:href="#icon_raw-c"/>
+                  <path fill="#3153FF" d="M11.3137085,-9.3137085 C17.5620972,-3.06531983 17.5620972,7.06531983 11.3137085,13.3137085 C11.1048567,13.5225603 10.8916675,13.7244313 10.674431,13.9193214 L2.61250577e-10,24 L-10.674431,13.9193214 C-10.8916675,13.7244313 -11.1048567,13.5225603 -11.3137085,13.3137085 C-17.5620972,7.06531983 -17.5620972,-3.06531983 -11.3137085,-9.3137085 C-5.06531983,-15.5620972 5.06531983,-15.5620972 11.3137085,-9.3137085 Z" mask="url(#icon_raw-d)"/>
+                </g>
+              </g>
+            </svg>
+          </a>
+        </div>
+      </div>
+      <nav class="filters">
+        <button class="filter-btn" data-filter="all">すべて <span class="tab-count"></span></button>
+        <button class="filter-btn active" data-filter="high">High <span class="tab-count"></span></button>
+        <button class="filter-btn" data-filter="medium">Medium <span class="tab-count"></span></button>
+        <button class="filter-btn" data-filter="low">Low <span class="tab-count"></span></button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <section class="articles">
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-28 19:55</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/tellernovel_inc/articles/testerarmy-e2e-react-native" target="_blank" rel="noopener">新時代のE2Eテスト、TesterArmyのe2eをReact Nativeアプリに導入してみた</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>TesterArmyのE2Eテストフレームワーク「e2e」をReact Nativeアプリに導入し、自然言語による操作とロケーターによる検証を併用している。</li>
+              
+              <li>操作をAIに任せてキャッシュする仕組みにより、コストと実行時間を抑えつつ、動的なUIや外観の崩れなどもテストできる。</li>
+              
+              <li>TypeScriptでの記述やCoding Agentとの連携、CI環境でのPRレビュー連携といった具体的な活用ノウハウが紹介されている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">E2Eテスト</span>
+          
+          <span class="keyword">React Native</span>
+          
+          <span class="keyword">TesterArmy</span>
+          
+          <span class="keyword">AIテスト</span>
+          
+          <span class="keyword">TypeScript</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AIを活用したE2Eテストの実務的な導入事例や、コード例・設定・キャッシュの仕組みが具体的に解説されているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> React NativeやモバイルアプリのE2Eテストに関心がない場合は、すぐに読む必要性は低い。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-13 11:47</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/aws_japan/articles/aws-bedrock-cur2-user-cost-dashboard" target="_blank" rel="noopener">Amazon Bedrock の利用料金をユーザーごとに確認するダッシュボードを CUR 2.0 と Amazon Quick で作る</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AWS Cost and Usage Report (CUR) 2.0のIAMプリンシパル記録オプションを活用し、Bedrockの利用料金をユーザー単位で集計する手法を解説している。</li>
+              
+              <li>Amazon S3へのデータ出力、Amazon Athenaでのテーブル作成と集計クエリ、Amazon QuickSightによるダッシュボード構築の手順を網羅している。</li>
+              
+              <li>IAM Identity Centerと連携することで、追加のタグ付けなしに誰がどのモデルやトークン種別にコストを費やしているか可視化できる。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>9</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s3"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Amazon Bedrock</span>
+          
+          <span class="keyword">CUR 2.0</span>
+          
+          <span class="keyword">Amazon Athena</span>
+          
+          <span class="keyword">Amazon QuickSight</span>
+          
+          <span class="keyword">コスト管理</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AWSでの生成AI利用コストをユーザー・モデル単位で詳細に追跡・可視化するための具体的なSQLやCloudFormationテンプレートが提供されており、実務に直結するため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 社内でAmazon Bedrockを複数メンバーに展開しておらず、コスト配賦や利用状況の追跡が急務でない場合は後回しにできる。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-13 11:47</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/chot/articles/be424332489e7a" target="_blank" rel="noopener">CSSの`text-box`で文字を上下中央に揃えたい</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>ボタンなどの上下中央揃えで文字がズレて見えるのは、フォントメトリクスによる余白やベースラインが原因である。</li>
+              
+              <li>CSSのtext-boxプロパティを使用すると、フォントの基準に合わせて上下の余白を削り、見た目のズレを調整できる。</li>
+              
+              <li>欧文基準のほかCJK向けの基準も存在するが、ブラウザ対応やフォントの指定順による影響に注意が必要である。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">CSS</span>
+          
+          <span class="keyword">text-box</span>
+          
+          <span class="keyword">フォントメトリクス</span>
+          
+          <span class="keyword">上下中央揃え</span>
+          
+          <span class="keyword">Webデザイン</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> CSSの新しめのプロパティであるtext-boxを用いた正確な垂直中央揃えの実装方法が具体的に解説されているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> CJK向けの基準値のブラウザ実装がまだ揃っていないため、今すぐ実務で全面的に導入するには時期尚早な場合があるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-13 07:47</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/headwaters/articles/6e889f79ee9f2e" target="_blank" rel="noopener">Microsoft-Decision-1でAI-OCRの品質ゲートを作ってみた</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Microsoft-Decision-1を用いてAI-OCRの読み取り品質を判定する品質ゲートを構築した。</li>
+              
+              <li>品質が低いOCR結果はLLMに渡さず事前に人の確認キューへ回すことで、処理効率と精度を向上させている。</li>
+              
+              <li>Pythonを用いた具体的な実装コードや判定基準の設計手法が紹介されている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Microsoft-Decision-1</span>
+          
+          <span class="keyword">AI-OCR</span>
+          
+          <span class="keyword">品質ゲート</span>
+          
+          <span class="keyword">GPT-5-mini</span>
+          
+          <span class="keyword">Azure</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 新しい判定特化モデルを活用したAI-OCRパイプラインの実装例と具体的なコードが公開されており、実務に応用しやすいため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> OCRの品質管理やLLMの前処理パイプラインに関心がない場合は、必要になったタイミングでの参照で問題ないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:30</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/yesodco/articles/da634d752874b2" target="_blank" rel="noopener">Mods で Claude Code のセッションごとに管理できるメモ帳を作った</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Claude Codeのデスクトップアプリやターミナルで動く「Mods」を使い、セッションごとにTODOやメモをMarkdownで管理するプラグイン「session-memo」を開発した。</li>
+              
+              <li>作業ディレクトリ配下にMarkdownファイルを作成し、入力欄の上の帯や専用ペインからTODOの切り替えやメモの追記・閲覧ができる仕組み。</li>
+              
+              <li>プラグインのソースコード全文を掲載し、UI制限やファイルパスの制約など開発時の工夫点についても解説している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude Code</span>
+          
+          <span class="keyword">Mods</span>
+          
+          <span class="keyword">TypeScript</span>
+          
+          <span class="keyword">Markdown</span>
+          
+          <span class="keyword">プラグイン開発</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> Claude Codeの拡張機能（Mods）の具体的な実装例とTypeScriptコードが公開されており、実用的なツールの作り方をすぐに学べるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> Claude Codeを日常的に使用していない場合は、プラグインの仕組みやコードの詳細を急いで読む必要性は低い。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:30</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/yoshihiko555/articles/e9801e0ad1efb8" target="_blank" rel="noopener">デザインハーネスを個人開発で組んだ — AI が作る画面のずれを止めるまで</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AIに画面作成を任せる際に発生するデザインのズレを防ぐため、「デザインハーネス」の導入プロセスを解説している。</li>
+              
+              <li>見た目・値・振る舞いの正本を分離し、値はコード（Tailwind CSS）を正本として同期テストやlintで管理する手法をとる。</li>
+              
+              <li>自動検査で防ぎきれない部分はAI評価役を補助的に活用しつつ、繰り返す指摘はlintのルールへ昇格させる仕組みを構築した。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">デザインハーネス</span>
+          
+          <span class="keyword">AI開発</span>
+          
+          <span class="keyword">Tailwind CSS</span>
+          
+          <span class="keyword">個人開発</span>
+          
+          <span class="keyword">UIデザイン</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AIコーディングツールを活用した開発において、デザインの一貫性を維持する具体的な仕組みと失敗談が実体験ベースで詳細に語られているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> AIエージェントを使ったUI開発の全体像に急ぎの関心がない場合や、同様の課題に直面していない場合は後回しにできるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:30</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/nishino_hiroki/articles/d7570d3bb3408f" target="_blank" rel="noopener">GitHub ActionsのSHA Pinningだけで本当に大丈夫ですか？</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>SHA Pinningはリポジトリ内のファイルや定義を固定するが、実行時に外部から取得するバイナリやコンテナイメージは保護できない。</li>
+              
+              <li>複合アクション内の推移的なタグ参照や、デフォルトが「latest」に設定された内部動作が侵害の温床になるケースがある。</li>
+              
+              <li>利用者側はEnforceポリシーの有効化や内部動作の確認、開発者側はデフォルトバージョンの固定やチェックサムの同梱が求められる。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>9</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s3"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">GitHub Actions</span>
+          
+          <span class="keyword">SHA Pinning</span>
+          
+          <span class="keyword">サプライチェーン攻撃</span>
+          
+          <span class="keyword">セキュリティ</span>
+          
+          <span class="keyword">CI/CD</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> GitHub Actionsのセキュリティ対策における盲点を実例ベースで網羅しており、直ちにワークフローの設定やポリシーを見直す必要があるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> すでに高度なサプライチェーン攻撃対策を実施しており、Action内部のバイナリ取得挙動まで把握できている場合は後回しにできるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:29</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/genda_jp/articles/haiku-5-5-subagent-roles" target="_blank" rel="noopener">Haiku 5.5 を機に Sonnet 以下で動かしていたサブエージェントを見直した</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Claude Haiku 5.5の価格改定と性能を踏まえ、サブエージェント（テスト実行・調査・実装）のモデル見直しを実施した。</li>
+              
+              <li>テスト実行役はHaikuに移行し、実装役は判断力が必要なためSonnetを維持した。</li>
+              
+              <li>調査役はプロンプト設計と呼び出し元の検証前提を変更することで、安価なHaikuの活用を可能にした。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude Haiku 5.5</span>
+          
+          <span class="keyword">Claude Code</span>
+          
+          <span class="keyword">サブエージェント</span>
+          
+          <span class="keyword">LLMプロンプト設計</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 最新モデル（Haiku 5.5）の価格・性能特性を実務のAIエージェント運用にどう落とし込むかの具体的な検証とプロンプト改善の知見が得られるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> Claude Codeを用いた高度なエージェント運用を直接行っていない場合は、今すぐではなくてもよい内容だから。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">recruit.group.gmo</span>
+              <span class="sep">·</span>
+              <span class="date">2026-09-28 23:02</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://recruit.group.gmo/engineer/jisedai/blog/jev-system-one-model/" target="_blank" rel="noopener">Jevのオープンソース版「Laya」を使ってみた：考えずに、直感で即答する元祖「System One Models」 - GMOインターネットグループ グループ研究開発本部</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Convai Innovationsが公開したオープンソースの意思決定モデル「Laya」の概要と、Apple Silicon向け「Laya-MLX」の検証結果を紹介している。</li>
+              
+              <li>ModernBERTベースのエンコーダー型構造を採用し、テキスト生成を行わずに1回のフォワードパスで較正された確率を高速に出力する。</li>
+              
+              <li>実際のECサイトのユースケースでJevと比較検証を行い、日本語処理におけるプロンプト設計や入力トークン数の制約について解説している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Laya</span>
+          
+          <span class="keyword">Jev</span>
+          
+          <span class="keyword">System One Models</span>
+          
+          <span class="keyword">ModernBERT</span>
+          
+          <span class="keyword">MLX</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 話題の非自己回帰型モデルLayaの実装例やJevとの性能比較、プロンプト設計の注意点などの実務的な知見が得られるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 今すぐ自身のプロジェクトでLayaを組み込む予定がない場合は、後からでも検証手順や実装例を参照できるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">claude.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-25 11:29</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models" target="_blank" rel="noopener">The new rules of context engineering for Claude 5 generation models | Claude by Anthropic</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Claude 5世代モデルの高度な推論能力に伴い、Claude Codeのシステムプロンプトの80%以上を削除した。</li>
+              
+              <li>厳格なルールや例示の多用から、モデルの判断力を信じてデザインやプログレッシブ・ディスクロージャーを活用する手法へ転換した。</li>
+              
+              <li>システムプロンプト、CLAUDE.md、スキル、参照ファイルの各要素における実践的な最適化のベストプラクティスが解説されている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude</span>
+          
+          <span class="keyword">コンテキストエンジニアリング</span>
+          
+          <span class="keyword">プロンプトエンジニアリング</span>
+          
+          <span class="keyword">Claude Code</span>
+          
+          <span class="keyword">Anthropic</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 最新のLLM世代におけるプロンプト・コンテキスト設計の根本的なパラダイムシフトが具体例を交えて解説されているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 自身のワークフローにすぐ適用しなくとも、次世代モデルの特性に関する一般的な知見として後からでもキャッチアップ可能であるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-medium" data-priority="medium">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-medium"><span class="dot"></span>MEDIUM</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-19 21:28</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/hashiiiii/articles/2efea432e7e5bf" target="_blank" rel="noopener">UnityYAML Assets を GitHub 上でレビュー可能にする OSS「PrefabLens」を作った</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>UnityYAML形式のPrefabやSceneの差分を人間が読める形で表示するツール群「PrefabLens」がプレリリースされた。</li>
+              
+              <li>Zig製のコアを採用し、Chrome拡張機能、Unityプラグイン、CLIの3つのインターフェースを提供する。</li>
+              
+              <li>オブジェクト参照の解決や任意のref比較に対応し、レビューコストの削減やセルフチェックを可能にしている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>8</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">PrefabLens</span>
+          
+          <span class="keyword">Unity</span>
+          
+          <span class="keyword">UnityYAML</span>
+          
+          <span class="keyword">GitHub</span>
+          
+          <span class="keyword">OSS</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> Unity開発におけるYAMLファイルのレビュー難という実務上の課題に対する具体的なOSSツール群の全貌が把握できるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 公式のプレリリース記事であり、実際の導入や詳細な設定はプロジェクトの状況に応じて後からでも十分に確認できるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-28 19:55</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/nrs/articles/c777388530aa84" target="_blank" rel="noopener">コードを読まずにマージするために必要なこと</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AIによる品質確認やテストを自動化し、人がコードを読まずにPRをマージする「no look merge」の運用手法について解説している。</li>
+              
+              <li>技術的な仕組みだけでなく、不具合が見つかった際の責任を個人ではなく組織が引き受けるというコンセンサスが不可欠であると説いている。</li>
+              
+              <li>著者が開発するワークフロー制御ツール「TAKT」などを活用し、定型化したオペレーションを自動化する実践例を紹介している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">no look merge</span>
+          
+          <span class="keyword">コードレビュー</span>
+          
+          <span class="keyword">生成AI</span>
+          
+          <span class="keyword">TAKT</span>
+          
+          <span class="keyword">開発プロセス</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AI開発環境の進展に伴うレビュープロセスの変革や、組織的合意の必要性に言及しており、チーム開発の効率化を模索する技術者にとって示唆に富むため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 具体的なツール導入の手順よりも概念や組織論が中心のため、今すぐ作業に直結する情報を求めている場合は後回しでも支障がないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-28 19:55</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/herumi/articles/search_bad_emudhra_key" target="_blank" rel="noopener">eMudhraの中間CA証明書の秘密鍵を求めてみる</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>認証局eMudhraの中間CA証明書に脆弱な8ビット以下の秘密鍵が含まれていたという報告に基づき検証を行った。</li>
+              
+              <li>OpenSSLコマンドで証明書から公開鍵を取り出し、Pythonの楕円曲線演算コードを用いて離散対数問題を解いた。</li>
+              
+              <li>総当たりにより約0.4秒で秘密鍵が「156」であることを特定し、検証の正しさを確認した。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>6</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">eMudhra</span>
+          
+          <span class="keyword">中間CA証明書</span>
+          
+          <span class="keyword">楕円曲線暗号</span>
+          
+          <span class="keyword">離散対数問題</span>
+          
+          <span class="keyword">Python</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 実際の脆弱性のある証明書とPythonコードを用いて、離散対数問題の解読プロセスを具体的に確認できるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 特定の脆弱性事例の検証であり、暗号理論の基礎的な手続の域を出ないため、緊急度や実務への直結性は高くないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-28 19:54</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/ivry/articles/d155267331a3ca" target="_blank" rel="noopener">Flutter やめました。電話アプリを Native にした理由</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>株式会社IVRyは、音声通話の品質向上とアーキテクチャのシンプル化を目的に、Flutter製アプリを完全ネイティブへ移行しました。</li>
+              
+              <li>導入時は少数精鋭でのクロスプラットフォーム開発に合理性があったものの、通話SDKやWebView、プラットフォーム間のオーバーヘッドが課題となりました。</li>
+              
+              <li>AIコーディングツールの進化により移行コストが大幅に軽減されたことも、今回のフルネイティブ化（Flutter Exit）を後押ししました。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Flutter</span>
+          
+          <span class="keyword">ネイティブアプリ</span>
+          
+          <span class="keyword">アーキテクチャ</span>
+          
+          <span class="keyword">音声通話</span>
+          
+          <span class="keyword">AIコーディングツール</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> クロスプラットフォームからネイティブへの回帰という大きなアーキテクチャ変更のリアルな判断背景とAIコーディングツールの活用事例が学べるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 具体的なコードの書き方や移行手順ではなく意思決定のプロセスが中心のため、今すぐ手を止めて読む必要はないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:32</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/muit_techblog/articles/6ea28887c79457" target="_blank" rel="noopener">若手エンジニアに必要だと感じた「AIを使う力」</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>若手エンジニアがAIを活用する中で、人に聞く判断の遅れや、動くコードと良い設計の混同といった問題に直面した体験談を述べている。</li>
+              
+              <li>AIは前提が誤っていれば誤った回答を生成するため、要件理解や問題の切り分け、適切な前提条件の整理が不可欠であると指摘している。</li>
+              
+              <li>実践的なプロンプトの例を示し、AIを過信せず人間側が主体的に判断しコントロールする重要性を強調している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">AI活用</span>
+          
+          <span class="keyword">若手エンジニア</span>
+          
+          <span class="keyword">設計判断</span>
+          
+          <span class="keyword">プロンプトエンジニアリング</span>
+          
+          <span class="keyword">要件定義</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 若手エンジニアがAI活用で陥りがちな罠と、それを防ぐ具体的なプロンプト設定が学べるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 一般的なAI利用の注意点や心構えが中心であり、急ぎの技術的課題解決には直結しないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:31</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/terass_dev/articles/6e6562d54d5505" target="_blank" rel="noopener">Claude Code Routines で Notion や Slack から AI に仕事を依頼できる仕組みを作った</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>NotionやSlackから自然文やボタンでClaude Codeへ仕事を依頼できる仕組みをRoutinesと独自の中継サーバーで構築した。</li>
+              
+              <li>利用者ごとのルーティンをクラウド上で起動し、会話履歴を中継サーバー経由で引き継ぐことでチーム運用を実現している。</li>
+              
+              <li>API従量課金を避けサブスクリプション枠を活用することでコストを大幅に抑えつつ、バグ修正等の開発効率化に成功している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude Code</span>
+          
+          <span class="keyword">Routines</span>
+          
+          <span class="keyword">Notion</span>
+          
+          <span class="keyword">Slack</span>
+          
+          <span class="keyword">AI開発</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> Claude Code Routinesをチームで実用的に活用するための具体的なアーキテクチャと運用知見が得られるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 自身のチームで同様のチャット連携やクラウドセッション自動化を直ちに導入する予定がない場合は後回しでも支障はないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:31</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/neurogica/articles/ef9ebaa4f3e9bd" target="_blank" rel="noopener">中国製オープンウェイトモデルに、自社サービスの脆弱性を探させた</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>自社サービスのリリース前に、Altar-1、Qwen、GLM、DeepSeekの4つの中国製オープンウェイトモデルを使って脆弱性を探索した。</li>
+              
+              <li>QwenとGLMがそれぞれ1件ずつ正しい指摘を行い、公開前に修正につながる不具合を発見できた。</li>
+              
+              <li>AIを活用した脆弱性調査は有効である一方、誤検出や未完了の試行もあり、継続的な検証の必要性が示された。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">オープンウェイトモデル</span>
+          
+          <span class="keyword">脆弱性診断</span>
+          
+          <span class="keyword">LLM</span>
+          
+          <span class="keyword">セキュリティ</span>
+          
+          <span class="keyword">AI</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 実際のオープンウェイトモデルを用いて脆弱性探索を行った具体的な検証データや結果が含まれており、開発現場におけるAI活用の参考になるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 具体的な脆弱性対策のコードや手順が詳細に解説されているわけではないため、今すぐ実務に直結する内容ではないから。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:29</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/loglass/articles/f00a7408b2cf0b" target="_blank" rel="noopener">暗号技術入門</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>共通鍵暗号や公開鍵暗号、ハッシュ関数などデジタルセキュリティを支える暗号技術の基本概念を解説している。</li>
+              
+              <li>AESのCBCモードにおける展性の脆弱性を突いたメッセージ改ざんの具体的な攻撃手法をコマンド例を交えて紹介している。</li>
+              
+              <li>AI駆動開発の普及する現代において、エンジニア自身がセキュリティ上の判断を下しコードを評価する重要性を説いている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">暗号技術</span>
+          
+          <span class="keyword">共通鍵暗号</span>
+          
+          <span class="keyword">公開鍵暗号</span>
+          
+          <span class="keyword">AES-CBC</span>
+          
+          <span class="keyword">デジタル署名</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 暗号技術の基礎から具体的な脆弱性の検証コードまで網羅されており、実装上のセキュリティ意識を高めるのに役立つため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 基礎的な暗号理論の解説が多く、すでにセキュリティの基礎知識がある場合は新味に欠けるため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">zenn.dev</span>
+              <span class="sep">·</span>
+              <span class="date">2026-10-12 21:29</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://zenn.dev/branbran/articles/047821d64590f0" target="_blank" rel="noopener">【速報】Claude の新機能 Claude Motion 早速使ってみた</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>Anthropicは2026年10月8日、コードで素材を動かして短い説明動画を作る新機能「Claude Motion」をベータ公開した。</li>
+              
+              <li>動画生成AIとは異なり文字や数値が正確に保たれ、部分的な修正やエディタでの微調整が可能な点が特徴である。</li>
+              
+              <li>TeamおよびEnterpriseプランで利用可能であり、現在はBGMの少なさやデザインがコード力に依存する課題がある。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude</span>
+          
+          <span class="keyword">Claude Motion</span>
+          
+          <span class="keyword">Anthropic</span>
+          
+          <span class="keyword">動画生成</span>
+          
+          <span class="keyword">AIツール</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> 新機能の仕組みや具体的な使い方のコツ、実際の所感が簡潔にまとまっており、導入検討の参考になるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> ベータ版の基本機能や公式ヘルプに沿った内容が中心であり、詳細なコード実装や高度なハックを含まないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">speakerdeck.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-08-07 09:03</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://speakerdeck.com/recruitengineers/fy2026_bootcamp_kuroda" target="_blank" rel="noopener">事業価値と Engineering 2026年度版</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AIにより開発コストが下がる時代において、生産性は開発量（アウトプット）ではなく事業価値（アウトカム）の面積で評価されるべきであると説いています。</li>
+              
+              <li>アウトプットからアウトカムまでの距離は開発の種類によって異なり、事業の文脈に応じた適切な開発手法の選択が求められます。</li>
+              
+              <li>コード総量の増加や技術的負債、オーバーエンジニアリングを防ぎつつ、価値あるコードの濃度を上げ、システムを持続可能に動かす重要性が示されています。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>5</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">事業価値</span>
+          
+          <span class="keyword">エンジニアリング</span>
+          
+          <span class="keyword">生産性</span>
+          
+          <span class="keyword">技術的負債</span>
+          
+          <span class="keyword">AI時代</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AI時代の開発においてエンジニアが注力すべき事業視点や生産性の本質を再定義しているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 抽象的な概念やフレームワークの解説が中心で、具体的なコードや開発プロセスの手順が含まれていないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">makeuseof.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-08-05 12:59</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://www.makeuseof.com/claude-edit-photos-makes-darktable-like-lightroom/" target="_blank" rel="noopener">Claude can edit your photos now — and it makes Darktable feel like Lightroom</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>筆者はAdobe Lightroomのサブスクリプションから脱却するため、オープンソースのRAW現像ソフト「Darktable」とClaudeを連携させるMCPサーバーを自作した。</li>
+              
+              <li>作成した「darktable-mcp」により、ターミナル経由でDarktableを操作し、自然言語の指示で画像の一括処理や編集が可能になった。</li>
+              
+              <li>複雑なDarktableの操作をAIが補助することで、初心者でも迷わず高度な現像処理を行える新しいワークフローを実現している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s2"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Claude</span>
+          
+          <span class="keyword">Darktable</span>
+          
+          <span class="keyword">MCP</span>
+          
+          <span class="keyword">Lightroom</span>
+          
+          <span class="keyword">AI画像編集</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AI（Claude）とデスクトップアプリ（Darktable）をMCPで連携させる具体的な実践例が分かるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> Adobeのサブスクリプションに不満がなく、オープンソースのRAW現像環境に興味がなければ後回しで問題ない。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">speakerdeck.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-30 10:31</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://speakerdeck.com/fujie/ai-ezientoshi-dai-nodezitaruaidenteitei" target="_blank" rel="noopener">AI エージェント時代のデジタルアイデンティティ</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AIエージェントの普及により匿名性の前提が崩れ、誰の意図と権限で動くかの管理が不可欠になっている。</li>
+              
+              <li>従来のNHIとは異なり自律的なエージェントには、最小権限、Token Exchange、委任チェーンの検証が必要とされる。</li>
+              
+              <li>OAuth/OIDCなどの標準技術をレイヤーごとに適用し、技術・契約・運用のトラストフレームワークを構築することが求められる。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">AIエージェント</span>
+          
+          <span class="keyword">デジタルアイデンティティ</span>
+          
+          <span class="keyword">OAuth</span>
+          
+          <span class="keyword">Token Exchange</span>
+          
+          <span class="keyword">トラストフレームワーク</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AIエージェントを活用したシステム開発において必須となる、アイデンティティ管理や認可設計の最新動向を把握できるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 概念やフレームワークの解説が中心であり、即座に具体的な設定やコードを実装する必要がない場合は後回しでも問題ないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">blog.shin1x1.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-28 13:10</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://blog.shin1x1.com/entry/dont-let-go-of-understanding" target="_blank" rel="noopener">理解を手放さない - Shin x Blog</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>AIエージェントによる開発の高速化が進む中、人間がシステムを理解し続けることの重要性を論じている。</li>
+              
+              <li>理解を手放すと検証能力や変更のしやすさが失われ、認知的負債として蓄積すると指摘している。</li>
+              
+              <li>事前の想像やAIを活用した検証を通じて、理解を維持しながらエージェントと協働する姿勢を提示している。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">AIコーディング</span>
+          
+          <span class="keyword">認知的負債</span>
+          
+          <span class="keyword">ソフトウェア設計</span>
+          
+          <span class="keyword">開発プロセス</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> AIコーディング時代の開発における認知的負債や理解のあり方について、実践的な視点から深く考えさせられるため今読む価値がある。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 具体的なツール設定やコード例の解説ではなく思想や心構えが中心の論考であるため、後回しにしても内容の理解に支障はない。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">qiita.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-25 22:42</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://qiita.com/iwashiMadai/items/f4630743e2d8c60dfb2b" target="_blank" rel="noopener">PMBOK第8版をゼロから理解する - Qiita</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>PMBOKの概念や発行団体PMIの概要、過去の版からの変遷を整理している。</li>
+              
+              <li>第8版では6原則・7パフォーマンス領域・40プロセスに再編され、ITTOフレームワークが復活した。</li>
+              
+              <li>AI活用やPMO、調達領域の拡充が行われ、PMP受験や学習のルートが解説されている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>4</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">PMBOK</span>
+          
+          <span class="keyword">PMI</span>
+          
+          <span class="keyword">プロジェクトマネジメント</span>
+          
+          <span class="keyword">PMP</span>
+          
+          <span class="keyword">第8版</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> PMBOK第8版の構成や変更点の全体像を短時間で把握できるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> PMP試験を受験する予定や第8版の具体的な学習が必要になるタイミングまで後回しでも問題ないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">qiita.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-07-07 08:49</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://qiita.com/kenimo49/items/d1151389d17e50ad5564" target="_blank" rel="noopener">1Passwordは、あなたのマスターパスワードを一度も受信していません - Qiita</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>1Passwordはログイン時にマスターパスワードをサーバへ送信せず、認証を行っている。</li>
+              
+              <li>マスターパスワードと固有のSecret Keyを組み合わせる2SKDにより、サーバ側でのオフライン総当たり攻撃を防いでいる。</li>
+              
+              <li>SRP-6aプロトコルを用いることで、パスワード等の秘密情報をネットワークに流さずに認証を成立させている。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>5</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s1"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s0"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">1Password</span>
+          
+          <span class="keyword">パスワードマネージャー</span>
+          
+          <span class="keyword">Secret Key</span>
+          
+          <span class="keyword">SRP</span>
+          
+          <span class="keyword">2SKD</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> パスワードマネージャーの安全性を支える具体的な暗号化プロトコルや認証設計の仕組みを深く理解できるため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 既存のセキュリティホワイトペーパーの内容を噛み砕いた解説であり、今すぐ実務での設定や実装に直結するものではないため。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+      <article class="card priority-low" data-priority="low">
+        <div class="card-body">
+          <div class="card-main">
+            <div class="card-header">
+              <span class="priority-badge priority-low"><span class="dot"></span>LOW</span>
+              
+              <span class="domain">automaton-media.com</span>
+              <span class="sep">·</span>
+              <span class="date">2026-06-15 20:17</span>
+            </div>
+
+            <h2 class="card-title">
+              <a href="https://automaton-media.com/articles/interviewsjp/godot-20260615-449775/" target="_blank" rel="noopener">ゲームエンジンGodot Engineは今後どうなる？コンソールサポートは？AIは？弱点はどこ？Godot利用開発者が関係者に訊いた。ロング公式Q&amp;A決定版になった - AUTOMATON</a>
+            </h2>
+
+            
+            <ul class="summary">
+              
+              <li>ゲーム開発者がW4 Gamesのスタッフに、コンソール移植やAI活用の現状について聞いた公式Q&amp;A記事。</li>
+              
+              <li>コンソール移植ではW4 Consolesによる効率化が期待できる一方、オープンソース特有の課題も存在する。</li>
+              
+              <li>軽量さと高速なイテレーションが強みである反面、3D機能やエコシステムの成熟度は現在も発展途上にある。</li>
+              
+            </ul>
+            
+          </div>
+          <div class="score-panel">
+            <div class="score-total">スコア <strong>7</strong><span>/12</span></div>
+            <div class="axes">
+              <div class="axis"><span class="axis-label">新規性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">関心の近さ</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">読む必要性</span><span class="bar"><span class="fill s2"></span></span></div>
+              <div class="axis"><span class="axis-label">活用度</span><span class="bar"><span class="fill s1"></span></span></div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="keywords">
+          
+          <span class="keyword">Godot Engine</span>
+          
+          <span class="keyword">W4 Games</span>
+          
+          <span class="keyword">ゲーム開発</span>
+          
+          <span class="keyword">コンソール移植</span>
+          
+          <span class="keyword">オープンソース</span>
+          
+        </div>
+        
+
+        <details class="reasons-toggle">
+          <summary>判定理由</summary>
+          <div class="reasons">
+            
+            <div class="reason read-now">
+              <span class="reason-label">今読む:</span> Godot Engineの商用利用やコンソール移植の現実的な課題、運営体制について当事者の見解が詳細に語られているため。
+            </div>
+            
+            
+            <div class="reason defer">
+              <span class="reason-label">後回し:</span> 具体的な技術実装の手順やコード解説が含まれているわけではないため、今すぐ作業に直結するわけではない。
+            </div>
+            
+            
+          </div>
+        </details>
+
+      </article>
+      
+    </section>
+    
+
+    
+    <section class="skipped-section">
+      <details>
+        <summary>スキップ・未処理 (2 件)</summary>
+        <div class="skipped-list">
+          
+          <div class="skipped-item">
+            <a href="https://pages.awscloud.com/rs/112-TZM-766/images/R13_0625_7_CDN221_v1.pdf" target="_blank" rel="noopener">R CDN v</a>
+            <span class="domain">pages.awscloud.com</span>
+            
+            <span class="badge skip-reason">fetch_failed</span>
+          </div>
+          
+          <div class="skipped-item">
+            <a href="https://codezine.jp/article/detail/29119" target="_blank" rel="noopener">なぜAIで速く作れても成果は増えないのか──及川卓也氏が説く、AIネイティブ時代に人間が手放してはいけない2つの仕事</a>
+            <span class="domain">codezine.jp</span>
+            
+            <span class="badge skip-reason">fetch_failed</span>
+          </div>
+          
+        </div>
+      </details>
+    </section>
+    
+  </main>
+
+  <footer>
+    <p>🚀 <a href="https://unsolublesugar.github.io/portfolio/" target="_blank" rel="noopener">@unsoluble_sugar</a> | <a href="https://github.com/unsolublesugar/tsuyu-mi" target="_blank" rel="noopener" title="GitHub Repository" aria-label="GitHub Repository" class="footer-icon-link">
+      <svg class="icon icon-sm" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    </a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

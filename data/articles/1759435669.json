@@ -1,0 +1,47 @@
+{
+  "raindrop_id": 1759435669,
+  "collection_id": 56182051,
+  "title": "ゲームエンジンGodot Engineは今後どうなる？コンソールサポートは？AIは？弱点はどこ？Godot利用開発者が関係者に訊いた。ロング公式Q&A決定版になった - AUTOMATON",
+  "url": "https://automaton-media.com/articles/interviewsjp/godot-20260615-449775/",
+  "domain": "automaton-media.com",
+  "created_at": "2026-06-15T11:17:49.790000Z",
+  "fetched_at": "2026-07-25T18:58:16.558906Z",
+  "source_language": "",
+  "output_language": "ja",
+  "content_type": "article",
+  "content_status": "ok",
+  "fetch_status": "ok",
+  "extract_method": "trafilatura",
+  "content_chars": 13708,
+  "content_hash": "sha256:b72ec672c0638a84cb488128dbfbb40bb02dab7b51b207c4c9389cc996109dfa",
+  "summary_input_type": "fulltext",
+  "topic": "Godot Engineの現状と将来性に関する開発者向け公式Q&A",
+  "summary_3lines": [
+    "ゲーム開発者がW4 Gamesのスタッフに、コンソール移植やAI活用の現状について聞いた公式Q&A記事。",
+    "コンソール移植ではW4 Consolesによる効率化が期待できる一方、オープンソース特有の課題も存在する。",
+    "軽量さと高速なイテレーションが強みである反面、3D機能やエコシステムの成熟度は現在も発展途上にある。"
+  ],
+  "scores": {
+    "novelty": 2,
+    "relevance": 2,
+    "depth": 2,
+    "actionability": 1
+  },
+  "priority": "low",
+  "read_now_reason": "Godot Engineの商用利用やコンソール移植の現実的な課題、運営体制について当事者の見解が詳細に語られているため。",
+  "defer_reason": "具体的な技術実装の手順やコード解説が含まれているわけではないため、今すぐ作業に直結するわけではない。",
+  "drop_candidate": false,
+  "drop_reason": "",
+  "keywords": [
+    "Godot Engine",
+    "W4 Games",
+    "ゲーム開発",
+    "コンソール移植",
+    "オープンソース"
+  ],
+  "model_provider": "gemini",
+  "model_name": "gemini-3.5-flash-lite",
+  "summarized_at": "2026-07-25T18:58:17.932571Z",
+  "manual_status": "untriaged",
+  "notes": ""
+}

@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# Data and state (generated at runtime, but tracked for GitHub Actions)
+# Uncomment below to exclude from git in local-only usage:
+# data/
+# state/
+
+# Raindrop API raw data (contains personal bookmarks)
+data/raw/
+
+# Claude Code (local settings)
+.claude/settings.local.json
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
